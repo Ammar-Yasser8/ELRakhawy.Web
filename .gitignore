@@ -1,0 +1,27 @@
+# Ignore Visual Studio temporary files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Build results
+bin/
+obj/
+Debug/
+Release/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+
+# Ignore appsettings (for security)
+appsettings.json
+appsettings.*.json
+
+
+# Others
+*.log
+*.vsidx

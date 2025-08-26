@@ -1,0 +1,868 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model StakeholdersInfoViewModel
+@{
+    ViewData["Title"] = "إضافة جهة جديدة";
+    var currentTime = "2025-08-19 19:15:59";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>
+                        <span class="fw-semibold">الجداول العامة</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "StakeholdersInfo")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-users text-success me-2"></i>
+                        <span class="fw-semibold">الجهات</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-plus-circle text-warning me-2"></i>
+                    <span class="fw-bold text-dark">إضافة جهة جديدة</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Enhanced Header Section -->
+<div class="welcome-card mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body bg-light p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-success text-white me-3">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-1 text-dark">إضافة جهة جديدة</h2>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                إدخال بيانات الجهة الجديدة وتحديد أنواعها
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Form Section -->
+    <div class="col-lg-8 mb-4">
+        <div class="section-card">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-edit me-2 text-primary"></i>بيانات الجهة
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <form asp-action="Create" method="post" id="createForm" novalidate>
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4 d-none" id="validationSummary"></div>
+
+                        <div class="row g-4">
+                            <!-- Name Field -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="Name" class="form-label fw-semibold">
+                                        <i class="fas fa-building text-primary me-1"></i>
+                                        اسم الجهة <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-building text-muted"></i>
+                                        </span>
+                                        <input asp-for="Name" class="form-control"
+                                               placeholder="أدخل اسم الجهة..."
+                                               maxlength="200" />
+                                    </div>
+                                    <span asp-validation-for="Name" class="text-danger small"></span>
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            يجب أن يكون اسم الجهة واضحاً ومميزاً
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Contact Numbers Field -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="ContactNumbers" class="form-label fw-semibold">
+                                        <i class="fas fa-phone text-info me-1"></i>
+                                        أرقام التواصل
+                                    </label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="fas fa-phone text-muted"></i>
+                                        </span>
+                                        <input asp-for="ContactNumbers" class="form-control"
+                                               placeholder="أدخل أرقام التواصل..."
+                                               dir="ltr" />
+                                    </div>
+                                    <span asp-validation-for="ContactNumbers" class="text-danger small"></span>
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                           
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Status Switch -->
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fas fa-toggle-on text-success me-1"></i>
+                                        حالة الجهة
+                                    </label>
+                                    <div class="form-check form-switch form-switch-lg">
+                                        <input asp-for="Status" class="form-check-input" type="checkbox" />
+                                        <label asp-for="Status" class="form-check-label fw-semibold">
+                                            <span id="statusLabel">@(Model?.Status == true ? "نشط" : "غير نشط")</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            الجهات النشطة فقط تظهر في العمليات
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Types Selection -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label fw-semibold d-block mb-3">
+                                        <i class="fas fa-tags text-warning me-1"></i>
+                                        أنواع الجهة <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="card border border-2">
+                                        <div class="card-header bg-light py-3">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="fw-semibold">
+                                                    <i class="fas fa-list me-2"></i>حدد أنواع الجهة
+                                                </span>
+                                                <div class="btn-group" role="group">
+                                                    <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllTypes">
+                                                        <i class="fas fa-check-double me-1"></i>تحديد الكل
+                                                    </button>
+                                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllTypes">
+                                                        <i class="fas fa-times me-1"></i>إلغاء تحديد الكل
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="card-body">
+                                            @if (Model?.AvailableTypes?.Any() == true)
+                                            {
+                                                <div class="row g-3">
+                                                    @foreach (var type in Model.AvailableTypes)
+                                                    {
+                                                        <div class="col-md-6">
+                                                            <div class="type-check-container">
+                                                                <div class="form-check type-check">
+                                                                    <input type="checkbox" class="form-check-input"
+                                                                           id="type_@type.Id"
+                                                                           name="SelectedTypeIds"
+                                                                           value="@type.Id" />
+                                                                    <label class="form-check-label" for="type_@type.Id">
+                                                                        <div class="d-flex align-items-start">
+                                                                            <div class="flex-grow-1">
+                                                                                <span class="fw-semibold">@type.Type</span>
+                                                                                @if (!string.IsNullOrEmpty(type.FinancialTransactionType?.Type))
+                                                                                {
+                                                                                    <small class="text-muted d-block">
+                                                                                        <i class="fas fa-coins me-1"></i>@type.FinancialTransactionType.Type
+                                                                                    </small>
+                                                                                }
+                                                                            </div>
+                                                                            <i class="fas fa-check text-success ms-2 check-icon d-none"></i>
+                                                                        </div>
+                                                                    </label>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="text-center py-4">
+                                                    <i class="fas fa-exclamation-circle fa-2x text-muted mb-2"></i>
+                                                    <p class="text-muted mb-0">لا توجد أنواع متاحة</p>
+                                                </div>
+                                            }
+                                            <div id="typesValidationMsg" class="alert alert-danger mt-3 d-none">
+                                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                                يجب اختيار نوع واحد على الأقل للجهة
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Primary Type Selection -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="form-label fw-semibold">
+                                        <i class="fas fa-star text-warning me-1"></i>
+                                        النوع الرئيسي للجهة
+                                    </label>
+                                    <select asp-for="PrimaryTypeId" class="form-select form-select-lg" id="primaryTypeSelect">
+                                        <option value="">-- اختر النوع الرئيسي (اختياري) --</option>
+                                        @if (Model?.AvailableTypes?.Any() == true)
+                                        {
+                                            @foreach (var type in Model.AvailableTypes)
+                                            {
+                                                <option value="@type.Id" disabled>@type.Type</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="PrimaryTypeId" class="text-danger small"></span>
+                                    <div class="form-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            النوع الرئيسي يجب أن يكون من ضمن الأنواع المحددة أعلاه
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Comment Field -->
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label asp-for="Comment" class="form-label fw-semibold">
+                                        <i class="fas fa-comment-alt text-secondary me-1"></i>
+                                        بيان وملاحظات
+                                    </label>
+                                    <textarea asp-for="Comment" class="form-control" rows="4"
+                                              placeholder="أدخل أي بيان أو ملاحظات إضافية عن الجهة (اختياري)..."
+                                              maxlength="1000"></textarea>
+                                    <span asp-validation-for="Comment" class="text-danger small"></span>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div class="form-text">
+                                            <small class="text-muted">
+                                                <i class="fas fa-lightbulb me-1"></i>
+                                                يمكن إضافة معلومات إضافية تساعد في التعرف على الجهة
+                                            </small>
+                                        </div>
+                                        <small class="text-muted">
+                                            <span id="commentCounter">0</span> / 1000 حرف
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <hr class="my-4">
+                        <div class="d-flex justify-content-end gap-3">
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-times me-2"></i>إلغاء
+                            </a>
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                                <i class="fas fa-save me-2"></i>حفظ الجهة
+                            </button>
+                        </div>
+                    </form>
+                    <script>
+                        // دالة لتحويل الأرقام للغة العربية
+                        function toArabicDigits(str) {
+                            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                        }
+
+                        // دالة لتحويل الأرقام للاتينية
+                        function toLatinDigits(str) {
+                            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                        }
+
+                        // دالة لاكتشاف إذا كان الحرف عربي
+                        function isArabicChar(c) {
+                            return /[\u0600-\u06FF]/.test(c);
+                        }
+
+                        // دالة لاكتشاف إذا كان الحرف إنجليزي
+                        function isEnglishChar(c) {
+                            return /[a-zA-Z]/.test(c);
+                        }
+
+                        // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                        function getLastLetter(str) {
+                            for (let i = str.length - 1; i >= 0; i--) {
+                                let char = str[i];
+                                if (isArabicChar(char)) {
+                                    return 'arabic';
+                                } else if (isEnglishChar(char)) {
+                                    return 'english';
+                                }
+                            }
+                            return 'arabic'; // default is Arabic
+                        }
+
+                        // استثناء حقل أرقام التواصل من التحويل (يبقى كما هو)
+                        function shouldSkipConversion(input) {
+                            // تجاهل حقل أرقام التواصل لأنه يحتوي على أرقام هواتف
+                            return input.name === 'ContactNumbers' || input.id === 'ContactNumbers';
+                        }
+
+                        // تطبيق التحويل على كل الحقول النصية
+                        document.addEventListener("input", function (e) {
+                            if (e.target.closest("#createForm")) {
+                                let input = e.target;
+                                let val = input.value;
+
+                                // تجاهل حقل أرقام التواصل
+                                if (shouldSkipConversion(input)) {
+                                    // تحديث عداد الأحرف فقط للتعليقات
+                                    if (input.name === 'Comment') {
+                                        document.getElementById('commentCounter').textContent = val.length;
+                                    }
+                                    return;
+                                }
+
+                                if (val.length > 0) {
+                                    let lastLetterLang = getLastLetter(val);
+
+                                    let newVal;
+                                    if (lastLetterLang === 'arabic') {
+                                        // حول جميع الأرقام للعربية
+                                        newVal = toArabicDigits(val);
+                                    } else {
+                                        // حول جميع الأرقام للاتينية
+                                        newVal = toLatinDigits(val);
+                                    }
+
+                                    // تحديث القيمة فقط إذا تغيرت
+                                    if (newVal !== val) {
+                                        let cursorPos = input.selectionStart;
+                                        input.value = newVal;
+                                        // استعادة موضع المؤشر
+                                        input.setSelectionRange(cursorPos, cursorPos);
+                                    }
+                                }
+
+                                // تحديث عداد الأحرف للتعليقات
+                                if (input.name === 'Comment') {
+                                    document.getElementById('commentCounter').textContent = val.length;
+                                }
+                            }
+                        });
+
+                        // وظائف إضافية للفورم
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // تحديث مؤشر الحالة
+                            const statusCheckbox = document.querySelector('input[name="Status"]');
+                            const statusLabel = document.getElementById('statusLabel');
+
+                            if (statusCheckbox && statusLabel) {
+                                statusCheckbox.addEventListener('change', function() {
+                                    statusLabel.textContent = this.checked ? 'نشط' : 'غير نشط';
+                                });
+                            }
+
+                            // وظائف تحديد/إلغاء تحديد الكل للأنواع
+                            const selectAllBtn = document.getElementById('selectAllTypes');
+                            const deselectAllBtn = document.getElementById('deselectAllTypes');
+                            const typeCheckboxes = document.querySelectorAll('input[name="SelectedTypeIds"]');
+
+                            if (selectAllBtn) {
+                                selectAllBtn.addEventListener('click', function() {
+                                    typeCheckboxes.forEach(checkbox => {
+                                        checkbox.checked = true;
+                                        checkbox.dispatchEvent(new Event('change'));
+                                    });
+                                });
+                            }
+
+                            if (deselectAllBtn) {
+                                deselectAllBtn.addEventListener('click', function() {
+                                    typeCheckboxes.forEach(checkbox => {
+                                        checkbox.checked = false;
+                                        checkbox.dispatchEvent(new Event('change'));
+                                    });
+                                });
+                            }
+
+                            // تحديث النوع الرئيسي بناءً على الأنواع المحددة
+                            const primaryTypeSelect = document.getElementById('primaryTypeSelect');
+
+                            typeCheckboxes.forEach(checkbox => {
+                                checkbox.addEventListener('change', function() {
+                                    updatePrimaryTypeOptions();
+                                    updateCheckIcons();
+                                });
+                            });
+
+                            function updatePrimaryTypeOptions() {
+                                if (!primaryTypeSelect) return;
+
+                                const selectedTypes = Array.from(typeCheckboxes)
+                                    .filter(cb => cb.checked)
+                                    .map(cb => cb.value);
+
+                                // تحديث خيارات النوع الرئيسي
+                                Array.from(primaryTypeSelect.options).forEach(option => {
+                                    if (option.value === '') return; // تجاهل الخيار الافتراضي
+
+                                    option.disabled = !selectedTypes.includes(option.value);
+                                });
+
+                                // إذا كان النوع الرئيسي المحدد غير موجود في الأنواع المحددة، امسحه
+                                if (primaryTypeSelect.value && !selectedTypes.includes(primaryTypeSelect.value)) {
+                                    primaryTypeSelect.value = '';
+                                }
+                            }
+
+                            function updateCheckIcons() {
+                                typeCheckboxes.forEach(checkbox => {
+                                    const checkIcon = checkbox.closest('.type-check-container')?.querySelector('.check-icon');
+                                    if (checkIcon) {
+                                        if (checkbox.checked) {
+                                            checkIcon.classList.remove('d-none');
+                                        } else {
+                                            checkIcon.classList.add('d-none');
+                                        }
+                                    }
+                                });
+                            }
+
+                            // تهيئة الحالة الأولية
+                            updatePrimaryTypeOptions();
+                            updateCheckIcons();
+                        });
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Section -->
+    <div class="col-lg-4">
+        <!-- Instructions Card -->
+        <div class="section-card mb-4">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-info-circle me-2"></i>تعليمات الإدخال
+                    </h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 text-success me-3 mt-1">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">اسم الجهة</h6>
+                                    <p class="mb-0 text-muted small">
+                                        يجب إدخال اسم واضح ومميز للجهة. الحد الأقصى 200 حرف.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 text-success me-3 mt-1">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">أنواع الجهة</h6>
+                                    <p class="mb-0 text-muted small">
+                                        يجب اختيار نوع واحد على الأقل. يمكن اختيار أكثر من نوع.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 text-warning me-3 mt-1">
+                                    <i class="fas fa-star"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">النوع الرئيسي</h6>
+                                    <p class="mb-0 text-muted small">
+                                        اختياري - يمكن تحديد نوع رئيسي من الأنواع المختارة.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-group-item">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 text-info me-3 mt-1">
+                                    <i class="fas fa-lightbulb"></i>
+                                </div>
+                                <div>
+                                    <h6 class="mb-1">نصائح مفيدة</h6>
+                                    <p class="mb-0 text-muted small">
+                                        استخدم أسماء واضحة ومختصرة. أضف أرقام هواتف متعددة إذا لزم الأمر.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '@currentTime';
+            const CURRENT_USER = '@currentUser';
+
+            console.log('Enhanced stakeholders create form loaded:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER
+            });
+
+            // Form validation and submission
+            $("#createForm").on("submit", function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                $("#submitBtn")
+                    .prop("disabled", true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+
+                return true;
+            });
+
+            // Enhanced form validation
+            function validateForm() {
+                let isValid = true;
+                $("#validationSummary").addClass("d-none");
+
+                // Check if at least one type is selected
+                if (!$("input[name='SelectedTypeIds']:checked").length) {
+                    $("#typesValidationMsg").removeClass("d-none");
+                    $("#validationSummary").removeClass("d-none");
+                    isValid = false;
+                } else {
+                    $("#typesValidationMsg").addClass("d-none");
+                }
+
+                // Check name field
+                if (!$("#Name").val().trim()) {
+                    $("#Name").addClass("is-invalid");
+                    isValid = false;
+                } else {
+                    $("#Name").removeClass("is-invalid");
+                }
+
+                return isValid;
+            }
+
+            // Select all types
+            $("#selectAllTypes").on("click", function() {
+                $("input[name='SelectedTypeIds']").prop("checked", true).trigger("change");
+                $("#typesValidationMsg").addClass("d-none");
+                updatePrimaryTypeOptions();
+                updateSummary();
+            });
+
+            // Deselect all types
+            $("#deselectAllTypes").on("click", function() {
+                $("input[name='SelectedTypeIds']").prop("checked", false).trigger("change");
+                $("#primaryTypeSelect").val("");
+                updatePrimaryTypeOptions();
+                updateSummary();
+            });
+
+            // Enhanced character counter
+            function updateCharCount() {
+                const maxLength = 1000;
+                const currentLength = $("#Comment").val().length;
+                $("#commentCounter").text(currentLength);
+
+                if (currentLength > maxLength * 0.8) {
+                    $("#commentCounter").addClass("text-warning");
+                } else {
+                    $("#commentCounter").removeClass("text-warning");
+                }
+
+                if (currentLength >= maxLength) {
+                    $("#commentCounter").addClass("text-danger").removeClass("text-warning");
+                } else {
+                    $("#commentCounter").removeClass("text-danger");
+                }
+            }
+
+            // Initialize character counter
+            updateCharCount();
+            $("#Comment").on("input", updateCharCount);
+
+            // Enhanced primary type selection
+            function updatePrimaryTypeOptions() {
+                const selectedTypes = $("input[name='SelectedTypeIds']:checked").map(function() {
+                    return $(this).val();
+                }).get();
+
+                $("#primaryTypeSelect option").each(function() {
+                    const value = $(this).val();
+                    if (value && !selectedTypes.includes(value)) {
+                        $(this).prop("disabled", true);
+                    } else {
+                        $(this).prop("disabled", false);
+                    }
+                });
+
+                // Reset primary type if it's not in selected types
+                if ($("#primaryTypeSelect").val() && !selectedTypes.includes($("#primaryTypeSelect").val())) {
+                    $("#primaryTypeSelect").val("");
+                }
+            }
+
+            // Enhanced type selection handling
+            $("input[name='SelectedTypeIds']").on("change", function() {
+                const checkbox = $(this);
+                const container = checkbox.closest(".type-check-container");
+                const checkIcon = container.find(".check-icon");
+
+                if (checkbox.prop("checked")) {
+                    container.addClass("selected");
+                    checkIcon.removeClass("d-none");
+                } else {
+                    container.removeClass("selected");
+                    checkIcon.addClass("d-none");
+                }
+
+                updatePrimaryTypeOptions();
+                updateSummary();
+                validateForm();
+            });
+
+            // Status toggle handling
+            $("#Status").on("change", function() {
+                const isActive = $(this).prop("checked");
+                $("#statusLabel").text(isActive ? "نشط" : "غير نشط");
+                updateSummary();
+            });
+
+            // Primary type change handling
+            $("#primaryTypeSelect").on("change", function() {
+                updateSummary();
+            });
+
+            // Update summary panel
+            function updateSummary() {
+                // Update status
+                const isActive = $("#Status").prop("checked");
+                $("#statusSummary")
+                    .removeClass("bg-success bg-danger")
+                    .addClass(isActive ? "bg-success" : "bg-danger")
+                    .text(isActive ? "نشط" : "غير نشط");
+
+                // Update types count
+                const typesCount = $("input[name='SelectedTypeIds']:checked").length;
+                $("#typesSummary").text(typesCount);
+
+                // Update primary type
+                const primaryTypeText = $("#primaryTypeSelect option:selected").text();
+                $("#primaryTypeSummary").text(
+                    $("#primaryTypeSelect").val() ? primaryTypeText : "غير محدد"
+                );
+            }
+
+            // Name field validation
+            $("#Name").on("input", function() {
+                $(this).removeClass("is-invalid");
+            });
+
+            // Initialize form state
+            updatePrimaryTypeOptions();
+            updateSummary();
+
+            // Initialize tooltips if available
+            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            }
+
+            console.log('Stakeholders create form initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        /* Enhanced Styles for Create Form */
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .type-check-container {
+            transition: all 0.2s ease;
+            border-radius: 8px;
+            border: 2px solid transparent;
+        }
+
+            .type-check-container.selected {
+                border-color: var(--bs-primary);
+                background-color: rgba(13, 110, 253, 0.1);
+            }
+
+        .type-check {
+            padding: 1rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+            .type-check:hover {
+                background-color: rgba(0,0,0,0.02);
+            }
+
+        .type-check-container.selected .type-check {
+            background-color: transparent;
+        }
+
+        .form-check-input:checked + .form-check-label {
+            font-weight: 600;
+            color: var(--bs-primary);
+        }
+
+        .check-icon {
+            font-size: 1.2rem;
+        }
+
+        .form-switch-lg .form-check-input {
+            width: 3em;
+            height: 1.5em;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+
+            .summary-item:last-child {
+                border-bottom: none;
+            }
+
+        .input-group-text {
+            border-color: #ced4da;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .btn-group .btn {
+            border-radius: 0.375rem !important;
+            margin: 0 2px;
+        }
+
+        .card-header {
+            border-bottom: 2px solid rgba(0,0,0,0.1);
+        }
+
+        /* Animation for selected types */
+        .type-check-container {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @@keyframes fadeIn {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        /* Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .icon-circle
+
+        {
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+        }
+
+        .type-check {
+            padding: 0.75rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+            .btn-group .btn {
+                margin: 2px 0;
+                width: 100%;
+            }
+
+        .d-flex.justify-content-end {
+            flex-direction: column-reverse;
+        }
+
+            .d-flex.justify-content-end .btn {
+                width: 100%;
+                margin: 0.25rem 0;
+            }
+
+        }
+
+        /* Print styles */
+        @@media print {
+            .btn, .btn-group
+
+        {
+            display: none !important;
+        }
+
+        }
+    </style>
+}

@@ -1,0 +1,982 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model YarnItemViewModel
+@{
+    ViewData["Title"] = "تعديل الصنف";
+    var currentTime = "2025-08-12 14:29:39";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-3 px-3 py-2 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home text-primary"></i>
+                <span class="ms-1">الرئيسية</span>
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-yarn text-info me-1"></i>قسم الغزل
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-cogs text-secondary me-1"></i>إدارة الأصناف
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-edit text-warning me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+
+<div class="row justify-content-center">
+    <div class="col-xl-10 col-lg-11">
+        <!-- Enhanced Alerts -->
+        @if (TempData["Success"] != null || TempData["Error"] != null)
+        {
+            <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4 shadow-sm border-0">
+                <div class="d-flex align-items-center">
+                    <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-3 fa-lg"></i>
+                    <div>
+                        <strong>@(TempData["Success"] != null ? "نجح!" : "خطأ!")</strong>
+                        <span class="ms-2">@(TempData["Success"] ?? TempData["Error"])</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Main Form Card -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-light border-bottom-0">
+                <div class="d-flex align-items-center">
+                    <div class="icon-circle bg-primary text-white me-3">
+                        <i class="fas fa-form"></i>
+                    </div>
+                    <div>
+                        <h6 class="mb-0 fw-bold">بيانات الصنف التفصيلية</h6>
+                        <small class="text-muted">معرف الصنف: #@Model.Id</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" id="editForm" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input asp-for="Id" type="hidden" />
+
+                    <!-- Basic Information Section -->
+                    <div class="form-section mb-4">
+                        <h6 class="section-title">
+                            <i class="fas fa-info-circle text-primary me-2"></i>المعلومات الأساسية
+                        </h6>
+                        <div class="row g-3">
+                            <!-- Item Name -->
+                            <div class="col-md-6">
+                                <label asp-for="Item" class="form-label required fw-semibold">
+                                    <i class="fas fa-box text-primary me-1"></i>اسم الصنف
+                                </label>
+                                <input asp-for="Item" class="form-control form-control-lg"
+                                       placeholder="أدخل اسم الصنف" required />
+                                <span asp-validation-for="Item" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-info me-1"></i>يجب أن يكون اسم الصنف فريداً
+                                </div>
+                            </div>
+                            <!-- Status -->
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-toggle-on text-info me-1"></i>حالة الصنف
+                                </label>
+                                <div class="status-container p-3 bg-light rounded">
+                                    <div class="form-check form-switch">
+                                        <input asp-for="Status" class="form-check-input" type="checkbox"
+                                               id="statusSwitch" />
+                                        <label for="statusSwitch" class="form-check-label fw-bold">
+                                            <span class="status-text">@(Model.Status ? "نشط" : "غير نشط")</span>
+                                            <span class="status-badge badge @(Model.Status ? "bg-success" : "bg-secondary") ms-2">
+                                                <i class="fas @(Model.Status ? "fa-check" : "fa-times") me-1"></i>
+                                                @(Model.Status ? "Active" : "Inactive")
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Relationships Section -->
+                    <div class="form-section mb-4">
+                        <h6 class="section-title">
+                            <i class="fas fa-network-wired text-success me-2"></i>العلاقات والارتباطات
+                        </h6>
+                        <div class="row g-3">
+                            <!-- Manufacturer -->
+                            <div class="col-md-6">
+                                <label asp-for="ManufacturerId" class="form-label fw-semibold">
+                                    <i class="fas fa-industry text-success me-1"></i>الشركة المصنعة
+                                </label>
+                                <select asp-for="ManufacturerId" asp-items="Model.Manufacturers"
+                                        class="form-select form-select-lg" id="manufacturerSelect">
+                                </select>
+                                <span asp-validation-for="ManufacturerId" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-info me-1"></i>اختياري - يمكن تركه فارغاً
+                                </div>
+                            </div>
+
+                            <!-- Origin Yarn - ENHANCED -->
+                            <div class="col-md-6">
+                                <label asp-for="OriginYarnId" class="form-label fw-semibold">
+                                    <i class="fas fa-link text-info me-1"></i>الغزل المكون
+                                </label>
+                                <div class="input-group">
+                                    <select asp-for="OriginYarnId" asp-items="Model.OriginYarns"
+                                            class="form-select form-select-lg" id="originYarnSelect">
+                                    </select>
+                                    <button type="button" class="btn btn-outline-info" id="refreshOriginYarns"
+                                            title="تحديث قائمة الغزل المكون">
+                                        <i class="fas fa-sync-alt"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="OriginYarnId" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                                    تحذير: لا يمكن اختيار نفس الصنف أو صنف يؤدي إلى مرجع دائري
+                                </div>
+
+                                <!-- Origin Yarn Info Display -->
+                                <div id="originYarnInfo" class="mt-2">
+                                    @if (!string.IsNullOrEmpty(Model.OriginYarnName))
+                                    {
+                                        <div class="alert alert-info py-2">
+                                            <small>
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                <strong>الغزل المكون الحالي:</strong> @Model.OriginYarnName
+                                            </small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Additional Information Section -->
+                    <div class="form-section mb-4">
+                        <h6 class="section-title">
+                            <i class="fas fa-comment-alt text-warning me-2"></i>معلومات إضافية
+                        </h6>
+                        <div class="row">
+                            <div class="col-12">
+                                <label asp-for="Comment" class="form-label fw-semibold">
+                                    <i class="fas fa-comment text-warning me-1"></i>البيان والملاحظات
+                                </label>
+                                <textarea asp-for="Comment" class="form-control" rows="4"
+                                          placeholder="أدخل أي ملاحظات أو تفاصيل إضافية حول هذا الصنف (اختياري)"
+                                          maxlength="1000"></textarea>
+                                <span asp-validation-for="Comment" class="text-danger"></span>
+                                <div class="form-text">
+                                    <span id="commentCounter">@(Model.Comment?.Length ?? 0)</span> / 1000 حرف
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <div class="d-flex gap-3 justify-content-end pt-3 border-top">
+                            <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="button" class="btn btn-outline-info btn-lg" id="previewBtn">
+                                <i class="fas fa-eye me-1"></i>معاينة التغييرات
+                            </button>
+                            <button type="button" class="btn btn-outline-warning btn-lg" id="resetBtn">
+                                <i class="fas fa-undo me-1"></i>إعادة تعيين
+                            </button>
+                            <button type="submit" class="btn btn-primary btn-lg px-4" id="saveBtn">
+                                <i class="fas fa-save me-1"></i>حفظ التغييرات
+                            </button>
+                        </div>
+                    </div>
+                </form>
+                <script>
+                    // دالة لتحويل الأرقام للغة العربية
+                    function toArabicDigits(str) {
+                        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                    }
+
+                    // دالة لتحويل الأرقام للاتينية
+                    function toLatinDigits(str) {
+                        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف عربي
+                    function isArabicChar(c) {
+                        return /[\u0600-\u06FF]/.test(c);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف إنجليزي
+                    function isEnglishChar(c) {
+                        return /[a-zA-Z]/.test(c);
+                    }
+
+                    // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                    function getLastLetter(str) {
+                        for (let i = str.length - 1; i >= 0; i--) {
+                            let char = str[i];
+                            if (isArabicChar(char)) {
+                                return 'arabic';
+                            } else if (isEnglishChar(char)) {
+                                return 'english';
+                            }
+                        }
+                        return 'arabic'; // default is Arabic
+                    }
+
+                    // تطبيق التحويل على كل الحقول النصية
+                    document.addEventListener("input", function (e) {
+                        if (e.target.closest("#editForm")) {
+                            let input = e.target;
+                            let val = input.value;
+
+                            // تطبيق التحويل على حقول النص والتعليقات فقط
+                            if (input.type === 'text' || input.tagName === 'TEXTAREA') {
+                                if (val.length > 0) {
+                                    let lastLetterLang = getLastLetter(val);
+
+                                    let newVal;
+                                    if (lastLetterLang === 'arabic') {
+                                        // حول جميع الأرقام للعربية
+                                        newVal = toArabicDigits(val);
+                                    } else {
+                                        // حول جميع الأرقام للاتينية
+                                        newVal = toLatinDigits(val);
+                                    }
+
+                                    // تحديث القيمة فقط إذا تغيرت
+                                    if (newVal !== val) {
+                                        let cursorPos = input.selectionStart;
+                                        input.value = newVal;
+                                        // استعادة موضع المؤشر
+                                        input.setSelectionRange(cursorPos, cursorPos);
+                                    }
+                                }
+
+                                // تحديث عداد الأحرف للتعليقات
+                                if (input.id === 'commentTextarea') {
+                                    document.getElementById('charCount').textContent = val.length;
+                                }
+                            }
+                        }
+                    });
+
+                    // وظائف إضافية للفورم
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // تحديث مؤشر الحالة
+                        const statusSwitch = document.getElementById('statusSwitch');
+                        const statusText = document.querySelector('.status-text');
+                        const statusBadge = document.querySelector('.status-badge');
+                        const statusBadgeText = document.querySelector('.status-badge-text');
+
+                        if (statusSwitch && statusText && statusBadge && statusBadgeText) {
+                            statusSwitch.addEventListener('change', function() {
+                                if (this.checked) {
+                                    statusText.textContent = 'نشط';
+                                    statusBadgeText.textContent = 'نشط';
+                                    statusBadge.className = 'badge status-badge bg-success px-3 py-2';
+                                    statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="status-badge-text">نشط</span>';
+                                } else {
+                                    statusText.textContent = 'غير نشط';
+                                    statusBadgeText.textContent = 'غير نشط';
+                                    statusBadge.className = 'badge status-badge bg-danger px-3 py-2';
+                                    statusBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i><span class="status-badge-text">غير نشط</span>';
+                                }
+                            });
+                        }
+
+                        // وظائف الأزرار الإضافية
+                        const addManufacturerBtn = document.getElementById('addManufacturerBtn');
+                        const refreshOriginYarnBtn = document.getElementById('refreshOriginYarnBtn');
+                        const previewBtn = document.getElementById('previewBtn');
+                        const resetBtn = document.getElementById('resetBtn');
+
+                        // إضافة شركة مصنعة جديدة
+                        if (addManufacturerBtn) {
+                            addManufacturerBtn.addEventListener('click', function() {
+                                // يمكن فتح مودال لإضافة شركة مصنعة جديدة
+                                console.log('فتح نافذة إضافة شركة مصنعة جديدة');
+                                // modal للشركة المصنعة يمكن إضافته هنا
+                            });
+                        }
+
+                        // تحديث قائمة الغزل المكون
+                        if (refreshOriginYarnBtn) {
+                            refreshOriginYarnBtn.addEventListener('click', function() {
+                                const button = this;
+                                const icon = button.querySelector('i');
+
+                                // تأثير بصري للتحديث
+                                icon.classList.add('fa-spin');
+                                button.disabled = true;
+
+                                // محاكاة عملية التحديث (يمكن استبدالها بـ AJAX call)
+                                setTimeout(() => {
+                                    icon.classList.remove('fa-spin');
+                                    button.disabled = false;
+
+                                    // عرض رسالة نجاح مؤقتة
+                                    const tempMsg = document.createElement('div');
+                                    tempMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
+                                    tempMsg.innerHTML = '<i class="fas fa-check me-2"></i>تم تحديث قائمة الغزل المكون بنجاح';
+                                    button.parentNode.appendChild(tempMsg);
+
+                                    setTimeout(() => {
+                                        tempMsg.remove();
+                                    }, 3000);
+                                }, 2000);
+                            });
+                        }
+
+                        // معاينة البيانات
+                        if (previewBtn) {
+                            previewBtn.addEventListener('click', function() {
+                                const formData = new FormData(document.getElementById('createForm'));
+                                let previewData = {
+                                    item: formData.get('Item'),
+                                    manufacturer: document.getElementById('manufacturerSelect').selectedOptions[0]?.text || 'غير محدد',
+                                    originYarn: document.getElementById('originYarnSelect').selectedOptions[0]?.text || 'غير محدد',
+                                    status: formData.get('Status') ? 'نشط' : 'غير نشط',
+                                    comment: formData.get('Comment') || 'لا توجد ملاحظات'
+                                };
+
+                                let previewHtml = `
+                                    <div class="preview-container">
+                                        <h5><i class="fas fa-eye me-2"></i>معاينة بيانات الصنف</h5>
+                                        <table class="table table-striped">
+                                            <tr><th>اسم الصنف:</th><td>${previewData.item || 'غير مدخل'}</td></tr>
+                                            <tr><th>الشركة المصنعة:</th><td>${previewData.manufacturer}</td></tr>
+                                            <tr><th>الغزل المكون:</th><td>${previewData.originYarn}</td></tr>
+                                            <tr><th>الحالة:</th><td>${previewData.status}</td></tr>
+                                            <tr><th>الملاحظات:</th><td>${previewData.comment}</td></tr>
+                                        </table>
+                                    </div>
+                                `;
+
+                                // عرض المعاينة في alert أو modal
+                                const previewDiv = document.createElement('div');
+                                previewDiv.innerHTML = previewHtml;
+                                previewDiv.className = 'alert alert-info mt-3';
+
+                                // إزالة المعاينة السابقة إن وجدت
+                                const existingPreview = document.querySelector('.preview-container');
+                                if (existingPreview) {
+                                    existingPreview.parentNode.remove();
+                                }
+
+                                // إضافة المعاينة الجديدة
+                                previewBtn.parentNode.appendChild(previewDiv);
+                            });
+                        }
+
+                        // إعادة تعيين النموذج
+                        if (resetBtn) {
+                            resetBtn.addEventListener('click', function() {
+                                if (confirm('هل أنت متأكد من إعادة تعيين جميع البيانات؟')) {
+                                    document.getElementById('createForm').reset();
+                                    document.getElementById('charCount').textContent = '0';
+
+                                    // إعادة تعيين حالة التبديل
+                                    if (statusSwitch) {
+                                        statusSwitch.checked = true;
+                                        statusSwitch.dispatchEvent(new Event('change'));
+                                    }
+
+                                    // إزالة أي معاينة موجودة
+                                    const existingPreview = document.querySelector('.preview-container');
+                                    if (existingPreview) {
+                                        existingPreview.parentNode.remove();
+                                    }
+                                }
+                            });
+                        }
+
+                        // تهيئة عداد الأحرف
+                        const commentTextarea = document.getElementById('commentTextarea');
+                        if (commentTextarea) {
+                            document.getElementById('charCount').textContent = commentTextarea.value.length;
+                        }
+
+                        // تحسين تجربة المستخدم للنماذج العائمة
+                        const floatingInputs = document.querySelectorAll('.form-floating input, .form-floating textarea');
+                        floatingInputs.forEach(input => {
+                            input.addEventListener('focus', function() {
+                                this.parentNode.classList.add('focused');
+                            });
+
+                            input.addEventListener('blur', function() {
+                                if (!this.value) {
+                                    this.parentNode.classList.remove('focused');
+                                }
+                            });
+                        });
+                    });
+                </script>
+            </div>
+        </div>
+
+        <!-- Enhanced Quick Info Card -->
+        <div class="card mt-4 border-0 shadow-sm">
+            <div class="card-header bg-gradient-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-line me-2"></i>معلومات سريعة ومؤشرات الأداء
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="stat-card bg-primary bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-primary mb-2">
+                                <i class="fas fa-calculator fa-2x"></i>
+                            </div>
+                            <h5 class="text-primary mb-1">@Model.CurrentBalance.ToString("N3")</h5>
+                            <small class="text-muted">الرصيد الحالي (كجم)</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="stat-card bg-success bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-success mb-2">
+                                <i class="fas fa-sort-numeric-up fa-2x"></i>
+                            </div>
+                            <h5 class="text-success mb-1">@Model.CurrentCountBalance</h5>
+                            <small class="text-muted">رصيد العدد</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="stat-card bg-warning bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-warning mb-2">
+                                <i class="fas fa-industry fa-2x"></i>
+                            </div>
+                            <h6 class="text-warning mb-1">
+                                @(Model.ManufacturerName ?? "غير محدد")
+                            </h6>
+                            <small class="text-muted">الشركة المصنعة</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="stat-card bg-@(Model.Status ? "success" : "danger") bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-@(Model.Status ? "success" : "danger") mb-2">
+                                <i class="fas fa-@(Model.Status ? "check-circle" : "times-circle") fa-2x"></i>
+                            </div>
+                            <h6 class="text-@(Model.Status ? "success" : "danger") mb-1">
+                                @(Model.Status ? "نشط" : "غير نشط")
+                            </h6>
+                            <small class="text-muted">الحالة الحالية</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hierarchy Information -->
+                @if (!string.IsNullOrEmpty(Model.OriginYarnName))
+                {
+                    <hr class="my-3">
+                    <div class="hierarchy-info">
+                        <h6 class="text-info mb-3">
+                            <i class="fas fa-sitemap me-2"></i>معلومات التسلسل الهرمي
+                        </h6>
+                        <div class="bg-light rounded p-3">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <small class="text-muted fw-bold">الغزل المكون:</small>
+                                    <p class="mb-0">
+                                        <i class="fas fa-link text-info me-1"></i>
+                                        @Model.OriginYarnName
+                                    </p>
+                                </div>
+                                <div class="col-md-6">
+                                    <small class="text-muted fw-bold">نوع العلاقة:</small>
+                                    <p class="mb-0">
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-arrow-up me-1"></i>مشتق من
+                                        </span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '2025-08-12 14:29:39';
+            const CURRENT_USER = 'Ammar-Yasser8';
+            const ITEM_ID = @Model.Id;
+
+            console.log('Enhanced yarn item edit page loaded:', {
+                itemId: ITEM_ID,
+                itemName: '@Model.Item',
+                time: CURRENT_TIME,
+                user: CURRENT_USER
+            });
+
+            // Enhanced status toggle functionality
+            $('#statusSwitch').change(function() {
+                const isChecked = $(this).is(':checked');
+                $('.status-text').text(isChecked ? 'نشط' : 'غير نشط');
+                $('.status-badge')
+                    .removeClass('bg-success bg-secondary')
+                    .addClass(isChecked ? 'bg-success' : 'bg-secondary')
+                    .html(`<i class="fas ${isChecked ? 'fa-check' : 'fa-times'} me-1"></i>${isChecked ? 'Active' : 'Inactive'}`);
+            });
+
+            // Comment character counter
+            $('#Comment').on('input', function() {
+                const length = $(this).val().length;
+                $('#commentCounter').text(length);
+
+                if (length > 950) {
+                    $('#commentCounter').addClass('text-warning');
+                } else if (length > 1000) {
+                    $('#commentCounter').addClass('text-danger');
+                } else {
+                    $('#commentCounter').removeClass('text-warning text-danger');
+                }
+            });
+
+            // Enhanced origin yarn selection handling
+            $('#originYarnSelect').change(function() {
+                const selectedId = $(this).val();
+                const selectedText = $(this).find('option:selected').text();
+
+                if (selectedId) {
+                    // Check for circular reference
+                    if (selectedId == ITEM_ID) {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'خطأ في الاختيار',
+                            text: 'لا يمكن أن يكون الصنف مكون من نفسه',
+                            confirmButtonText: 'حسناً'
+                        });
+                        $(this).val('');
+                        return;
+                    }
+
+                    // Show selected origin yarn info
+                    $('#originYarnInfo').html(`
+                        <div class="alert alert-success py-2 fade-in">
+                            <small>
+                                <i class="fas fa-check-circle me-1"></i>
+                                <strong>تم اختيار:</strong> ${selectedText}
+                            </small>
+                        </div>
+                    `);
+
+                    // Validate circular reference via API
+                    $.ajax({
+                        url: `/api/YarnItems/ValidateOriginYarn`,
+                        method: 'POST',
+                        data: {
+                            itemId: ITEM_ID,
+                            originYarnId: selectedId
+                        },
+                        success: function(response) {
+                            if (!response.isValid) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'تحذير: مرجع دائري',
+                                    text: response.message || 'هذا الاختيار سيؤدي إلى مرجع دائري في التسلسل الهرمي',
+                                    confirmButtonText: 'حسناً'
+                                });
+                                $('#originYarnSelect').val('');
+                                $('#originYarnInfo').html('');
+                            }
+                        },
+                        error: function() {
+                            console.warn('Could not validate origin yarn selection');
+                        }
+                    });
+                } else {
+                    $('#originYarnInfo').html(`
+                        <div class="alert alert-warning py-2">
+                            <small>
+                                <i class="fas fa-info-circle me-1"></i>
+                                <strong>لم يتم اختيار غزل مكون</strong> - سيكون هذا صنف جذر
+                            </small>
+                        </div>
+                    `);
+                }
+            });
+
+            // Refresh origin yarns list
+            $('#refreshOriginYarns').click(function() {
+                const btn = $(this);
+                const originalHtml = btn.html();
+
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                $.ajax({
+                    url: `/api/YarnItems/GetOriginYarns?excludeId=${ITEM_ID}`,
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            const select = $('#originYarnSelect');
+                            const currentValue = select.val();
+
+                            select.empty();
+                            select.append('<option value="">-- اختر الغزل المكون --</option>');
+
+                            response.data.forEach(function(item) {
+                                select.append(`<option value="${item.value}">${item.text}</option>`);
+                            });
+
+                            // Restore previous selection if still available
+                            if (currentValue) {
+                                select.val(currentValue);
+                            }
+
+                            if (typeof toastr !== 'undefined') {
+                                toastr.success('تم تحديث قائمة الغزل المكون بنجاح');
+                            }
+                        }
+                    },
+                    error: function() {
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('حدث خطأ أثناء تحديث القائمة');
+                        }
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).html(originalHtml);
+                    }
+                });
+            });
+
+            // Enhanced form validation
+            $('#editForm').on('submit', function(e) {
+                let isValid = true;
+                const errors = [];
+
+                // Validate item name
+                const itemName = $('#Item').val().trim();
+                if (!itemName) {
+                    isValid = false;
+                    errors.push('اسم الصنف مطلوب');
+                    $('#Item').addClass('is-invalid');
+                } else if (itemName.length > 200) {
+                    isValid = false;
+                    errors.push('اسم الصنف يجب ألا يتجاوز 200 حرف');
+                    $('#Item').addClass('is-invalid');
+                } else {
+                    $('#Item').removeClass('is-invalid').addClass('is-valid');
+                }
+
+                // Validate comment length
+                const comment = $('#Comment').val();
+                if (comment && comment.length > 1000) {
+                    isValid = false;
+                    errors.push('البيان يجب ألا يتجاوز 1000 حرف');
+                    $('#Comment').addClass('is-invalid');
+                } else {
+                    $('#Comment').removeClass('is-invalid');
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'خطأ في البيانات',
+                        html: '<ul class="text-start">' + errors.map(err => `<li>${err}</li>`).join('') + '</ul>',
+                        confirmButtonText: 'حسناً'
+                    });
+
+                    return false;
+                }
+
+                // Show loading state
+                const btn = $('#saveBtn');
+                const originalText = btn.html();
+                btn.prop('disabled', true)
+                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+
+                // Restore button after timeout if something goes wrong
+                setTimeout(() => {
+                    btn.prop('disabled', false).html(originalText);
+                }, 30000);
+            });
+
+            // Enhanced preview functionality
+            $('#previewBtn').click(function() {
+                const data = {
+                    item: $('#Item').val() || 'غير محدد',
+                    manufacturer: $('#ManufacturerId option:selected').text(),
+                    originYarn: $('#originYarnId option:selected').text(),
+                    status: $('#statusSwitch').is(':checked') ? 'نشط' : 'غير نشط',
+                    comment: $('#Comment').val() || 'لا يوجد بيان'
+                };
+
+                const preview = `
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-info me-1"></i>المعلومات الأساسية</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>الصنف:</strong> ${data.item}</p>
+                                    <p><strong>الحالة:</strong>
+                                        <span class="badge ${data.status === 'نشط' ? 'bg-success' : 'bg-secondary'}">${data.status}</span>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="fas fa-link me-1"></i>العلاقات</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p><strong>الشركة المصنعة:</strong> ${data.manufacturer}</p>
+                                    <p><strong>الغزل المكون:</strong> ${data.originYarn}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning">
+                                    <h6 class="mb-0"><i class="fas fa-comment me-1"></i>البيان</h6>
+                                </div>
+                                <div class="card-body">
+                                    <p class="mb-0">${data.comment}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'معاينة التغييرات',
+                    html: preview,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ التغييرات',
+                    cancelButtonText: 'تراجع للتعديل',
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    width: '800px'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#editForm').submit();
+                    }
+                });
+            });
+
+            // Reset form functionality
+            $('#resetBtn').click(function() {
+                Swal.fire({
+                    title: 'إعادة تعيين النموذج',
+                    text: 'هل تريد إعادة تعيين جميع الحقول إلى قيمها الأصلية؟',
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، إعادة تعيين',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#ffc107'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        location.reload();
+                    }
+                });
+            });
+
+            // Auto-hide alerts with animation
+            $('.alert').each(function() {
+                const alert = $(this);
+                setTimeout(() => {
+                    alert.addClass('fade-out');
+                    setTimeout(() => {
+                        alert.fadeOut(350);
+                    }, 300);
+                }, 5000);
+            });
+
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            console.log('Enhanced edit form initialization completed at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        /* Enhanced Custom Styles */
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        }
+
+        .icon-box {
+            background: rgba(255,255,255,0.2);
+            border-radius: 15px;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .icon-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .form-section {
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 1.5rem;
+            background: #fafbfc;
+        }
+
+        .section-title {
+            color: #495057;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e9ecef;
+        }
+
+        .status-container {
+            transition: all 0.3s ease;
+        }
+
+            .status-container:hover {
+                background-color: #e9ecef !important;
+            }
+
+        .stat-card {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+                border-color: rgba(0,123,255,0.3);
+            }
+
+        .required::after {
+            content: " *";
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .form-control-lg, .form-select-lg {
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .is-valid {
+            border-color: #198754;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.94-.94 2.94 2.94L7.83 7.07 8.77 8.01 6.18 10.6z'/%3e%3c/svg%3e");
+        }
+
+        .is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 4.6 2.4 2.4M8.2 4.6l-2.4 2.4'/%3e%3c/svg%3e");
+        }
+
+        .hierarchy-info {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .fade-out {
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+        }
+
+        @@keyframes fadeIn {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        @@keyframes slideIn {
+            from
+
+        {
+            opacity: 0;
+            transform: translateX(-20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        }
+
+        .form-actions {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            margin: -1.5rem -1.5rem 0;
+            padding: 1.5rem;
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .icon-box
+
+        {
+            margin-bottom: 1rem;
+            padding: 10px;
+        }
+
+        .form-section {
+            padding: 1rem;
+        }
+
+        .stat-card {
+            margin-bottom: 1rem;
+        }
+
+        .session-info .badge {
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+
+        }
+    </style>
+}

@@ -1,0 +1,325 @@
+﻿
+    @{
+        Layout = "_Layout";
+        ViewData["Title"] = "مصنع الغزل";
+        ViewData["Description"] = "جداول عامة";
+    }
+
+    <!-- Navigation Breadcrumb -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body py-2">
+                <ol class="breadcrumb mb-0 align-items-center">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                            <i class="fas fa-home text-primary me-2"></i>
+                            <span class="fw-semibold">الرئيسية</span>
+                        </a>
+                    </li>
+                    <li class="breadcrumb-item active d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>
+                        <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                    </li>
+                </ol>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <div class="welcome-card mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body bg-light p-4">
+                <div class="row align-items-center">
+                    <div class="col-lg-7">
+                        <h2 class="mb-3 text-dark">@ViewData["Title"]</h2>
+                        <p class="text-muted mb-0">الجداول المتاحة للتسجيل والمشاركة في النظام</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <!-- Search Bar -->
+                        <div class="search-container">
+                            <div class="input-group">
+                                <input type="text" id="scheduleSearch" class="form-control"
+                                       placeholder="بحث في الجداول..." autocomplete="off">
+                                <button class="btn btn-primary" type="button" id="searchButton">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                                <button class="btn btn-outline-secondary" type="button" id="clearSearch" style="display: none;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <!-- Search Suggestions -->
+                            <div id="searchSuggestions" class="search-suggestions"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cards Grid - 4 per line -->
+    <div id="tablesContainer">
+        <div class="row">
+            <!-- Yarn Index Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm table-card"
+                     data-keywords="غزل yarn index قائمة"
+                     onclick="location.href='@Url.Action("Index", "YarnItems")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-industry fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-3">غزل - قائمة</h5>
+                        <p class="card-text text-muted">عرض جميع غزل المسجلة في النظام</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث اليوم
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yarn Create Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm table-card"
+                     data-keywords="غزل yarn create إضافة"
+                 onclick="location.href='@Url.Action("Create", "YarnItems")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-plus fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-3">غزل - إضافة</h5>
+                        <p class="card-text text-muted">إضافة غزل جديد للنظام</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث اليوم
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yarn Inbound Transaction Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm table-card"
+                     data-keywords="غزل inbound واردات transaction"
+                     onclick="location.href='@Url.Action("Inbound", "YarnTransactions")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-arrow-down fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-3">غزل - واردات</h5>
+                        <p class="card-text text-muted">تسجيل واردات غزل في النظام</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث اليوم
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yarn Outbound Transaction Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm table-card"
+                     data-keywords="غزل outbound صادرات transaction"
+                     onclick="location.href='@Url.Action("Outbound", "YarnTransactions")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-arrow-up fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-3">غزل - صادرات</h5>
+                        <p class="card-text text-muted">تسجيل صادرات غزل في النظام</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث اليوم
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Yarn Search Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm table-card"
+                     data-keywords="غزل بحث search"
+                 onclick="location.href='@Url.Action("Search", "YarnTransactions")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-search fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-3">غزل - بحث</h5>
+                        <p class="card-text text-muted">بحث في بيانات غزل المسجلة</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث اليوم
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="text-center py-5" style="display: none;">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">لا توجد جداول مطابقة للبحث</h5>
+        <p class="text-muted">جرب تغيير كلمات البحث</p>
+        <button class="btn btn-outline-primary" id="resetSearch">
+            <i class="fas fa-refresh me-1"></i>إعادة تعيين
+        </button>
+    </div>
+
+    @section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Simplified public tables page loaded at 2025-08-16 19:11:57 by Ammar-Yasser8');
+
+            // Enhanced search functionality
+            let searchTimeout;
+            $('#scheduleSearch').on('input', function() {
+                clearTimeout(searchTimeout);
+                const searchTerm = $(this).val().toLowerCase().trim();
+
+                if (searchTerm.length > 0) {
+                    $('#clearSearch').show();
+                    showSearchSuggestions(searchTerm);
+                } else {
+                    $('#clearSearch').hide();
+                    hideSearchSuggestions();
+                }
+
+                searchTimeout = setTimeout(() => {
+                    filterTables(searchTerm);
+                }, 300);
+            });
+
+            // Clear search
+            $('#clearSearch').click(function() {
+                $('#scheduleSearch').val('');
+                $(this).hide();
+                hideSearchSuggestions();
+                filterTables('');
+            });
+
+            // Search suggestions
+            function showSearchSuggestions(term) {
+                const suggestions = [
+                    'وارد', 'صادر', 'غزل',
+                    'أصحاب المصلحة', 'شركات'
+                ].filter(s => s.includes(term));
+
+                if (suggestions.length > 0) {
+                    const html = suggestions.map(s =>
+                        `<div class="suggestion-item" data-value="${s}">${s}</div>`
+                    ).join('');
+                    $('#searchSuggestions').html(html).show();
+                } else {
+                    hideSearchSuggestions();
+                }
+            }
+
+            function hideSearchSuggestions() {
+                $('#searchSuggestions').hide().empty();
+            }
+
+            // Handle suggestion clicks
+            $(document).on('click', '.suggestion-item', function() {
+                const value = $(this).data('value');
+                $('#scheduleSearch').val(value);
+                hideSearchSuggestions();
+                filterTables(value.toLowerCase());
+                $('#clearSearch').show();
+            });
+
+            // Filter functionality
+            function filterTables(searchTerm) {
+                let visibleCount = 0;
+
+                $('.table-card').each(function() {
+                    const card = $(this);
+                    const keywords = card.data('keywords').toLowerCase();
+                    const title = card.find('.card-title').text().toLowerCase();
+                    const description = card.find('.card-text').text().toLowerCase();
+
+                    const matchesSearch = !searchTerm ||
+                        keywords.includes(searchTerm) ||
+                        title.includes(searchTerm) ||
+                        description.includes(searchTerm);
+
+                    if (matchesSearch) {
+                        card.closest('.col-lg-3').show();
+                        visibleCount++;
+                    } else {
+                        card.closest('.col-lg-3').hide();
+                    }
+                });
+
+                // Show/hide empty state
+                if (visibleCount === 0 && searchTerm) {
+                    $('#emptyState').show();
+                    $('#tablesContainer').hide();
+                } else {
+                    $('#emptyState').hide();
+                    $('#tablesContainer').show();
+                }
+            }
+
+            // Card hover effects
+            $('.table-card').hover(
+                function() {
+                    $(this).addClass('shadow-lg').css('transform', 'translateY(-5px)');
+                },
+                function() {
+                    $(this).removeClass('shadow-lg').css('transform', 'translateY(0)');
+                }
+            );
+
+            // Reset search
+            $('#resetSearch').click(function() {
+                $('#scheduleSearch').val('');
+                $('#clearSearch').hide();
+                hideSearchSuggestions();
+                filterTables('');
+            });
+
+            // Keyboard shortcuts
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+                    e.preventDefault();
+                    $('#scheduleSearch').focus();
+                }
+            });
+
+            // Hide suggestions when clicking outside
+            $(document).click(function(e) {
+                if (!$(e.target).closest('.search-container').length) {
+                    hideSearchSuggestions();
+                }
+            });
+
+            console.log('Simplified public tables page initialized successfully');
+        });
+    </script>
+    }

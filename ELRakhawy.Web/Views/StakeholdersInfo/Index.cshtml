@@ -1,0 +1,1155 @@
+﻿@{
+    ViewData["Title"] = "الجهات";
+    var currentTime = "2025-08-19 19:06:16";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>
+                        <span class="fw-semibold">الجداول العامة</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-users text-success me-2"></i>
+                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Enhanced Header Section -->
+<div class="welcome-card mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body bg-light p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-success text-white me-3">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-1 text-dark">إدارة الجهات</h2>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                عرض وإدارة بيانات الجهات وأنواعها المختلفة
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
+                        <button class="btn btn-outline-info" id="refreshData">
+                            <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
+                        </button>
+                        <a asp-action="Create" class="btn btn-success">
+                            <i class="fas fa-plus-circle me-1"></i>إضافة جهة جديدة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Success/Error Messages -->
+@if (TempData["Success"] != null || TempData["Error"] != null)
+{
+    <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show shadow-sm border-0" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-3 fa-lg"></i>
+            <div>
+                <strong>@(TempData["Success"] != null ? "نجح!" : "خطأ!")</strong>
+                <span class="ms-2">@(TempData["Success"] ?? TempData["Error"])</span>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Enhanced Data Display Section with Inline Search -->
+<div id="stakeholdersContainer">
+    <div class="section-card">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-list me-2 text-primary"></i>قائمة الجهات
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Search Results Info -->
+                        <small class="text-muted">
+                            <span id="resultsInfo">عرض <strong id="visibleCount">0</strong> من أصل <strong id="totalCount">0</strong> جهة</span>
+                        </small>
+                        <div class="badge bg-success px-3 py-2">
+                            <i class="fas fa-database me-1"></i>
+                            <span id="badgeCount">0</span> جهة
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
+                            <i class="fas fa-eraser me-1"></i>مسح المرشحات
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="stakeholdersTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-bold" style="width: 18%;">
+                                    <i class="fas fa-building text-primary me-1"></i>الجهة
+                                </th>
+                                <th class="fw-bold" style="width: 20%;">
+                                    <i class="fas fa-tags text-info me-1"></i>نوع الجهة
+                                </th>
+                                <th class="fw-bold" style="width: 10%;">
+                                    <i class="fas fa-toggle-on text-success me-1"></i>الحالة
+                                </th>
+                                <th class="fw-bold" style="width: 18%;">
+                                    <i class="fas fa-coins text-warning me-1"></i>نوع المعاملة المالية
+                                </th>
+                                <th class="fw-bold" style="width: 12%;">
+                                    <i class="fas fa-phone text-purple me-1"></i>التليفون
+                                </th>
+                                <th class="fw-bold" style="width: 22%;">
+                                    <i class="fas fa-comment text-secondary me-1"></i>البيان
+                                </th>
+                                <th class="text-center fw-bold" style="width: 10%;">
+                                    <i class="fas fa-cogs text-dark me-1"></i>الإجراءات
+                                </th>
+                            </tr>
+                            <!-- Inline Search Row -->
+                            <tr class="search-row bg-white">
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByName" class="form-control border-start-0"
+                                                   placeholder="ابحث في أسماء الجهات...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearNameSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByType" class="form-control border-start-0"
+                                                   placeholder="ابحث في الأنواع...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearTypeSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <select id="searchByStatus" class="form-select form-select-sm">
+                                            <option value="">الكل</option>
+                                            <option value="active">نشط</option>
+                                            <option value="inactive">غير نشط</option>
+                                        </select>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByFinancial" class="form-control border-start-0"
+                                                   placeholder="ابحث في المعاملات...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFinancialSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByPhone" class="form-control border-start-0"
+                                                   placeholder="ابحث في الهواتف...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearPhoneSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByComment" class="form-control border-start-0"
+                                                   placeholder="ابحث في البيان...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearCommentSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2 text-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter me-1"></i>البحث والتصفية
+                                    </small>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="stakeholdersTableBody">
+                            <!-- Data will be loaded via API -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Results Message -->
+    <div id="noResultsMessage" class="text-center py-5" style="display: none;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد نتائج مطابقة</h5>
+                <p class="text-muted mb-3">لم يتم العثور على جهات تطابق معايير البحث الحالية</p>
+                <button class="btn btn-outline-primary" id="resetSearch">
+                    <i class="fas fa-refresh me-1"></i>إعادة تعيين البحث
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Empty State Message -->
+<div id="emptyState" class="text-center py-5" style="display: none;">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">لا توجد جهات</h5>
+            <p class="text-muted mb-3">لا توجد جهات مضافة بعد في النظام</p>
+            <a asp-action="Create" class="btn btn-success">
+                <i class="fas fa-plus-circle me-1"></i>إضافة جهة جديدة
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل الجهة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="detailsContent">
+                <!-- Details content will be loaded here -->
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+                <button type="button" class="btn btn-info" id="editFromDetails">
+                    <i class="fas fa-edit me-1"></i>تعديل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center">
+                    <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                    <h6 class="mb-3">هل أنت متأكد من حذف هذه الجهة؟</h6>
+                    <div class="alert alert-warning">
+                        <strong id="deleteStakeholderName" class="text-dark"></strong>
+                    </div>
+                    <p class="text-muted">لا يمكن التراجع عن هذا الإجراء</p>
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        سيتم حذف جميع البيانات المرتبطة بهذه الجهة
+                    </div>
+                </div>
+                <input type="hidden" id="deleteStakeholderId">
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="fas fa-trash me-1"></i>تأكيد الحذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Toast Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i id="toastIcon" class="fas fa-check-circle me-2"></i>
+                <span id="toastMessage"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none" style="background-color: rgba(255,255,255,0.8); z-index: 9999;">
+    <div class="text-center">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        <div class="text-muted">جاري تحميل بيانات الجهات...</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '2025-08-19 19:06:16';
+            const CURRENT_USER = 'Ammar-Yasser8';
+
+            console.log('Enhanced stakeholders info with full API integration loaded:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER
+            });
+
+            // Initialize components
+            const toastElement = document.getElementById('notificationToast');
+            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+
+            let stakeholdersData = [];
+            let currentDetailsId = null;
+
+            // Enhanced notification function
+            function showNotification(message, type = 'success') {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+
+                const colors = {
+                    success: 'bg-success',
+                    error: 'bg-danger',
+                    warning: 'bg-warning',
+                    info: 'bg-info'
+                };
+
+                $('#toastIcon').removeClass().addClass(`fas ${icons[type]} me-2`);
+                $('#toastMessage').text(message);
+                $('#notificationToast').removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
+                    .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
+
+                toast.show();
+            }
+
+            // Loading functions
+            function showLoading() {
+                $('#loadingOverlay').removeClass('d-none');
+            }
+
+            function hideLoading() {
+                $('#loadingOverlay').addClass('d-none');
+            }
+
+            // Load stakeholders data via API
+            function loadStakeholders() {
+                showLoading();
+
+                $.ajax({
+                    url: '/api/StakeholdersInfo',
+                    method: 'GET',
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            stakeholdersData = response.data;
+                            renderStakeholders(stakeholdersData);
+                            updateCounts(stakeholdersData.length);
+
+                            if (stakeholdersData.length === 0) {
+                                $('#emptyState').show();
+                                $('#stakeholdersContainer').hide();
+                            } else {
+                                $('#emptyState').hide();
+                                $('#stakeholdersContainer').show();
+                            }
+
+                            console.log('Loaded stakeholders via API:', {
+                                count: stakeholdersData.length,
+                                time: CURRENT_TIME,
+                                user: CURRENT_USER
+                            });
+                        } else {
+                            showNotification('حدث خطأ أثناء تحميل البيانات', 'error');
+                            $('#emptyState').show();
+                            $('#stakeholdersContainer').hide();
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+                        showNotification('حدث خطأ أثناء تحميل بيانات الجهات', 'error');
+                        console.error('Load error:', { xhr, status, error, time: CURRENT_TIME });
+                        $('#emptyState').show();
+                        $('#stakeholdersContainer').hide();
+                    }
+                });
+            }
+
+            // Load stakeholder details via API
+            function loadStakeholderDetails(id) {
+                showLoading();
+
+                $.ajax({
+                    url: `/api/StakeholdersInfo/${id}`,
+                    method: 'GET',
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            renderDetailsModal(response.data);
+                            currentDetailsId = id;
+                            detailsModal.show();
+
+                            console.log('Loaded stakeholder details via API:', {
+                                id: id,
+                                name: response.data.name,
+                                time: CURRENT_TIME,
+                                user: CURRENT_USER
+                            });
+                        } else {
+                            showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+                        showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
+                        console.error('Details load error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            }
+
+            // Render details modal content
+            function renderDetailsModal(stakeholder) {
+                const typesHtml = stakeholder.types && stakeholder.types.length > 0
+                    ? stakeholder.types.map(type =>
+                        `<div class="col-auto">
+                            <span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"} fs-6 py-2 px-3">
+                                <i class="fas fa-tag me-1"></i>${type.typeName}
+                                ${type.isPrimary ? '<i class="fas fa-star ms-1" title="النوع الرئيسي"></i>' : ''}
+                            </span>
+                        </div>`
+                      ).join('')
+                    : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا توجد أنواع مرتبطة</span></div>';
+
+                const primaryType = stakeholder.types ? stakeholder.types.find(t => t.isPrimary) : null;
+                const financialTypeHtml = primaryType && primaryType.financialTransactionType
+                    ? `<div class="alert alert-light border-start border-4 border-warning">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية
+                        </h6>
+                        <p class="mb-0">${primaryType.financialTransactionType}</p>
+                       </div>`
+                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-info-circle me-2"></i>لا يوجد نوع معاملة مالية محدد</div>';
+
+                const contactHtml = stakeholder.contactNumbers
+                    ? `<div class="alert alert-light border-start border-4 border-info">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-phone text-info me-2"></i>بيانات الاتصال
+                        </h6>
+                        <p class="mb-0" dir="ltr">${stakeholder.contactNumbers}</p>
+                       </div>`
+                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-phone-slash me-2"></i>لا توجد بيانات اتصال</div>';
+
+                const commentHtml = stakeholder.comment
+                    ? `<div class="alert alert-light border-start border-4 border-secondary">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-comment-alt text-secondary me-2"></i>البيان والتعليقات
+                        </h6>
+                        <p class="mb-0">${stakeholder.comment}</p>
+                       </div>`
+                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-comment-slash me-2"></i>لا يوجد بيان أو تعليقات</div>';
+
+                const detailsContent = `
+                    <div class="p-4">
+                        <!-- Header Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center p-3 bg-light rounded">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="icon-circle bg-info text-white">
+                                            <i class="fas fa-building fa-2x"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
+                                                    الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Types Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-dark mb-3">
+                                    <i class="fas fa-tags text-info me-2"></i>أنواع الجهة
+                                </h6>
+                                <div class="row g-2">
+                                    ${typesHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial Transaction Type Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                ${financialTypeHtml}
+                            </div>
+                        </div>
+
+                        <!-- Contact Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                ${contactHtml}
+                            </div>
+                        </div>
+
+                        <!-- Comment Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                ${commentHtml}
+                            </div>
+                        </div>
+
+                        <!-- Meta Information -->
+                        <div class="row mt-4 pt-3 border-top">
+                            <div class="col-12">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <div class="p-2">
+                                            <div class="text-primary fs-5 fw-bold">${stakeholder.types ? stakeholder.types.length : 0}</div>
+                                            <small class="text-muted">أنواع مرتبطة</small>
+                                        </div>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#detailsContent').html(detailsContent);
+            }
+
+            // Render stakeholders table
+            function renderStakeholders(data) {
+                const tbody = $('#stakeholdersTableBody');
+                tbody.empty();
+
+                if (!data || data.length === 0) {
+                    return;
+                }
+
+                data.forEach(function(stakeholder) {
+                    const typesHtml = stakeholder.types && stakeholder.types.length > 0
+                        ? stakeholder.types.map(type =>
+                            `<span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"}">
+                                ${type.typeName}
+                                ${type.isPrimary ? '<i class="fas fa-star ms-1 small" title="النوع الرئيسي"></i>' : ''}
+                            </span>`
+                          ).join(' ')
+                        : '<span class="text-muted fst-italic">لا يوجد نوع</span>';
+
+                    const statusHtml = `
+                        <div class="form-check form-switch">
+                            <input type="checkbox" class="form-check-input status-toggle"
+                                   ${stakeholder.status ? "checked" : ""}
+                                   data-id="${stakeholder.id}"
+                                   data-name="${stakeholder.name}">
+                            <label class="form-check-label">
+                                ${stakeholder.status ? "نشط" : "غير نشط"}
+                            </label>
+                        </div>
+                    `;
+
+                    const primaryType = stakeholder.types ? stakeholder.types.find(t => t.isPrimary) : null;
+                    const financialType = primaryType && primaryType.financialTransactionType
+                        ? primaryType.financialTransactionType
+                        : '<span class="text-muted">-</span>';
+
+                    const phoneHtml = stakeholder.contactNumbers
+                        ? `<div class="d-flex align-items-center gap-2">
+                            <i class="fas fa-phone text-primary"></i>
+                            <span dir="ltr" class="small">${stakeholder.contactNumbers}</span>
+                           </div>`
+                        : '<span class="text-muted">-</span>';
+
+                    const commentHtml = stakeholder.comment
+                        ? `<span title="${stakeholder.comment}" class="comment-text">
+                            ${stakeholder.comment.length > 60 ? stakeholder.comment.substring(0, 57) + '...' : stakeholder.comment}
+                           </span>`
+                        : '<span class="text-muted">-</span>';
+
+                    const row = `
+                        <tr data-id="${stakeholder.id}" class="stakeholder-row">
+                            <td class="stakeholder-name">
+                                <div class="d-flex align-items-center">
+                                    <div class="stakeholder-icon me-2">
+                                        <i class="fas fa-building text-success"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">${stakeholder.name}</span>
+                                        <br>
+                                        
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="stakeholder-type">
+                                <div class="d-flex flex-wrap gap-1">
+                                    ${typesHtml}
+                                </div>
+                            </td>
+                            <td class="stakeholder-status">${statusHtml}</td>
+                            <td class="stakeholder-financial">${financialType}</td>
+                            <td class="stakeholder-phone">${phoneHtml}</td>
+                            <td class="stakeholder-comment">${commentHtml}</td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    <a href="/StakeholdersInfo/Edit/${stakeholder.id}"
+                                       class="btn btn-sm btn-outline-info"
+                                       title="تعديل ${stakeholder.name}">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary view-details"
+                                            data-id="${stakeholder.id}"
+                                            title="تفاصيل ${stakeholder.name}">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-stakeholder"
+                                            data-id="${stakeholder.id}"
+                                            data-name="${stakeholder.name}"
+                                            title="حذف ${stakeholder.name}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            }
+
+            // Enhanced search functionality
+            function performSearch() {
+                const nameSearch = $('#searchByName').val().toLowerCase().trim();
+                const typeSearch = $('#searchByType').val().toLowerCase().trim();
+                const statusSearch = $('#searchByStatus').val();
+                const financialSearch = $('#searchByFinancial').val().toLowerCase().trim();
+                const phoneSearch = $('#searchByPhone').val().toLowerCase().trim();
+                const commentSearch = $('#searchByComment').val().toLowerCase().trim();
+                let visibleCount = 0;
+
+                $('.stakeholder-row').each(function() {
+                    const row = $(this);
+                    const name = row.find('.stakeholder-name').text().toLowerCase();
+                    const type = row.find('.stakeholder-type').text().toLowerCase();
+                    const status = row.find('.status-toggle').prop('checked') ? 'active' : 'inactive';
+                    const financial = row.find('.stakeholder-financial').text().toLowerCase();
+                    const phone = row.find('.stakeholder-phone').text().toLowerCase();
+                    const comment = row.find('.stakeholder-comment').text().toLowerCase();
+
+                    const nameMatch = !nameSearch || name.includes(nameSearch);
+                    const typeMatch = !typeSearch || type.includes(typeSearch);
+                    const statusMatch = !statusSearch || status === statusSearch;
+                    const financialMatch = !financialSearch || financial.includes(financialSearch);
+                    const phoneMatch = !phoneSearch || phone.includes(phoneSearch);
+                    const commentMatch = !commentSearch || comment.includes(commentSearch);
+
+                    const shouldShow = nameMatch && typeMatch && statusMatch && financialMatch && phoneMatch && commentMatch;
+                    row.toggle(shouldShow);
+
+                    if (shouldShow) visibleCount++;
+                });
+
+                updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch);
+            }
+
+            function updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch) {
+                $('#visibleCount').text(visibleCount);
+                $('#badgeCount').text(visibleCount);
+
+                // Show/hide clear buttons
+                $('#clearNameSearch').toggle(nameSearch.length > 0);
+                $('#clearTypeSearch').toggle(typeSearch.length > 0);
+                $('#clearFinancialSearch').toggle(financialSearch.length > 0);
+                $('#clearPhoneSearch').toggle(phoneSearch.length > 0);
+                $('#clearCommentSearch').toggle(commentSearch.length > 0);
+
+                const hasAnySearch = nameSearch.length > 0 || typeSearch.length > 0 || statusSearch ||
+                                   financialSearch.length > 0 || phoneSearch.length > 0 || commentSearch.length > 0;
+                $('#clearAllSearch').toggle(hasAnySearch);
+
+                // Show/hide no results
+                if (visibleCount === 0 && hasAnySearch) {
+                    $('#noResultsMessage').show();
+                    $('#stakeholdersContainer .section-card').hide();
+                } else {
+                    $('#noResultsMessage').hide();
+                    $('#stakeholdersContainer .section-card').show();
+                }
+
+                // Add visual feedback to search inputs
+                $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
+                $('#searchByType').toggleClass('border-primary', typeSearch.length > 0);
+                $('#searchByStatus').toggleClass('border-primary', statusSearch);
+                $('#searchByFinancial').toggleClass('border-primary', financialSearch.length > 0);
+                $('#searchByPhone').toggleClass('border-primary', phoneSearch.length > 0);
+                $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
+            }
+
+            function updateCounts(count) {
+                $('#totalCount').text(count);
+                $('#visibleCount').text(count);
+                $('#badgeCount').text(count);
+            }
+
+            // Search events
+            let searchTimeout;
+            $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 200);
+            });
+
+            $('#searchByStatus').on('change', function() {
+                performSearch();
+            });
+
+            // Clear search buttons
+            $('#clearNameSearch').click(function() {
+                $('#searchByName').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByName').focus();
+            });
+
+            $('#clearTypeSearch').click(function() {
+                $('#searchByType').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByType').focus();
+            });
+
+            $('#clearFinancialSearch').click(function() {
+                $('#searchByFinancial').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByFinancial').focus();
+            });
+
+            $('#clearPhoneSearch').click(function() {
+                $('#searchByPhone').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByPhone').focus();
+            });
+
+            $('#clearCommentSearch').click(function() {
+                $('#searchByComment').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByComment').focus();
+            });
+
+            $('#clearAllSearch, #resetSearch').click(function() {
+                $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
+                $('#searchByStatus').val('').removeClass('border-primary');
+                performSearch();
+            });
+
+            // View details handler
+            $(document).on('click', '.view-details', function() {
+                const id = $(this).data('id');
+                loadStakeholderDetails(id);
+            });
+
+            // Edit from details modal
+            $('#editFromDetails').click(function() {
+                if (currentDetailsId) {
+                    detailsModal.hide();
+                    window.location.href = `/StakeholdersInfo/Edit/${currentDetailsId}`;
+                }
+            });
+
+            // Delete handlers
+            $(document).on('click', '.delete-stakeholder', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                $('#deleteStakeholderId').val(id);
+                $('#deleteStakeholderName').text(name);
+                deleteModal.show();
+            });
+
+            // Delete stakeholder via API
+            $('#confirmDelete').click(function() {
+                const id = $('#deleteStakeholderId').val();
+                const btn = $(this);
+                const originalText = btn.html();
+
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
+
+                $.ajax({
+                    url: `/StakeholdersInfo/${id}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        btn.prop('disabled', false).html(originalText);
+
+                        if (response.success) {
+                            showNotification(response.message, 'success');
+                            deleteModal.hide();
+
+                            // Remove from UI and update data
+                            $(`tr[data-id="${id}"]`).fadeOut(300, function() {
+                                $(this).remove();
+                                stakeholdersData = stakeholdersData.filter(s => s.id != id);
+                                updateCounts(stakeholdersData.length);
+
+                                if (stakeholdersData.length === 0) {
+                                    $('#emptyState').show();
+                                    $('#stakeholdersContainer').hide();
+                                }
+                            });
+                        } else {
+                            showNotification(response.message || 'حدث خطأ أثناء الحذف', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        btn.prop('disabled', false).html(originalText);
+                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة';
+                        showNotification(errorMessage, 'error');
+                        console.error('Delete error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            });
+
+            // Status toggle via API
+            $(document).on('change', '.status-toggle', function() {
+                const checkbox = $(this);
+                const id = checkbox.data('id');
+                const name = checkbox.data('name');
+                const newStatus = checkbox.prop('checked');
+
+                $.ajax({
+                    url: `/api/StakeholdersInfo/${id}/status`,
+                    method: 'PUT',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ status: newStatus }),
+                    success: function(response) {
+                        if (response.success) {
+                            // Update all instances of this stakeholder's status
+                            $(`.status-toggle[data-id="${id}"]`)
+                                .prop('checked', newStatus)
+                                .closest('.form-switch')
+                                .find('.form-check-label')
+                                .text(newStatus ? 'نشط' : 'غير نشط');
+
+                            // Update data
+                            const stakeholder = stakeholdersData.find(s => s.id == id);
+                            if (stakeholder) {
+                                stakeholder.status = newStatus;
+                            }
+
+                            showNotification(response.message, 'success');
+                        } else {
+                            checkbox.prop('checked', !newStatus);
+                            showNotification(response.message || 'حدث خطأ أثناء تحديث الحالة', 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        checkbox.prop('checked', !newStatus);
+                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة';
+                        showNotification(errorMessage, 'error');
+                    }
+                });
+            });
+
+            // Refresh data
+            $('#refreshData').click(function() {
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+
+                loadStakeholders();
+
+                setTimeout(() => {
+                    btn.prop('disabled', false).html(originalText);
+                }, 1000);
+            });
+
+            // Auto-dismiss success alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert-success, .alert-danger').fadeOut(350);
+            }, 5000);
+
+            // Keyboard shortcuts
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+                    e.preventDefault();
+                    $('#searchByName').focus();
+                }
+                if (e.keyCode === 27) { // Escape
+                    $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
+                    $('#searchByStatus').val('').removeClass('border-primary');
+                    performSearch();
+                }
+            });
+
+            // Initialize page
+            loadStakeholders();
+
+            console.log('Enhanced stakeholders info page with full API integration initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        /* Enhanced Styles for Stakeholders Management */
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .stakeholder-row {
+            transition: all 0.2s ease;
+        }
+
+            .stakeholder-row:hover {
+                background-color: rgba(25,135,84,0.05);
+                transform: scale(1.002);
+            }
+
+        .search-row th {
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 8px 12px;
+        }
+
+        .search-container .input-group {
+            transition: all 0.2s ease;
+        }
+
+            .search-container .input-group:hover {
+                transform: translateY(-1px);
+            }
+
+            .search-container .input-group.shadow-sm {
+                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+            }
+
+        .search-container .input-group-text {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+            font-size: 0.875rem;
+        }
+
+        .search-container .form-control, .search-container .form-select {
+            border-color: #ced4da;
+            font-size: 0.875rem;
+            padding: 6px 12px;
+        }
+
+            .search-container .form-control:focus, .search-container .form-select:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            }
+
+            .search-container .form-control.border-primary, .search-container .form-select.border-primary {
+                border-color: #0d6efd !important;
+                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+            }
+
+        .stakeholder-icon {
+            width: 30px;
+            text-align: center;
+        }
+
+        .btn-group .btn {
+            margin: 0 1px;
+        }
+
+        .comment-text {
+            cursor: help;
+        }
+
+        .form-switch .form-check-input {
+            width: 2.5em;
+        }
+
+            .form-switch .form-check-input:checked {
+                background-color: var(--bs-success);
+                border-color: var(--bs-success);
+            }
+
+        .badge .fa-star {
+            font-size: 0.75em;
+        }
+
+        .toast {
+            min-width: 300px;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+        }
+
+        /* Enhanced details modal styling */
+        .details-modal .icon-circle {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+        }
+
+        .border-start {
+            border-left: 4px solid !important;
+        }
+
+        .stakeholder-row {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @@keyframes fadeInUp {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        .table thead th {
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .table thead tr:first-child th {
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        /* Enhanced loading overlay */
+        #loadingOverlay {
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
+        }
+
+        /* Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .icon-circle
+
+        {
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+            .btn-group .btn {
+                margin: 1px 0;
+                border-radius: 4px !important;
+            }
+
+        .search-row th {
+            padding: 6px 8px;
+        }
+
+        .search-container .form-control, .search-container .form-select {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+
+        .details-modal .icon-circle {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        .stakeholder-name, .stakeholder-comment {
+            font-size: 0.9rem;
+        }
+
+        }
+
+        /* Print styles */
+        @@media print {
+            .btn-group, .form-switch, .search-row
+
+        {
+            display: none !important;
+        }
+
+        .stakeholder-row {
+            break-inside: avoid;
+        }
+
+        }
+    </style>
+}

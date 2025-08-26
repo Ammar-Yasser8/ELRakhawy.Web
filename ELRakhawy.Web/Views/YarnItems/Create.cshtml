@@ -1,0 +1,968 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model YarnItemViewModel
+@{
+    ViewData["Title"] = "إضافة صنف جديد";
+    var currentTime = "2025-08-12 00:54:16";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-pill px-4 py-3 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home me-1"></i>الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-boxes me-1"></i>إدارة الأصناف
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-plus-circle me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+
+
+<!-- Alerts -->
+@if (TempData["Success"] != null || TempData["Error"] != null)
+{
+    <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4 shadow-sm border-0">
+        <div class="d-flex align-items-center">
+            <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") fa-lg me-3"></i>
+            <div>
+                <strong>@(TempData["Success"] != null ? "نجح!" : "خطأ!")</strong>
+                <div class="mt-1">@(TempData["Success"] ?? TempData["Error"])</div>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <!-- Main Form Section -->
+    <div class="col-lg-8">
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-light border-0 py-4">
+                <div class="d-flex align-items-center">
+                    <div class="form-icon-wrapper me-3">
+                        <i class="fas fa-plus-circle text-primary"></i>
+                    </div>
+                    <div>
+                        <h5 class="mb-1 fw-bold text-dark">بيانات الصنف الجديد</h5>
+                        <p class="text-muted mb-0 small">املأ المعلومات أدناه لإضافة صنف جديد</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" id="createForm" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4"></div>
+
+                    <div class="row g-4">
+                        <!-- Basic Information Section -->
+                        <div class="col-12">
+                            <div class="form-section">
+                                <div class="section-header mb-4">
+                                    <i class="fas fa-info-circle text-primary me-2"></i>
+                                    <span class="fw-bold">المعلومات الأساسية</span>
+                                </div>
+
+                                <div class="row g-3">
+                                    <!-- Item Name -->
+                                    <div class="col-lg-8">
+                                        <div class="form-floating">
+                                            <input asp-for="Item" class="form-control form-control-lg"
+                                                   placeholder="أدخل اسم الصنف" id="itemInput"
+                                                   maxlength="200" />
+                                            <label asp-for="Item" class="form-label required">
+                                                <i class="fas fa-box me-2"></i>اسم الصنف
+                                            </label>
+                                        </div>
+                                        <span asp-validation-for="Item" class="text-danger mt-1"></span>
+                                        <div class="form-text">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            يجب أن يكون اسم الصنف فريد وواضح
+                                        </div>
+                                    </div>
+
+                                    <!-- Status -->
+                                    <div class="col-lg-4">
+                                        <div class="status-container">
+                                            <label class="form-label fw-bold mb-3">
+                                                <i class="fas fa-toggle-on me-2 text-success"></i>حالة الصنف
+                                            </label>
+                                            <div class="form-check form-switch form-check-lg">
+                                                <input asp-for="Status" class="form-check-input" type="checkbox"
+                                                       id="statusSwitch" checked />
+                                                <label asp-for="Status" class="form-check-label fw-bold" for="statusSwitch">
+                                                    <span class="status-text">نشط</span>
+                                                </label>
+                                            </div>
+                                            <div class="status-indicator mt-2">
+                                                <span class="badge status-badge bg-success px-3 py-2">
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                                    <span class="status-badge-text">نشط</span>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Relationships Section -->
+                        <div class="col-12">
+                            <div class="form-section">
+                                <div class="section-header mb-4">
+                                    <i class="fas fa-link text-info me-2"></i>
+                                    <span class="fw-bold">الروابط والعلاقات</span>
+                                </div>
+
+                                <div class="row g-3">
+                                    <!-- Manufacturer -->
+                                    <div class="col-lg-6">
+                                        <div class="manufacturer-container">
+                                            <label asp-for="ManufacturerId" class="form-label fw-bold">
+                                                <i class="fas fa-industry text-success me-2"></i>الشركة المصنعة
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-success text-white">
+                                                    <i class="fas fa-industry"></i>
+                                                </span>
+                                                <select asp-for="ManufacturerId" asp-items="Model.Manufacturers"
+                                                        class="form-select form-select-lg" id="manufacturerSelect">
+                                                    
+                                                </select>
+                                                <button type="button" class="btn btn-outline-success"
+                                                        id="addManufacturerBtn" title="إضافة شركة مصنعة جديدة">
+                                                    <i class="fas fa-plus"></i>
+                                                </button>
+                                            </div>
+                                            <span asp-validation-for="ManufacturerId" class="text-danger mt-1"></span>
+                                            <div class="form-text">
+                                                <i class="fas fa-lightbulb me-1"></i>
+                                                اختياري - يمكن ترك هذا الحقل فارغاً
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Origin Yarn -->
+                                    <div class="col-lg-6">
+                                        <div class="origin-yarn-container">
+                                            <label asp-for="OriginYarnId" class="form-label fw-bold">
+                                                <i class="fas fa-link text-purple me-2"></i>الغزل المكون
+                                            </label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-purple text-white">
+                                                    <i class="fas fa-link"></i>
+                                                </span>
+                                                <select asp-for="OriginYarnId" asp-items="Model.OriginYarns"
+                                                        class="form-select form-select-lg" id="originYarnSelect">
+                                                    
+                                                </select>
+                                                <button type="button" class="btn btn-outline-secondary"
+                                                        id="refreshOriginYarnBtn" title="تحديث قائمة الغزل المكون">
+                                                    <i class="fas fa-sync-alt"></i>
+                                                </button>
+                                            </div>
+                                            <span asp-validation-for="OriginYarnId" class="text-danger mt-1"></span>
+                                            <div class="form-text">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                الغزل الأساسي المستخدم في تكوين هذا الصنف
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comments Section -->
+                        <div class="col-12">
+                            <div class="form-section">
+                                <div class="section-header mb-4">
+                                    <i class="fas fa-comment-alt text-warning me-2"></i>
+                                    <span class="fw-bold">الملاحظات والتفاصيل</span>
+                                </div>
+
+                                <div class="comment-container">
+                                    <div class="form-floating">
+                                        <textarea asp-for="Comment" class="form-control"
+                                                  placeholder="أدخل أي ملاحظات أو تفاصيل إضافية"
+                                                  id="commentTextarea" rows="4" style="height: 120px;"
+                                                  maxlength="500"></textarea>
+                                        <label asp-for="Comment" class="form-label">
+                                            <i class="fas fa-comment-alt me-2"></i>البيان والملاحظات
+                                        </label>
+                                    </div>
+                                    <span asp-validation-for="Comment" class="text-danger mt-1"></span>
+                                    <div class="d-flex justify-content-between align-items-center mt-2">
+                                        <div class="form-text">
+                                            <i class="fas fa-pencil-alt me-1"></i>
+                                            أضف أي ملاحظات مهمة حول هذا الصنف
+                                        </div>
+                                        <small class="text-muted">
+                                            <span id="charCount">0</span> / 500 حرف
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="col-12">
+                            <div class="action-buttons-container">
+                                <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-end">
+                                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-lg px-4">
+                                        <i class="fas fa-arrow-right me-2"></i>العودة للقائمة
+                                    </a>
+                                    <button type="button" class="btn btn-outline-info btn-lg px-4" id="previewBtn">
+                                        <i class="fas fa-eye me-2"></i>معاينة البيانات
+                                    </button>
+                                    <button type="button" class="btn btn-outline-warning btn-lg px-4" id="resetBtn">
+                                        <i class="fas fa-undo me-2"></i>إعادة تعيين
+                                    </button>
+                                    <button type="submit" class="btn btn-primary btn-lg px-5" id="saveBtn">
+                                        <i class="fas fa-save me-2"></i>حفظ الصنف
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <script>
+                    // دالة لتحويل الأرقام للغة العربية
+                    function toArabicDigits(str) {
+                        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                    }
+
+                    // دالة لتحويل الأرقام للاتينية
+                    function toLatinDigits(str) {
+                        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف عربي
+                    function isArabicChar(c) {
+                        return /[\u0600-\u06FF]/.test(c);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف إنجليزي
+                    function isEnglishChar(c) {
+                        return /[a-zA-Z]/.test(c);
+                    }
+
+                    // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                    function getLastLetter(str) {
+                        for (let i = str.length - 1; i >= 0; i--) {
+                            let char = str[i];
+                            if (isArabicChar(char)) {
+                                return 'arabic';
+                            } else if (isEnglishChar(char)) {
+                                return 'english';
+                            }
+                        }
+                        return 'arabic'; // default is Arabic
+                    }
+
+                    // تطبيق التحويل على كل الحقول النصية
+                    document.addEventListener("input", function (e) {
+                        if (e.target.closest("#createForm")) {
+                            let input = e.target;
+                            let val = input.value;
+
+                            // تطبيق التحويل على حقول النص والتعليقات فقط
+                            if (input.type === 'text' || input.tagName === 'TEXTAREA') {
+                                if (val.length > 0) {
+                                    let lastLetterLang = getLastLetter(val);
+
+                                    let newVal;
+                                    if (lastLetterLang === 'arabic') {
+                                        // حول جميع الأرقام للعربية
+                                        newVal = toArabicDigits(val);
+                                    } else {
+                                        // حول جميع الأرقام للاتينية
+                                        newVal = toLatinDigits(val);
+                                    }
+
+                                    // تحديث القيمة فقط إذا تغيرت
+                                    if (newVal !== val) {
+                                        let cursorPos = input.selectionStart;
+                                        input.value = newVal;
+                                        // استعادة موضع المؤشر
+                                        input.setSelectionRange(cursorPos, cursorPos);
+                                    }
+                                }
+
+                                // تحديث عداد الأحرف للتعليقات
+                                if (input.id === 'commentTextarea') {
+                                    document.getElementById('charCount').textContent = val.length;
+                                }
+                            }
+                        }
+                    });
+
+                    // وظائف إضافية للفورم
+                    document.addEventListener('DOMContentLoaded', function() {
+                        // تحديث مؤشر الحالة
+                        const statusSwitch = document.getElementById('statusSwitch');
+                        const statusText = document.querySelector('.status-text');
+                        const statusBadge = document.querySelector('.status-badge');
+                        const statusBadgeText = document.querySelector('.status-badge-text');
+
+                        if (statusSwitch && statusText && statusBadge && statusBadgeText) {
+                            statusSwitch.addEventListener('change', function() {
+                                if (this.checked) {
+                                    statusText.textContent = 'نشط';
+                                    statusBadgeText.textContent = 'نشط';
+                                    statusBadge.className = 'badge status-badge bg-success px-3 py-2';
+                                    statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="status-badge-text">نشط</span>';
+                                } else {
+                                    statusText.textContent = 'غير نشط';
+                                    statusBadgeText.textContent = 'غير نشط';
+                                    statusBadge.className = 'badge status-badge bg-danger px-3 py-2';
+                                    statusBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i><span class="status-badge-text">غير نشط</span>';
+                                }
+                            });
+                        }
+
+                        // وظائف الأزرار الإضافية
+                        const addManufacturerBtn = document.getElementById('addManufacturerBtn');
+                        const refreshOriginYarnBtn = document.getElementById('refreshOriginYarnBtn');
+                        const previewBtn = document.getElementById('previewBtn');
+                        const resetBtn = document.getElementById('resetBtn');
+
+                        // إضافة شركة مصنعة جديدة
+                        if (addManufacturerBtn) {
+                            addManufacturerBtn.addEventListener('click', function() {
+                                // يمكن فتح مودال لإضافة شركة مصنعة جديدة
+                                console.log('فتح نافذة إضافة شركة مصنعة جديدة');
+                                // modal للشركة المصنعة يمكن إضافته هنا
+                            });
+                        }
+
+                        // تحديث قائمة الغزل المكون
+                        if (refreshOriginYarnBtn) {
+                            refreshOriginYarnBtn.addEventListener('click', function() {
+                                const button = this;
+                                const icon = button.querySelector('i');
+
+                                // تأثير بصري للتحديث
+                                icon.classList.add('fa-spin');
+                                button.disabled = true;
+
+                                // محاكاة عملية التحديث (يمكن استبدالها بـ AJAX call)
+                                setTimeout(() => {
+                                    icon.classList.remove('fa-spin');
+                                    button.disabled = false;
+
+                                    // عرض رسالة نجاح مؤقتة
+                                    const tempMsg = document.createElement('div');
+                                    tempMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
+                                    tempMsg.innerHTML = '<i class="fas fa-check me-2"></i>تم تحديث قائمة الغزل المكون بنجاح';
+                                    button.parentNode.appendChild(tempMsg);
+
+                                    setTimeout(() => {
+                                        tempMsg.remove();
+                                    }, 3000);
+                                }, 2000);
+                            });
+                        }
+
+                        // معاينة البيانات
+                        if (previewBtn) {
+                            previewBtn.addEventListener('click', function() {
+                                const formData = new FormData(document.getElementById('createForm'));
+                                let previewData = {
+                                    item: formData.get('Item'),
+                                    manufacturer: document.getElementById('manufacturerSelect').selectedOptions[0]?.text || 'غير محدد',
+                                    originYarn: document.getElementById('originYarnSelect').selectedOptions[0]?.text || 'غير محدد',
+                                    status: formData.get('Status') ? 'نشط' : 'غير نشط',
+                                    comment: formData.get('Comment') || 'لا توجد ملاحظات'
+                                };
+
+                                let previewHtml = `
+                                    <div class="preview-container">
+                                        <h5><i class="fas fa-eye me-2"></i>معاينة بيانات الصنف</h5>
+                                        <table class="table table-striped">
+                                            <tr><th>اسم الصنف:</th><td>${previewData.item || 'غير مدخل'}</td></tr>
+                                            <tr><th>الشركة المصنعة:</th><td>${previewData.manufacturer}</td></tr>
+                                            <tr><th>الغزل المكون:</th><td>${previewData.originYarn}</td></tr>
+                                            <tr><th>الحالة:</th><td>${previewData.status}</td></tr>
+                                            <tr><th>الملاحظات:</th><td>${previewData.comment}</td></tr>
+                                        </table>
+                                    </div>
+                                `;
+
+                                // عرض المعاينة في alert أو modal
+                                const previewDiv = document.createElement('div');
+                                previewDiv.innerHTML = previewHtml;
+                                previewDiv.className = 'alert alert-info mt-3';
+
+                                // إزالة المعاينة السابقة إن وجدت
+                                const existingPreview = document.querySelector('.preview-container');
+                                if (existingPreview) {
+                                    existingPreview.parentNode.remove();
+                                }
+
+                                // إضافة المعاينة الجديدة
+                                previewBtn.parentNode.appendChild(previewDiv);
+                            });
+                        }
+
+                        // إعادة تعيين النموذج
+                        if (resetBtn) {
+                            resetBtn.addEventListener('click', function() {
+                                if (confirm('هل أنت متأكد من إعادة تعيين جميع البيانات؟')) {
+                                    document.getElementById('createForm').reset();
+                                    document.getElementById('charCount').textContent = '0';
+
+                                    // إعادة تعيين حالة التبديل
+                                    if (statusSwitch) {
+                                        statusSwitch.checked = true;
+                                        statusSwitch.dispatchEvent(new Event('change'));
+                                    }
+
+                                    // إزالة أي معاينة موجودة
+                                    const existingPreview = document.querySelector('.preview-container');
+                                    if (existingPreview) {
+                                        existingPreview.parentNode.remove();
+                                    }
+                                }
+                            });
+                        }
+
+                        // تهيئة عداد الأحرف
+                        const commentTextarea = document.getElementById('commentTextarea');
+                        if (commentTextarea) {
+                            document.getElementById('charCount').textContent = commentTextarea.value.length;
+                        }
+
+                        // تحسين تجربة المستخدم للنماذج العائمة
+                        const floatingInputs = document.querySelectorAll('.form-floating input, .form-floating textarea');
+                        floatingInputs.forEach(input => {
+                            input.addEventListener('focus', function() {
+                                this.parentNode.classList.add('focused');
+                            });
+
+                            input.addEventListener('blur', function() {
+                                if (!this.value) {
+                                    this.parentNode.classList.remove('focused');
+                                }
+                            });
+                        });
+                    });
+                </script>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Section -->
+    <div class="col-lg-4">
+        <!-- Instructions Card -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-info-circle me-2"></i>تعليمات الإدخال
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="instruction-list">
+                    <div class="instruction-item">
+                        <div class="d-flex align-items-start">
+                            <div class="instruction-icon bg-primary bg-opacity-10 text-primary me-3">
+                                <i class="fas fa-check-circle"></i>
+                            </div>
+                            <div>
+                                <strong class="text-primary">اسم الصنف:</strong>
+                                <p class="small mb-0 text-muted">يجب أن يكون فريداً ولا يقل عن حرفين</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="instruction-item">
+                        <div class="d-flex align-items-start">
+                            <div class="instruction-icon bg-success bg-opacity-10 text-success me-3">
+                                <i class="fas fa-industry"></i>
+                            </div>
+                            <div>
+                                <strong class="text-success">الشركة المصنعة:</strong>
+                                <p class="small mb-0 text-muted">اختياري - يمكن تحديد الشركة المصنعة للصنف</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="instruction-item">
+                        <div class="d-flex align-items-start">
+                            <div class="instruction-icon bg-purple bg-opacity-10 text-purple me-3">
+                                <i class="fas fa-link"></i>
+                            </div>
+                            <div>
+                                <strong class="text-purple">الغزل المكون:</strong>
+                                <p class="small mb-0 text-muted">اختياري - الغزل الأساسي المكون لهذا الصنف</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="instruction-item">
+                        <div class="d-flex align-items-start">
+                            <div class="instruction-icon bg-warning bg-opacity-10 text-warning me-3">
+                                <i class="fas fa-toggle-on"></i>
+                            </div>
+                            <div>
+                                <strong class="text-warning">الحالة:</strong>
+                                <p class="small mb-0 text-muted">الصنف النشط يمكن استخدامه في المعاملات</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       
+        <!-- Quick Stats Card -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-gradient-primary text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>إحصائيات سريعة
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 text-center">
+                    <div class="col-6">
+                        <div class="quick-stat">
+                            <div class="h4 text-primary mb-1">@(Model.Manufacturers?.Count() ?? 0)</div>
+                            <small class="text-muted">شركة مصنعة</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="quick-stat">
+                            <div class="h4 text-purple mb-1">@(Model.OriginYarns?.Count() ?? 0)</div>
+                            <small class="text-muted">غزل مكون</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Preview Modal -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-eye me-2"></i>معاينة البيانات
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="previewContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>تراجع
+                </button>
+                <button type="button" class="btn btn-primary" id="confirmSaveBtn">
+                    <i class="fas fa-save me-2"></i>تأكيد الحفظ
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            console.log('Create form loaded at 2025-08-12 00:54:16 by Ammar-Yasser8');
+
+            // Update current time
+            function updateDateTime() {
+                const now = new Date();
+                const utcString = now.getUTCFullYear() + '-' +
+                    String(now.getUTCMonth() + 1).padStart(2, '0') + '-' +
+                    String(now.getUTCDate()).padStart(2, '0') + ' ' +
+                    String(now.getUTCHours()).padStart(2, '0') + ':' +
+                    String(now.getUTCMinutes()).padStart(2, '0') + ':' +
+                    String(now.getUTCSeconds()).padStart(2, '0');
+                $('#currentDateTime, #sessionTime').text(utcString);
+            }
+
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            // Character counter for comment
+            $('#commentTextarea').on('input', function() {
+                const length = $(this).val().length;
+                $('#charCount').text(length);
+
+                if (length > 450) {
+                    $('#charCount').addClass('text-warning');
+                } else if (length > 480) {
+                    $('#charCount').addClass('text-danger');
+                } else {
+                    $('#charCount').removeClass('text-warning text-danger');
+                }
+            });
+
+            // Status toggle functionality
+            $('#statusSwitch').change(function() {
+                const isChecked = $(this).is(':checked');
+                $('.status-text').text(isChecked ? 'نشط' : 'غير نشط');
+                $('.status-badge')
+                    .removeClass('bg-success bg-secondary')
+                    .addClass(isChecked ? 'bg-success' : 'bg-secondary');
+                $('.status-badge-text').text(isChecked ? 'نشط' : 'غير نشط');
+                $('.status-badge i')
+                    .removeClass('fa-check-circle fa-times-circle')
+                    .addClass(isChecked ? 'fa-check-circle' : 'fa-times-circle');
+            });
+
+            // Auto-capitalize first letter of item name
+            $('#itemInput').on('blur', function() {
+                const value = $(this).val().trim();
+                if (value) {
+                    $(this).val(value.charAt(0).toUpperCase() + value.slice(1));
+                    $(this).removeClass('is-invalid');
+                }
+            });
+
+            // Enhanced dropdown validation
+            $('.form-select').change(function() {
+                const select = $(this);
+                const value = select.val();
+
+                select.removeClass('is-invalid is-valid');
+
+                if (value && value !== '') {
+                    select.addClass('is-valid');
+                }
+            });
+
+            // Refresh origin yarns
+            $('#refreshOriginYarnBtn').click(function() {
+                const btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                setTimeout(() => {
+                    btn.prop('disabled', false).html('<i class="fas fa-sync-alt"></i>');
+                    if (typeof toastr !== 'undefined') {
+                        toastr.success('تم تحديث قائمة الغزل المكون');
+                    }
+                }, 1000);
+            });
+
+            // Preview functionality
+            $('#previewBtn').click(function() {
+                const formData = {
+                    item: $('#itemInput').val(),
+                    manufacturer: $('#manufacturerSelect option:selected').text(),
+                    originYarn: $('#originYarnSelect option:selected').text(),
+                    status: $('#statusSwitch').is(':checked'),
+                    comment: $('#commentTextarea').val() || 'لا يوجد بيان'
+                };
+
+                const content = `
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0"><i class="fas fa-info me-2"></i>معلومات أساسية</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong class="text-primary">اسم الصنف:</strong>
+                                        <p class="mb-1">${formData.item}</p>
+                                    </div>
+                                    <div class="mb-3">
+                                        <strong class="text-success">الشركة المصنعة:</strong>
+                                        <p class="mb-1">${formData.manufacturer}</p>
+                                    </div>
+                                    <div>
+                                        <strong class="text-purple">الغزل المكون:</strong>
+                                        <p class="mb-0">${formData.originYarn}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-info">
+                                <div class="card-header bg-info text-white">
+                                    <h6 class="mb-0"><i class="fas fa-cog me-2"></i>إعدادات</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="mb-3">
+                                        <strong>الحالة:</strong>
+                                        <p class="mb-1">
+                                            <span class="badge ${formData.status ? 'bg-success' : 'bg-secondary'} px-3 py-2">
+                                                <i class="fas ${formData.status ? 'fa-check' : 'fa-times'} me-1"></i>
+                                                ${formData.status ? 'نشط' : 'غير نشط'}
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div>
+                                        <strong>البيان:</strong>
+                                        <p class="mb-0 text-muted">${formData.comment}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <strong>ملاحظة:</strong> هذه معاينة للبيانات المطلوب إضافتها. انقر على "تأكيد الحفظ" لحفظ الصنف نهائياً.
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#previewContent').html(content);
+                $('#previewModal').modal('show');
+            });
+
+            // Confirm save from preview
+            $('#confirmSaveBtn').click(function() {
+                $('#previewModal').modal('hide');
+                $('#createForm').submit();
+            });
+
+            // Reset form functionality
+            $('#resetBtn').click(function() {
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'إعادة تعيين النموذج',
+                        text: 'هل أنت متأكد من إعادة تعيين جميع البيانات المدخلة؟',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'نعم، إعادة تعيين',
+                        cancelButtonText: 'إلغاء',
+                        confirmButtonColor: '#dc3545'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $('#createForm')[0].reset();
+                            $('#statusSwitch').prop('checked', true).trigger('change');
+                            $('#charCount').text('0');
+                            $('.form-control, .form-select').removeClass('is-invalid is-valid');
+                        }
+                    });
+                } else {
+                    if (confirm('هل أنت متأكد من إعادة تعيين جميع البيانات المدخلة؟')) {
+                        $('#createForm')[0].reset();
+                        $('#statusSwitch').prop('checked', true).trigger('change');
+                        $('#charCount').text('0');
+                        $('.form-control, .form-select').removeClass('is-invalid is-valid');
+                    }
+                }
+            });
+
+            // Enhanced form validation
+            $('#createForm').on('submit', function(e) {
+                let hasErrors = false;
+
+                // Clear previous validation
+                $('.form-control, .form-select').removeClass('is-invalid is-valid');
+
+                // Validate item name
+                const itemName = $('#itemInput').val().trim();
+                if (itemName.length < 2) {
+                    $('#itemInput').addClass('is-invalid');
+                    hasErrors = true;
+                    if (typeof toastr !== 'undefined') {
+                        toastr.error('اسم الصنف يجب أن يحتوي على حرفين على الأقل');
+                    }
+                } else {
+                    $('#itemInput').addClass('is-valid');
+                }
+
+                // Validate manufacturer selection if provided
+                const manufacturerId = $('#manufacturerSelect').val();
+                if (manufacturerId && manufacturerId !== '') {
+                    const manufacturerExists = $('#manufacturerSelect option[value="' + manufacturerId + '"]').length > 0;
+                    if (!manufacturerExists) {
+                        $('#manufacturerSelect').addClass('is-invalid');
+                        hasErrors = true;
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('الشركة المصنعة المحددة غير صحيحة');
+                        }
+                    }
+                }
+
+                // Validate origin yarn selection if provided
+                const originYarnId = $('#originYarnSelect').val();
+                if (originYarnId && originYarnId !== '') {
+                    const originExists = $('#originYarnSelect option[value="' + originYarnId + '"]').length > 0;
+                    if (!originExists) {
+                        $('#originYarnSelect').addClass('is-invalid');
+                        hasErrors = true;
+                        if (typeof toastr !== 'undefined') {
+                            toastr.error('الغزل المكون المحدد غير صحيح');
+                        }
+                    }
+                }
+
+                if (hasErrors) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Show loading state
+                const btn = $('#saveBtn');
+                btn.prop('disabled', true)
+                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+
+                if (typeof toastr !== 'undefined') {
+                    toastr.info('جاري حفظ الصنف الجديد...');
+                }
+            });
+
+            // Auto-hide alerts
+            $('.alert').delay(6000).fadeOut(350);
+
+            // Initialize form
+            $('#charCount').text($('#commentTextarea').val().length);
+        });
+    </script>
+
+    <style>
+        /* Enhanced Styles */
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bg-purple {
+            background-color: #6f42c1 !important;
+        }
+
+        .text-purple {
+            color: #6f42c1 !important;
+        }
+
+        .header-icon-wrapper, .form-icon-wrapper {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .form-section {
+            padding: 1.5rem;
+            border: 1px solid #e9ecef;
+            border-radius: 0.75rem;
+            background-color: #f8f9fa;
+            margin-bottom: 1rem;
+        }
+
+        .section-header {
+            font-size: 1.1rem;
+            border-bottom: 2px solid #dee2e6;
+            padding-bottom: 0.5rem;
+        }
+
+        .status-container {
+            text-align: center;
+            padding: 1rem;
+            border: 2px dashed #dee2e6;
+            border-radius: 0.5rem;
+            background-color: white;
+        }
+
+        .form-check-lg .form-check-input {
+            width: 3rem;
+            height: 1.5rem;
+        }
+
+        .manufacturer-container, .origin-yarn-container, .comment-container {
+            background-color: white;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e9ecef;
+        }
+
+        .action-buttons-container {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 2rem;
+            border-radius: 0.75rem;
+            margin-top: 2rem;
+        }
+
+        .instruction-item {
+            margin-bottom: 1rem;
+        }
+
+        .instruction-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar-sm {
+            width: 40px;
+            height: 40px;
+        }
+
+        .quick-stat {
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: #f8f9fa;
+        }
+
+        .required::after {
+            content: " *";
+            color: #dc3545;
+            font-weight: bold;
+        }
+
+        .breadcrumb {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "←";
+            color: #6c757d;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 991.98px) {
+            .form-section
+
+        {
+            padding: 1rem;
+        }
+
+        .action-buttons-container .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        }
+
+        @@media (max-width: 767.98px) {
+            .session-info
+
+        {
+            text-align: center;
+            margin-top: 1rem;
+        }
+
+        }
+    </style>
+}
+
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

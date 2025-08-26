@@ -1,0 +1,724 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model IEnumerable<YarnItemViewModel>
+@{
+    ViewData["Title"] = "لوحة تحكم مخزون الخيوط";
+    Layout = "_Layout"; // استخدام نفس التخطيط
+
+    // إحصائيات محسوبة من النموذج
+    var totalItems = Model.Count();
+    var activeItems = Model.Count(x => x.Status);
+    var totalBalance = Model.Sum(x => x.CurrentBalance);
+    var lowStockItems = Model.Count(x => x.CurrentBalance <= 10 && x.CurrentBalance > 0);
+    var zeroStockItems = Model.Count(x => x.CurrentBalance <= 0);
+
+    // تجميع البيانات للرسوم البيانية
+    var manufacturers = Model
+        .Where(x => !string.IsNullOrEmpty(x.ManufacturerName))
+        .GroupBy(x => x.ManufacturerName)
+        .Select(g => new { Name = g.Key, Count = g.Count(), Balance = g.Sum(x => x.CurrentBalance) })
+        .OrderByDescending(x => x.Balance)
+        .Take(5)
+        .ToList();
+}
+
+
+    <style>
+        .dashboard-header {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            padding: 20px 0;
+            margin-bottom: 24px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            margin-bottom: 24px;
+        }
+
+        .card-header {
+            background-color: #f8f9fc;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 700;
+            padding: 15px 20px;
+            border-radius: 10px 10px 0 0 !important;
+        }
+
+        .summary-card {
+            border-left: 4px solid;
+            transition: transform 0.3s;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .summary-card.total { border-left-color: #4e73df; }
+        .summary-card.available { border-left-color: #1cc88a; }
+        .summary-card.low-stock { border-left-color: #f6c23e; }
+        .summary-card.out-of-stock { border-left-color: #e74a3b; }
+
+        .summary-icon {
+            font-size: 2rem;
+            opacity: 0.3;
+            position: absolute;
+            left: 20px;
+            top: 15px;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+            padding: 20px;
+        }
+
+        .view-option {
+            cursor: pointer;
+            padding: 10px 15px;
+            border-radius: 5px;
+            margin-right: 10px;
+            background-color: #eaecf4;
+            text-decoration: none;
+            color: #6e707e;
+        }
+
+        .view-option.active {
+            background-color: #4e73df;
+            color: white;
+        }
+
+        .filter-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+
+        .filter-label {
+            font-weight: 600;
+            color: #5a5c69;
+            margin-bottom: 5px;
+        }
+
+        .item-card {
+            transition: all 0.3s ease;
+            height: 100%;
+        }
+
+        .item-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .search-tag {
+            display: inline-block;
+            background: #eaecf4;
+            color: #4e73df;
+            padding: 4px 10px;
+            border-radius: 15px;
+            margin: 2px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .search-tag-remove {
+            margin-right: 5px;
+            cursor: pointer;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 40px;
+            color: #b7b9cc;
+        }
+
+        .no-data i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+        }
+    </style>
+
+
+<div class="dashboard-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h1><i class="fas fa-th-large me-2"></i>لوحة تحكم مخزون الخيوط</h1>
+                <p class="lead">نظرة عامة مرئية على حالة مخزون الخيوط والمقاييس</p>
+            </div>
+            <div class="col-md-6 text-start">
+                <div class="btn-group">
+                    <span class="view-option active"><i class="fas fa-th-large me-1"></i> لوحة التحكم</span>
+                    <a href="@Url.Action("Index")" class="view-option"><i class="fas fa-table me-1"></i> عرض الجدول</a>
+                </div>
+                <button class="btn btn-light"><i class="fas fa-download me-1"></i> إنشاء تقرير</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- بطاقات الملخص -->
+    <div class="row" id="summaryCards">
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card total">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-primary text-uppercase mb-1">إجمالي الأصناف</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">@totalItems</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-boxes summary-icon text-primary"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card available">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-success text-uppercase mb-1">الأصناف النشطة</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">@activeItems</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-check-circle summary-icon text-success"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card low-stock">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-warning text-uppercase mb-1">رصيد منخفض</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">@lowStockItems</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-exclamation-triangle summary-icon text-warning"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6">
+            <div class="card summary-card out-of-stock">
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <div class="text-xs fw-bold text-danger text-uppercase mb-1">بدون رصيد</div>
+                            <div class="h5 mb-0 fw-bold text-gray-800">@zeroStockItems</div>
+                        </div>
+                        <div class="col-auto">
+                            <i class="fas fa-times-circle summary-icon text-danger"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- مرشحات -->
+    <div class="filter-section">
+        <div class="row">
+            <div class="col-md-3 mb-2">
+                <div class="filter-label">الحالة</div>
+                <select class="form-select form-select-sm" id="statusFilter">
+                    <option value="all">جميع الحالات</option>
+                    <option value="active">نشط فقط</option>
+                    <option value="inactive">غير نشط فقط</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2">
+                <div class="filter-label">الشركة المصنعة</div>
+                <select class="form-select form-select-sm" id="manufacturerFilter">
+                    <option value="all">جميع الشركات</option>
+                    @foreach (var mfg in manufacturers)
+                    {
+                        <option value="@mfg.Name">@mfg.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 mb-2">
+                <div class="filter-label">مستوى الرصيد</div>
+                <select class="form-select form-select-sm" id="balanceFilter">
+                    <option value="all">جميع المستويات</option>
+                    <option value="zero">بدون رصيد</option>
+                    <option value="low">رصيد منخفض</option>
+                    <option value="medium">رصيد متوسط</option>
+                    <option value="high">رصيد عالي</option>
+                </select>
+            </div>
+            <div class="col-md-3 mb-2">
+                <div class="filter-label">بحث</div>
+                <input type="text" class="form-control form-control-sm" id="searchInput" placeholder="اسم الصنف...">
+            </div>
+        </div>
+        <div class="row mt-2" id="activeFilters" style="display: none;">
+            <div class="col-12">
+                <div class="filter-label">المرشحات النشطة:</div>
+                <div id="filterTags"></div>
+                <button class="btn btn-sm btn-outline-secondary mt-2" id="clearFilters">
+                    <i class="fas fa-times me-1"></i>مسح جميع المرشحات
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- صف الرسوم البيانية -->
+    <div class="row">
+        <!-- توزيع المخزون حسب الشركة المصنعة -->
+        <div class="col-xl-8">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">توزيع المخزون حسب الشركة المصنعة</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="inventoryChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- نظرة عامة على حالة المخزون -->
+        <div class="col-xl-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="m-0 font-weight-bold text-primary">نظرة عامة على حالة المخزون</h6>
+                </div>
+                <div class="card-body">
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- أفضل الأصناف -->
+    <div class="row mt-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="stat-card bg-primary bg-opacity-10 rounded p-3 text-center h-100">
+                        <div class="stat-icon text-primary mb-2">
+                            <i class="fas fa-boxes fa-2x"></i>
+                        </div>
+                        <div class="h4 mb-1 text-primary" id="sidebarTotalItems">@totalItems</div>
+                        <small class="text-muted">إجمالي الأصناف</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card bg-success bg-opacity-10 rounded p-3 text-center h-100">
+                        <div class="stat-icon text-success mb-2">
+                            <i class="fas fa-check-circle fa-2x"></i>
+                        </div>
+                        <div class="h4 mb-1 text-success" id="sidebarActiveItems">@activeItems</div>
+                        <small class="text-muted">الأصناف النشطة</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card bg-warning bg-opacity-10 rounded p-3 text-center h-100">
+                        <div class="stat-icon text-warning mb-2">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                        <div class="h4 mb-1 text-warning" id="sidebarLowStock">@lowStockItems</div>
+                        <small class="text-muted">رصيد منخفض</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-card bg-danger bg-opacity-10 rounded p-3 text-center h-100">
+                        <div class="stat-icon text-danger mb-2">
+                            <i class="fas fa-ban fa-2x"></i>
+                        </div>
+                        <div class="h4 mb-1 text-danger" id="sidebarZeroStock">@zeroStockItems</div>
+                        <small class="text-muted">بدون رصيد</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Balance Summary -->
+            <hr class="my-3">
+            <div class="balance-summary">
+                <h6 class="text-primary mb-3">
+                    <i class="fas fa-calculator me-2"></i>ملخص الأرصدة
+                </h6>
+                <div class="bg-light rounded p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">إجمالي الرصيد:</span>
+                        <span class="fw-bold text-primary h6 mb-0">@totalBalance.ToString("N3") كجم</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="text-muted">متوسط الرصيد:</span>
+                        <span class="fw-bold text-info">@((totalItems > 0 ? totalBalance / totalItems : 0).ToString("N2")) كجم</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span class="text-muted">نسبة النشطة:</span>
+                        <span class="fw-bold text-success">@((totalItems > 0 ? (activeItems * 100.0 / totalItems) : 0).ToString("N1"))%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- بطاقات الأصناف -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6 class="m-0 font-weight-bold text-primary">الأصناف</h6>
+                    <div>
+                        <span class="badge bg-primary me-1" id="filteredCount">@totalItems</span> من
+                        <span class="badge bg-secondary ms-1">@totalItems</span> إجمالي
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row" id="itemsContainer">
+                        @foreach (var item in Model.Take(6))
+                        {
+                            <div class="col-xl-4 col-md-6 mb-4 item-card-container"
+                                 data-status="@(item.Status ? "active" : "inactive")"
+                                 data-manufacturer="@item.ManufacturerName"
+                                 data-balance="@item.CurrentBalance"
+                                 data-search="@item.Item.ToLower()">
+                                <div class="card item-card border-left-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success") h-100 py-2">
+                                    <div class="card-body">
+                                        <div class="row no-gutters align-items-center">
+                                            <div class="col mr-2">
+                                                <div class="text-xs font-weight-bold text-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success") text-uppercase mb-1">
+                                                    @item.Item
+                                                </div>
+                                                <div class="h5 mb-0 font-weight-bold text-gray-800">@item.CurrentBalance.ToString("N3") كجم</div>
+                                                <div class="mt-2 text-muted small">
+                                                    @if (!string.IsNullOrEmpty(item.ManufacturerName))
+                                                    {
+                                                        <div><i class="fas fa-industry me-1"></i> @item.ManufacturerName</div>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(item.OriginYarnName))
+                                                    {
+                                                        <div><i class="fas fa-link me-1"></i> @item.OriginYarnName</div>
+                                                    }
+                                                    <div>
+                                                        <span class="badge bg-@(item.Status ? "success" : "secondary")">
+                                                            @(item.Status ? "نشط" : "غير نشط")
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-auto">
+                                                <i class="fas fa-@(item.CurrentBalance <= 0 ? "times-circle" : item.CurrentBalance <= 10 ? "exclamation-triangle" : "check-circle") fa-2x text-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success")"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    <div class="text-center mt-3">
+                        <a href="@Url.Action("Index")" class="btn btn-primary">عرض جميع الأصناف</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inventory by Manufacturer Chart
+            const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
+            const inventoryChart = new Chart(inventoryCtx, {
+                type: 'bar',
+                data: {
+                    labels: [@Html.Raw(string.Join(", ", manufacturers.Select(m => $"'{m.Name}'")))],
+                    datasets: [{
+                        label: 'كمية المخزون',
+                        data: [@string.Join(", ", manufacturers.Select(m => m.Balance))],
+                        backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                        borderColor: 'rgb(78, 115, 223)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' كجم';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Status Overview Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            const statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['نشط', 'غير نشط', 'رصيد منخفض', 'بدون رصيد'],
+                    datasets: [{
+                        data: [@activeItems, @(totalItems - activeItems), @lowStockItems, @zeroStockItems],
+                        backgroundColor: [
+                            'rgba(28, 200, 138, 0.7)',
+                            'rgba(133, 135, 150, 0.7)',
+                            'rgba(246, 194, 62, 0.7)',
+                            'rgba(231, 74, 59, 0.7)'
+                        ],
+                        borderColor: [
+                            'rgb(28, 200, 138)',
+                            'rgb(133, 135, 150)',
+                            'rgb(246, 194, 62)',
+                            'rgb(231, 74, 59)'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            rtl: true
+                        }
+                    }
+                }
+            });
+
+            // Top Items Chart
+            const topItemsData = [
+                @foreach (var item in Model.OrderByDescending(x => x.CurrentBalance).Take(5))
+                {
+                        <text>
+                        {
+                            label: '@item.Item',
+                            value: @item.CurrentBalance
+                        },
+                        </text>
+                }
+            ];
+
+            const topItemsCtx = document.getElementById('topItemsChart').getContext('2d');
+            const topItemsChart = new Chart(topItemsCtx, {
+                type: 'bar',
+                data: {
+                    labels: topItemsData.map(item => item.label),
+                    datasets: [{
+                        label: 'قيمة المخزون',
+                        data: topItemsData.map(item => item.value),
+                        backgroundColor: 'rgba(78, 115, 223, 0.7)',
+                        borderColor: 'rgb(78, 115, 223)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value + ' كجم';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+
+            // Filter functionality
+            const statusFilter = document.getElementById('statusFilter');
+            const manufacturerFilter = document.getElementById('manufacturerFilter');
+            const balanceFilter = document.getElementById('balanceFilter');
+            const searchInput = document.getElementById('searchInput');
+            const filterTags = document.getElementById('filterTags');
+            const activeFilters = document.getElementById('activeFilters');
+            const clearFilters = document.getElementById('clearFilters');
+            const filteredCount = document.getElementById('filteredCount');
+            const itemsContainer = document.getElementById('itemsContainer');
+            const itemCards = document.querySelectorAll('.item-card-container');
+
+            let activeFiltersCount = 0;
+
+            // تطبيق الفلاتر
+            function applyFilters() {
+                const statusValue = statusFilter.value;
+                const manufacturerValue = manufacturerFilter.value;
+                const balanceValue = balanceFilter.value;
+                const searchValue = searchInput.value.toLowerCase();
+
+                let visibleCount = 0;
+                activeFiltersCount = 0;
+                filterTags.innerHTML = '';
+
+                itemCards.forEach(card => {
+                    const status = card.dataset.status;
+                    const manufacturer = card.dataset.manufacturer || '';
+                    const balance = parseFloat(card.dataset.balance);
+                    const searchText = card.dataset.search;
+
+                    let statusMatch = true;
+                    let manufacturerMatch = true;
+                    let balanceMatch = true;
+                    let searchMatch = true;
+
+                    // تطبيق فلتر الحالة
+                    if (statusValue !== 'all') {
+                        if (statusValue === 'active' && status !== 'active') statusMatch = false;
+                        if (statusValue === 'inactive' && status !== 'inactive') statusMatch = false;
+                    }
+
+                    // تطبيق فلتر الشركة المصنعة
+                    if (manufacturerValue !== 'all') {
+                        if (manufacturer !== manufacturerValue) manufacturerMatch = false;
+                    }
+
+                    // تطبيق فلتر مستوى الرصيد
+                    if (balanceValue !== 'all') {
+                        if (balanceValue === 'zero' && balance > 0) balanceMatch = false;
+                        if (balanceValue === 'low' && (balance <= 0 || balance > 10)) balanceMatch = false;
+                        if (balanceValue === 'medium' && (balance <= 10 || balance > 50)) balanceMatch = false;
+                        if (balanceValue === 'high' && balance <= 50) balanceMatch = false;
+                    }
+
+                    // تطبيق البحث
+                    if (searchValue && !searchText.includes(searchValue)) {
+                        searchMatch = false;
+                    }
+
+                    // إظهار أو إخفاء البطاقة بناء على النتائج
+                    if (statusMatch && manufacturerMatch && balanceMatch && searchMatch) {
+                        card.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                // تحديث العداد
+                filteredCount.textContent = visibleCount;
+
+                // إظهار المرشحات النشطة
+                updateActiveFilters(statusValue, manufacturerValue, balanceValue, searchValue);
+            }
+
+            // تحديث عرض المرشحات النشطة
+            function updateActiveFilters(status, manufacturer, balance, search) {
+                filterTags.innerHTML = '';
+
+                if (status !== 'all') {
+                    addFilterTag('الحالة: ' + (status === 'active' ? 'نشط' : 'غير نشط'), 'status');
+                    activeFiltersCount++;
+                }
+
+                if (manufacturer !== 'all') {
+                    addFilterTag('الشركة: ' + manufacturer, 'manufacturer');
+                    activeFiltersCount++;
+                }
+
+                if (balance !== 'all') {
+                    let balanceText = '';
+                    switch(balance) {
+                        case 'zero': balanceText = 'بدون رصيد'; break;
+                        case 'low': balanceText = 'رصيد منخفض'; break;
+                        case 'medium': balanceText = 'رصيد متوسط'; break;
+                        case 'high': balanceText = 'رصيد عالي'; break;
+                    }
+                    addFilterTag('المستوى: ' + balanceText, 'balance');
+                    activeFiltersCount++;
+                }
+
+                if (search) {
+                    addFilterTag('بحث: ' + search, 'search');
+                    activeFiltersCount++;
+                }
+
+                // إظهار أو إخفاء قسم المرشحات النشطة
+                if (activeFiltersCount > 0) {
+                    activeFilters.style.display = 'block';
+                } else {
+                    activeFilters.style.display = 'none';
+                }
+            }
+
+            // إضافة وسم للمرشح النشط
+            function addFilterTag(text, type) {
+                const tag = document.createElement('span');
+                tag.className = 'search-tag';
+                tag.innerHTML = `
+                    <i class="fas fa-times search-tag-remove" data-type="${type}"></i>
+                    ${text}
+                `;
+                filterTags.appendChild(tag);
+            }
+
+            // إضافة مستمعي الأحداث
+            statusFilter.addEventListener('change', applyFilters);
+            manufacturerFilter.addEventListener('change', applyFilters);
+            balanceFilter.addEventListener('change', applyFilters);
+            searchInput.addEventListener('input', applyFilters);
+
+            // مسح جميع المرشحات
+            clearFilters.addEventListener('click', function() {
+                statusFilter.value = 'all';
+                manufacturerFilter.value = 'all';
+                balanceFilter.value = 'all';
+                searchInput.value = '';
+                applyFilters();
+            });
+
+            // إزالة مرشح معين
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('search-tag-remove')) {
+                    const type = e.target.dataset.type;
+
+                    switch(type) {
+                        case 'status':
+                            statusFilter.value = 'all';
+                            break;
+                        case 'manufacturer':
+                            manufacturerFilter.value = 'all';
+                            break;
+                        case 'balance':
+                            balanceFilter.value = 'all';
+                            break;
+                        case 'search':
+                            searchInput.value = '';
+                            break;
+                    }
+
+                    applyFilters();
+                }
+            });
+
+            // تطبيق الفلاتر أول مرة لضمان التوافق
+            applyFilters();
+        });
+    </script>
+}

@@ -1,0 +1,318 @@
+﻿@{
+    ViewData["Title"] = "الصفحة الرئيسية";
+}
+
+<div class="welcome-card mb-4">
+    <div class="row">
+        <div class="col-lg-8">
+            <h2 class="mb-3">مرحباً بك، <span class="text-primary">عمار ياسر</span></h2>
+            <p class="text-muted">إليك نظرة سريعة على نشاط مصنع النسيج اليوم</p>
+        </div>
+        <div class="col-lg-4 text-start text-lg-end mt-3 mt-lg-0">
+            <a href="#" class="btn btn-primary">
+                <i class="fas fa-tachometer-alt me-2"></i>
+                تخصيص لوحة التحكم
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">إيرادات اليوم</h6>
+                <div class="stat-icon bg-info text-white">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+            </div>
+            <div class="stat-value">٨٥,٤٣٠</div>
+            <div class="stat-label">جنيه</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">الأقمشة الجاهزة</h6>
+                <div class="stat-icon bg-success text-white">
+                    <i class="fas fa-cut"></i>
+                </div>
+            </div>
+            <div class="stat-value">٣٢٦.٧</div>
+            <div class="stat-label">متر</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">الأقمشة الخام</h6>
+                <div class="stat-icon bg-warning text-white">
+                    <i class="fas fa-roll-fabric"></i>
+                </div>
+            </div>
+            <div class="stat-value">٤٨٧.٣</div>
+            <div class="stat-label">متر</div>
+        </div>
+    </div>
+
+    <div class="col-6 col-md-6 col-lg-3">
+        <div class="stat-card h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0">إجمالي المخزون</h6>
+                <div class="stat-icon bg-primary text-white">
+                    <i class="fas fa-boxes"></i>
+                </div>
+            </div>
+            <div class="stat-value">١٣٥.٨</div>
+            <div class="stat-label">طن</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6 mb-3 mb-lg-4">
+        <div class="section-card h-100">
+            <div class="section-header">
+                <h5 class="mb-0">الأنشطة الأخيرة</h5>
+                <button class="btn btn-sm btn-light">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+            <div class="section-content">
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mb-2 mb-md-0">
+                                <span class="badge bg-success me-2">جديد</span>
+                                <span class="activity-text">تم استلام ٥٠ متر من القماش الخام</span>
+                            </div>
+                            <small class="text-muted">منذ ٢٠ دقيقة</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mb-2 mb-md-0">
+                                <span class="badge bg-info me-2">تحديث</span>
+                                <span class="activity-text">تم تحديث مخزون الأقمشة الجاهزة</span>
+                            </div>
+                            <small class="text-muted">منذ ٤٥ دقيقة</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mb-2 mb-md-0">
+                                <span class="badge bg-warning me-2">طلب</span>
+                                <span class="activity-text">طلب جديد من العميل "أحمد محمود"</span>
+                            </div>
+                            <small class="text-muted">منذ ساعتين</small>
+                        </div>
+                    </div>
+                    <div class="list-group-item px-0">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap">
+                            <div class="d-flex align-items-center mb-2 mb-md-0">
+                                <span class="badge bg-danger me-2">تنبيه</span>
+                                <span class="activity-text">انخفاض مخزون الخيوط القطنية</span>
+                            </div>
+                            <small class="text-muted">منذ ٣ ساعات</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 mb-3 mb-lg-4">
+        <div class="section-card h-100">
+            <div class="section-header">
+                <h5 class="mb-0">الوصول السريع</h5>
+                <button class="btn btn-sm btn-light">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+            </div>
+            <div class="section-content">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
+                            <i class="fas fa-plus-circle fa-2x mb-2 text-success"></i>
+                            <span class="text-center">إضافة طلب جديد</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
+                            <i class="fas fa-file-invoice fa-2x mb-2 text-primary"></i>
+                            <span class="text-center">الفواتير</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
+                            <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
+                            <span class="text-center">التقارير</span>
+                        </a>
+                    </div>
+                    <div class="col-6">
+                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
+                            <i class="fas fa-cog fa-2x mb-2 text-secondary"></i>
+                            <span class="text-center">الإعدادات</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Number Formatting Demonstration Section -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="section-card">
+            <div class="section-header">
+                <h5 class="mb-0">عرض توضيحي لتنسيق الأرقام - Number Formatting Demo</h5>
+                <span class="badge bg-info">جديد</span>
+            </div>
+            <div class="section-content">
+                <div class="row">
+                    <!-- Arabic Context Examples -->
+                    <div class="col-md-6">
+                        <div class="card border-primary h-100">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="mb-0">النصوص العربية - Arabic Text</h6>
+                            </div>
+                            <div class="card-body" lang="ar">
+                                <p class="mb-2"><strong>إجمالي المبيعات:</strong> 1,250,000 جنيه مصري</p>
+                                <p class="mb-2"><strong>عدد العملاء:</strong> 500 عميل</p>
+                                <p class="mb-2"><strong>تاريخ اليوم:</strong> 2025-08-16</p>
+                                <p class="mb-2"><strong>الوقت الحالي:</strong> 18:51:08</p>
+                                <p class="mb-2"><strong>نسبة الربح:</strong> 25.5%</p>
+                                <p class="mb-2"><strong>كمية الإنتاج:</strong> 1,000 متر</p>
+                                <p class="mb-2"><strong>سعر الوحدة:</strong> 150.75 جنيه</p>
+                                <p class="mb-0"><strong>إجمالي الفواتير:</strong> 75,500 جنيه</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- English Context Examples -->
+                    <div class="col-md-6">
+                        <div class="card border-success h-100">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">English Text</h6>
+                            </div>
+                            <div class="card-body" lang="en">
+                                <p class="mb-2"><strong>Total Sales:</strong> 1,250,000 Egyptian Pounds</p>
+                                <p class="mb-2"><strong>Number of Customers:</strong> 500 customers</p>
+                                <p class="mb-2"><strong>Today's Date:</strong> 2025-08-16</p>
+                                <p class="mb-2"><strong>Current Time:</strong> 18:51:08</p>
+                                <p class="mb-2"><strong>Profit Margin:</strong> 25.5%</p>
+                                <p class="mb-2"><strong>Production Quantity:</strong> 1,000 meters</p>
+                                <p class="mb-2"><strong>Unit Price:</strong> 150.75 pounds</p>
+                                <p class="mb-0"><strong>Total Invoices:</strong> 75,500 pounds</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Mixed Context Examples -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">نصوص مختلطة - Mixed Text Examples</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p class="mb-2">This is English text with numbers: <strong>123,456</strong> and <strong>789.012</strong></p>
+                                        <p class="mb-2">هذا نص عربي مع أرقام: <strong>١٢٣٬٤٥٦</strong> و <strong>٧٨٩٫٠١٢</strong></p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p class="mb-2">Mixed: English <strong>123</strong> and Arabic نص <strong>456</strong></p>
+                                        <p class="mb-0">مختلط: عربي <strong>١٢٣</strong> و English <strong>٤٥٦</strong></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="my-4">
+
+                <!-- Interactive Examples -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">أمثلة تفاعلية - Interactive Examples</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>إدخال أرقام - Number Input</h6>
+                                        <div class="mb-3">
+                                            <label for="arabicInput" class="form-label">أدخل رقماً:</label>
+                                            <input type="text" class="form-control" id="arabicInput" placeholder="123456" lang="ar">
+                                            <small class="form-text text-muted">سيتم تحويل الأرقام تلقائياً إلى العربية</small>
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" onclick="formatInput('arabicInput')">تنسيق الأرقام</button>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Number Input</h6>
+                                        <div class="mb-3">
+                                            <label for="englishInput" class="form-label">Enter a number:</label>
+                                            <input type="text" class="form-control" id="englishInput" placeholder="١٢٣٤٥٦" lang="en">
+                                            <small class="form-text text-muted">Numbers will be automatically converted to Latin</small>
+                                        </div>
+                                        <button class="btn btn-success btn-sm" onclick="formatInput('englishInput')">Format Numbers</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 text-center">
+                    <a href="/Home/NumberFormattingDemo" class="btn btn-outline-primary">
+                        <i class="fas fa-external-link-alt me-2"></i>
+                        عرض المزيد من الأمثلة - View More Examples
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function formatInput(inputId) {
+        const input = document.getElementById(inputId);
+        const value = input.value;
+        const lang = input.getAttribute('lang');
+        
+        if (lang === 'ar') {
+            // Convert to Arabic digits
+            input.value = toArabicDigits(value);
+        } else if (lang === 'en') {
+            // Convert to Latin digits
+            input.value = toLatinDigits(value);
+        }
+    }
+
+    // Add event listeners for real-time formatting
+    document.addEventListener('DOMContentLoaded', function() {
+        const arabicInput = document.getElementById('arabicInput');
+        const englishInput = document.getElementById('englishInput');
+
+        if (arabicInput) {
+            arabicInput.addEventListener('input', function() {
+                this.value = toArabicDigits(this.value);
+            });
+        }
+
+        if (englishInput) {
+            englishInput.addEventListener('input', function() {
+                this.value = toLatinDigits(this.value);
+            });
+        }
+    });
+</script>

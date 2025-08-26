@@ -1,0 +1,1160 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model IEnumerable<YarnItemViewModel>
+@{
+    ViewData["Title"] = "إدارة أصناف الغزل";
+    var currentTime = "2025-08-12 13:39:38";
+    var currentUser = "Ammar-Yasser8";
+
+    // Enhanced statistics
+    var totalItems = Model.Count();
+    var activeItems = Model.Count(x => x.Status);
+    var totalBalance = Model.Sum(x => x.CurrentBalance);
+    var lowStockItems = Model.Count(x => x.CurrentBalance <= 10 && x.CurrentBalance > 0);
+    var zeroStockItems = Model.Count(x => x.CurrentBalance <= 0);
+    var withManufacturer = Model.Count(x => !string.IsNullOrEmpty(x.ManufacturerName));
+    var withOriginYarn = Model.Count(x => !string.IsNullOrEmpty(x.OriginYarnName));
+}
+
+<!-- Enhanced Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-3 px-3 py-2 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home text-primary"></i>
+                <span class="ms-1">الرئيسية</span>
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <i class="fas fa-yarn text-info me-1"></i>قسم الغزل
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-cogs text-secondary me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+
+<div class="row">
+    <!-- Enhanced Sidebar -->
+    <div class="col-xl-3 col-lg-4">
+        <!-- Enhanced Stats Card -->
+        <div class="card mb-4 shadow-sm border-0">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-gradient-dark text-white">
+                    <h6 class="mb-0">
+                        <i class="fas fa-bolt me-2"></i>إجراءات سريعة
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="@Url.Action("Create")" class="btn btn-primary btn-sm">
+                            <i class="fas fa-plus-circle me-2"></i>إضافة صنف جديد
+                        </a>
+                        <button type="button" class="btn btn-info btn-sm" id="clearAllSearches">
+                            <i class="fas fa-broom me-2"></i>مسح جميع البحوث
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="refreshData">
+                            <i class="fas fa-sync-alt me-2"></i>تحديث البيانات
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-header bg-gradient-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-bar me-2"></i>إحصائيات تفصيلية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6">
+                        <div class="stat-card bg-primary bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-primary mb-2">
+                                <i class="fas fa-boxes fa-2x"></i>
+                            </div>
+                            <div class="h4 mb-1 text-primary" id="sidebarTotalItems">@totalItems</div>
+                            <small class="text-muted">إجمالي الأصناف</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card bg-success bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-success mb-2">
+                                <i class="fas fa-check-circle fa-2x"></i>
+                            </div>
+                            <div class="h4 mb-1 text-success" id="sidebarActiveItems">@activeItems</div>
+                            <small class="text-muted">الأصناف النشطة</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card bg-warning bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-warning mb-2">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                            </div>
+                            <div class="h4 mb-1 text-warning" id="sidebarLowStock">@lowStockItems</div>
+                            <small class="text-muted">رصيد منخفض</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="stat-card bg-danger bg-opacity-10 rounded p-3 text-center h-100">
+                            <div class="stat-icon text-danger mb-2">
+                                <i class="fas fa-ban fa-2x"></i>
+                            </div>
+                            <div class="h4 mb-1 text-danger" id="sidebarZeroStock">@zeroStockItems</div>
+                            <small class="text-muted">بدون رصيد</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balance Summary -->
+                <hr class="my-3">
+                <div class="balance-summary">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-calculator me-2"></i>ملخص الأرصدة
+                    </h6>
+                    <div class="bg-light rounded p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">إجمالي الرصيد:</span>
+                            <span class="fw-bold text-primary h6 mb-0">@totalBalance.ToString("N3") كجم</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-muted">متوسط الرصيد:</span>
+                            <span class="fw-bold text-info">@((totalItems > 0 ? totalBalance / totalItems : 0).ToString("N2")) كجم</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted">نسبة النشطة:</span>
+                            <span class="fw-bold text-success">@((totalItems > 0 ? (activeItems * 100.0 / totalItems) : 0).ToString("N1"))%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+       
+    </div>
+
+    <!-- Enhanced Main Content -->
+    <div class="col-xl-9 col-lg-8">
+        <!-- Alerts -->
+        @if (TempData["Success"] != null || TempData["Error"] != null)
+        {
+            <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4 shadow-sm border-0">
+                <div class="d-flex align-items-center">
+                    <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-3 fa-lg"></i>
+                    <div>
+                        <strong>@(TempData["Success"] != null ? "نجح!" : "خطأ!")</strong>
+                        <span class="ms-2">@(TempData["Success"] ?? TempData["Error"])</span>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <!-- Search Summary -->
+        <div class="search-summary" id="searchSummary">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-filter text-primary me-2"></i>
+                    <span class="fw-bold">البحوث النشطة:</span>
+                    <div class="d-inline-block ms-2" id="searchTags"></div>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" id="clearAllFilters">
+                    <i class="fas fa-times me-1"></i>مسح الكل
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Search Controls -->
+        <div class="d-block d-lg-none mobile-search-controls">
+            <h6 class="mb-3"><i class="fas fa-search me-2"></i>البحث السريع</h6>
+            <input type="text" class="form-control mobile-search-input mb-2" id="mobileGlobalSearch" placeholder="بحث في جميع الحقول...">
+            <div class="row g-2">
+                <div class="col-6">
+                    <input type="text" class="form-control mobile-search-input" id="mobileItemSearch" placeholder="اسم الصنف...">
+                </div>
+                <div class="col-6">
+                    <input type="text" class="form-control mobile-search-input" id="mobileManufacturerSearch" placeholder="الشركة المصنعة...">
+                </div>
+                <div class="col-6">
+                    <input type="text" class="form-control mobile-search-input" id="mobileOriginSearch" placeholder="الغزل المكون...">
+                </div>
+                <div class="col-6">
+                    <select class="form-control mobile-search-input" id="mobileStatusSearch">
+                        <option value="">جميع الحالات</option>
+                        <option value="نشط">نشط</option>
+                        <option value="غير نشط">غير نشط</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Main Card -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white border-bottom-0">
+                <div class="row align-items-center">
+                    <div class="col-lg-6">
+                        <div class="d-flex align-items-center">
+                            <div class="icon-circle bg-primary text-white me-3">
+                                <i class="fas fa-list-alt"></i>
+                            </div>
+                            <div>
+                                <h5 class="mb-0 text-dark fw-bold">قائمة أصناف الغزل</h5>
+                                <small class="text-muted"><span id="visibleCount">@totalItems</span> من أصل <span id="totalCount">@totalItems</span> صنف</small>
+                            </div>
+                        </div>
+                    </div>
+                   
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <!-- Mobile Cards View -->
+                <div class="d-block d-lg-none" id="mobileCards">
+                    @foreach (var item in Model)
+                    {
+                        <div class="card m-3 mobile-item-card border-start-primary"
+                             data-status="@(item.Status ? "active" : "inactive")"
+                             data-balance="@item.CurrentBalance"
+                             data-manufacturer="@(!string.IsNullOrEmpty(item.ManufacturerName) ? "yes" : "no")"
+                             data-origin="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "yes" : "no")"
+                             data-search-content="@item.Item @(item.ManufacturerName ?? "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-3">
+                                    <div class="flex-grow-1">
+                                        <h6 class="card-title mb-1 text-primary fw-bold">
+                                            <i class="fas fa-box me-2"></i>@item.Item
+                                        </h6>
+                                        <small class="text-muted">معرف: #@item.Id</small>
+                                    </div>
+                                    <span class="badge bg-@(item.Status ? "success" : "secondary") px-3 py-2">
+                                        <i class="fas fa-@(item.Status ? "check" : "times") me-1"></i>
+                                        @(item.Status ? "نشط" : "غير نشط")
+                                    </span>
+                                </div>
+
+                                <div class="row g-3 mb-3">
+                                    <div class="col-6">
+                                        <div class="info-item">
+                                            <small class="text-muted d-block">الشركة المصنعة</small>
+                                            <span class="fw-bold">@(item.ManufacturerName ?? "غير محدد")</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-item">
+                                            <small class="text-muted d-block">الغزل المكون</small>
+                                            <span class="fw-bold">@(item.OriginYarnName ?? "غير محدد")</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-item">
+                                            <small class="text-muted d-block">الرصيد الحالي</small>
+                                            <span class="badge bg-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success") fs-6">
+                                                @item.CurrentBalance.ToString("N3") كجم
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="info-item">
+                                            <small class="text-muted d-block">رصيد العدد</small>
+                                            <span class="fw-bold text-info">@item.CurrentCountBalance</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(item.Comment))
+                                {
+                                    <div class="mb-3">
+                                        <div class="bg-light rounded p-2">
+                                            <small class="text-muted d-block fw-bold">البيان:</small>
+                                            <p class="mb-0 small">@item.Comment</p>
+                                        </div>
+                                    </div>
+                                }
+
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i> تعديل
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger delete-item"
+                                            data-id="@item.Id" data-name="@item.Item">
+                                        <i class="fas fa-trash"></i> حذف
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <!-- Enhanced Desktop Table with Inline Search -->
+                <div class="table-responsive d-none d-lg-block">
+                    <table id="itemsTable" class="table table-hover align-middle mb-0">
+                        <thead>
+                            <!-- Header Row -->
+                            <tr class="table-dark">
+                                <th style="width: 20%;">
+                                    <i class="fas fa-box text-white me-2"></i>الصنف
+                                </th>
+                                <th style="width: 18%;">
+                                    <i class="fas fa-industry text-white me-2"></i>الشركة المصنعة
+                                </th>
+                                <th style="width: 18%;">
+                                    <i class="fas fa-link text-white me-2"></i>الغزل المكون
+                                </th>
+                                <th style="width: 10%;">
+                                    <i class="fas fa-toggle-on text-white me-2"></i>الحالة
+                                </th>
+                                <th style="width: 12%;">
+                                    <i class="fas fa-calculator text-white me-2"></i>الرصيد الحالي
+                                </th>
+                                <th style="width: 8%;">
+                                    <i class="fas fa-hashtag text-white me-2"></i>رصيد العدد
+                                </th>
+                                <th style="width: 10%;">
+                                    <i class="fas fa-comment text-white me-2"></i>بيان
+                                </th>
+                                <th style="width: 4%;" class="text-center">
+                                    <i class="fas fa-cogs text-white me-2"></i>الإجراءات
+                                </th>
+                            </tr>
+                            <!-- Inline Search Row -->
+                            <tr class="column-search-row">
+                                <th>
+                                    <div class="position-relative">
+                                        <input type="text" class="column-search-input" id="searchItem" placeholder="بحث في الأصناف..." data-column="0">
+                                        <button class="search-clear-btn" type="button" data-target="searchItem">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="position-relative">
+                                        <input type="text" class="column-search-input" id="searchManufacturer" placeholder="بحث في الشركات..." data-column="1">
+                                        <button class="search-clear-btn" type="button" data-target="searchManufacturer">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="position-relative">
+                                        <input type="text" class="column-search-input" id="searchOriginYarn" placeholder="بحث في الغزل المكون..." data-column="2">
+                                        <button class="search-clear-btn" type="button" data-target="searchOriginYarn">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="position-relative">
+                                        <select class="column-search-input" id="searchStatus" data-column="3">
+                                            <option value="">جميع الحالات</option>
+                                            <option value="نشط">نشط فقط</option>
+                                            <option value="غير نشط">غير نشط فقط</option>
+                                        </select>
+                                        <button class="search-clear-btn" type="button" data-target="searchStatus" style="right: 35px;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="position-relative">
+                                        <select class="column-search-input" id="searchBalance" data-column="4">
+                                            <option value="">جميع الأرصدة</option>
+                                            <option value="zero">بدون رصيد (0)</option>
+                                            <option value="low">رصيد منخفض (1-10)</option>
+                                            <option value="medium">رصيد متوسط (11-100)</option>
+                                            <option value="high">رصيد عالي (100+)</option>
+                                        </select>
+                                        <button class="search-clear-btn" type="button" data-target="searchBalance" style="right: 35px;">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="position-relative">
+                                        <input type="number" class="column-search-input" id="searchCountBalance" placeholder="رصيد العدد..." data-column="5" min="0">
+                                        <button class="search-clear-btn" type="button" data-target="searchCountBalance">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="position-relative">
+                                        <input type="text" class="column-search-input" id="searchComment" placeholder="بحث في البيان..." data-column="6">
+                                        <button class="search-clear-btn" type="button" data-target="searchComment">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                        <div class="search-status-indicator"></div>
+                                    </div>
+                                </th>
+                                <th>
+                                    <div class="text-center">
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearColumnSearches" title="مسح جميع البحوث">
+                                            <i class="fas fa-eraser"></i>
+                                        </button>
+                                    </div>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr data-status="@(item.Status ? "active" : "inactive")"
+                                    data-balance="@item.CurrentBalance"
+                                    data-manufacturer="@(!string.IsNullOrEmpty(item.ManufacturerName) ? "yes" : "no")"
+                                    data-origin="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "yes" : "no")"
+                                    data-search-content="@item.Item @(item.ManufacturerName ?? "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
+                                    class="table-row-hover">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="item-icon bg-primary bg-opacity-10 rounded-circle me-3">
+                                                <i class="fas fa-box text-primary"></i>
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold text-dark">@item.Item</div>
+                                                <small class="text-muted">معرف: #@item.Id</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.ManufacturerName))
+                                        {
+                                            <div class="d-flex align-items-center">
+                                                <div class="manufacturer-icon bg-success bg-opacity-10 rounded-circle me-2">
+                                                    <i class="fas fa-industry text-success"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-success">@item.ManufacturerName</div>
+                                                    <small class="text-muted">شركة مصنعة</small>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center">
+                                                <div class="text-muted">
+                                                    <i class="fas fa-minus-circle me-1"></i>غير محدد
+                                                </div>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.OriginYarnName))
+                                        {
+                                            <div class="d-flex align-items-center">
+                                                <div class="origin-icon bg-info bg-opacity-10 rounded-circle me-2">
+                                                    <i class="fas fa-link text-info"></i>
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold text-info">@item.OriginYarnName</div>
+                                                    <small class="text-muted">غزل مكون</small>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center">
+                                                <div class="text-muted">
+                                                    <i class="fas fa-minus-circle me-1"></i>غير محدد
+                                                </div>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@(item.Status ? "success" : "secondary") px-3 py-2">
+                                            <i class="fas @(item.Status ? "fa-check" : "fa-times") me-1"></i>
+                                            @(item.Status ? "نشط" : "غير نشط")
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="text-center">
+                                            <span class="badge bg-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success") px-3 py-2 fs-6">
+                                                <i class="fas fa-calculator me-1"></i>
+                                                @item.CurrentBalance.ToString("N3")
+                                            </span>
+                                            <small class="d-block text-muted mt-1">كجم</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div class="text-center">
+                                            <span class="fw-bold h6 text-primary">@item.CurrentCountBalance</span>
+                                            <small class="d-block text-muted">وحدة</small>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Comment))
+                                        {
+                                            <span class="text-truncate d-inline-block" style="max-width: 120px;"
+                                                  data-bs-toggle="tooltip" title="@item.Comment">
+                                                <i class="fas fa-comment-alt text-info me-1"></i>
+                                                <small>@item.Comment</small>
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <div class="text-center text-muted">
+                                                <i class="fas fa-minus"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="@Url.Action("Edit", new { id = item.Id })"
+                                               class="btn btn-sm btn-outline-primary" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger delete-item"
+                                                    data-id="@item.Id" data-name="@item.Item" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Enhanced Footer -->
+            <div class="card-footer bg-light border-top">
+                <div class="row align-items-center">
+                    
+                    <div class="col-lg-6 text-lg-end mt-2 mt-lg-0">
+                        <small class="text-muted">
+                            <span class="badge bg-primary me-1">@totalItems</span>إجمالي
+                            <span class="mx-2">•</span>
+                            <span class="badge bg-success me-1">@activeItems</span>نشطة
+                            <span class="mx-2">•</span>
+                            <span class="badge bg-info me-1">@withManufacturer</span>مع شركة
+                            <span class="mx-2">•</span>
+                            <span class="badge bg-warning me-1">@withOriginYarn</span>مع غزل مكون
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '@currentTime';
+            const CURRENT_USER = '@currentUser';
+            const TOTAL_ITEMS = @totalItems;
+
+            console.log('Enhanced Index page loaded at', CURRENT_TIME, 'by', CURRENT_USER, 'with', TOTAL_ITEMS, 'items');
+
+            // Initialize enhanced search functionality
+            let activeSearches = {};
+            let filteredRows = [];
+
+            // Column search functionality
+            $('.column-search-input').on('input change', function() {
+                const $input = $(this);
+                const column = $input.data('column');
+                const value = $input.val().toLowerCase().trim();
+                const inputId = $input.attr('id');
+
+                // Update visual indicators
+                if (value) {
+                    $input.addClass('has-value');
+                    activeSearches[inputId] = {
+                        column: column,
+                        value: value,
+                        label: getSearchLabel(inputId, value)
+                    };
+                } else {
+                    $input.removeClass('has-value');
+                    delete activeSearches[inputId];
+                }
+
+                // Apply all filters
+                applyColumnFilters();
+                updateSearchSummary();
+                updateVisibleCount();
+            });
+
+            // Clear individual search
+            $('.search-clear-btn').click(function() {
+                const targetId = $(this).data('target');
+                const $input = $('#' + targetId);
+                $input.val('').removeClass('has-value').trigger('input');
+            });
+
+            // Clear all column searches
+            $('#clearColumnSearches, #clearAllSearches, #clearAllFilters').click(function() {
+                $('.column-search-input').val('').removeClass('has-value');
+                activeSearches = {};
+                applyColumnFilters();
+                updateSearchSummary();
+                updateVisibleCount();
+            });
+
+            // Global search
+            $('#globalSearch, #mobileGlobalSearch').on('input', function() {
+                const searchTerm = $(this).val().toLowerCase().trim();
+
+                if (searchTerm === '') {
+                    $('#itemsTable tbody tr, .mobile-item-card').show();
+                } else {
+                    // Filter desktop table
+                    $('#itemsTable tbody tr').each(function() {
+                        const $row = $(this);
+                        const searchContent = $row.data('search-content').toLowerCase();
+                        if (searchContent.includes(searchTerm)) {
+                            $row.show();
+                        } else {
+                            $row.hide();
+                        }
+                    });
+
+                    // Filter mobile cards
+                    $('.mobile-item-card').each(function() {
+                        const $card = $(this);
+                        const searchContent = $card.data('search-content').toLowerCase();
+                        if (searchContent.includes(searchTerm)) {
+                            $card.show();
+                        } else {
+                            $card.hide();
+                        }
+                    });
+                }
+
+                updateVisibleCount();
+            });
+
+            // Mobile search controls
+            $('#mobileItemSearch').on('input', function() {
+                $('#searchItem').val($(this).val()).trigger('input');
+            });
+
+            $('#mobileManufacturerSearch').on('input', function() {
+                $('#searchManufacturer').val($(this).val()).trigger('input');
+            });
+
+            $('#mobileOriginSearch').on('input', function() {
+                $('#searchOriginYarn').val($(this).val()).trigger('input');
+            });
+
+            $('#mobileStatusSearch').on('change', function() {
+                $('#searchStatus').val($(this).val()).trigger('change');
+            });
+
+            // Apply column filters function
+            function applyColumnFilters() {
+                if (Object.keys(activeSearches).length === 0) {
+                    $('#itemsTable tbody tr, .mobile-item-card').show();
+                    return;
+                }
+
+                // Filter desktop table
+                $('#itemsTable tbody tr').each(function() {
+                    const $row = $(this);
+                    let showRow = true;
+
+                    for (let searchId in activeSearches) {
+                        const search = activeSearches[searchId];
+                        if (!matchesFilter($row, search)) {
+                            showRow = false;
+                            break;
+                        }
+                    }
+
+                    if (showRow) {
+                        $row.show();
+                    } else {
+                        $row.hide();
+                    }
+                });
+
+                // Filter mobile cards
+                $('.mobile-item-card').each(function() {
+                    const $card = $(this);
+                    let showCard = true;
+
+                    for (let searchId in activeSearches) {
+                        const search = activeSearches[searchId];
+                        if (!matchesFilter($card, search)) {
+                            showCard = false;
+                            break;
+                        }
+                    }
+
+                    if (showCard) {
+                        $card.show();
+                    } else {
+                        $card.hide();
+                    }
+                });
+            }
+
+            // Check if row/card matches filter
+            function matchesFilter($element, search) {
+                const column = search.column;
+                const value = search.value;
+
+                switch(column) {
+                    case 0: // Item name
+                        const itemText = $element.find('td:eq(0)').text().toLowerCase() || $element.find('.card-title').text().toLowerCase();
+                        return itemText.includes(value);
+
+                    case 1: // Manufacturer
+                        const manufacturerText = $element.find('td:eq(1)').text().toLowerCase() || $element.data('search-content').toLowerCase();
+                        return manufacturerText.includes(value) || (value === '' && manufacturerText.includes('غير محدد'));
+
+                    case 2: // Origin yarn
+                        const originText = $element.find('td:eq(2)').text().toLowerCase() || $element.data('search-content').toLowerCase();
+                        return originText.includes(value) || (value === '' && originText.includes('غير محدد'));
+
+                    case 3: // Status
+                        const status = $element.data('status');
+                        if (value === 'نشط') return status === 'active';
+                        if (value === 'غير نشط') return status === 'inactive';
+                        return true;
+
+                    case 4: // Balance
+                        const balance = parseFloat($element.data('balance')) || 0;
+                        switch(value) {
+                            case 'zero': return balance <= 0;
+                            case 'low': return balance > 0 && balance <= 10;
+                            case 'medium': return balance > 10 && balance <= 100;
+                            case 'high': return balance > 100;
+                            default: return true;
+                        }
+
+                    case 5: // Count balance
+                        const countBalanceText = $element.find('td:eq(5)').text().toLowerCase();
+                        return countBalanceText.includes(value);
+
+                    case 6: // Comment
+                        const commentText = $element.find('td:eq(6)').text().toLowerCase() || $element.data('search-content').toLowerCase();
+                        return commentText.includes(value);
+
+                    default:
+                        return true;
+                }
+            }
+
+            // Get search label for summary
+            function getSearchLabel(inputId, value) {
+                const labels = {
+                    'searchItem': `الصنف: "${value}"`,
+                    'searchManufacturer': `الشركة: "${value}"`,
+                    'searchOriginYarn': `الغزل المكون: "${value}"`,
+                    'searchStatus': `الحالة: ${value}`,
+                    'searchBalance': getBalanceLabel(value),
+                    'searchCountBalance': `رصيد العدد: ${value}`,
+                    'searchComment': `البيان: "${value}"`
+                };
+                return labels[inputId] || `"${value}"`;
+            }
+
+            // Get balance label
+            function getBalanceLabel(value) {
+                const labels = {
+                    'zero': 'بدون رصيد',
+                    'low': 'رصيد منخفض',
+                    'medium': 'رصيد متوسط',
+                    'high': 'رصيد عالي'
+                };
+                return `الرصيد: ${labels[value] || value}`;
+            }
+
+            // Update search summary
+            function updateSearchSummary() {
+                const $summary = $('#searchSummary');
+                const $tags = $('#searchTags');
+
+                if (Object.keys(activeSearches).length === 0) {
+                    $summary.removeClass('active');
+                    return;
+                }
+
+                let tagsHtml = '';
+                for (let searchId in activeSearches) {
+                    const search = activeSearches[searchId];
+                    tagsHtml += `
+                        <span class="search-tag">
+                            ${search.label}
+                            <i class="fas fa-times remove-tag" data-search-id="${searchId}"></i>
+                        </span>
+                    `;
+                }
+
+                $tags.html(tagsHtml);
+                $summary.addClass('active');
+            }
+
+            // Remove search tag
+            $(document).on('click', '.remove-tag', function() {
+                const searchId = $(this).data('search-id');
+                $('#' + searchId).val('').removeClass('has-value').trigger('input');
+            });
+
+            // Update visible count
+            function updateVisibleCount() {
+                const visibleDesktop = $('#itemsTable tbody tr:visible').length;
+                const visibleMobile = $('.mobile-item-card:visible').length;
+                const visible = Math.max(visibleDesktop, visibleMobile);
+                $('#visibleCount').text(visible);
+            }
+
+            // Refresh data functionality
+            $('#refreshData').click(function() {
+                const $btn = $(this);
+                const originalText = $btn.html();
+                $btn.prop('disabled', true)
+                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ التحديث...');
+
+                // Simulate refresh
+                setTimeout(() => {
+                    location.reload();
+                }, 1500);
+            });
+
+            // Delete functionality
+            $('.delete-item').click(function() {
+                const itemName = $(this).data('name');
+                const itemId = $(this).data('id');
+
+                if (confirm(`هل أنت متأكد من حذف الصنف "${itemName}"؟`)) {
+                    // Implement delete logic here
+                    console.log('Delete item:', itemId, itemName);
+                }
+            });
+
+            // Initialize tooltips
+            $('[data-bs-toggle="tooltip"]').tooltip();
+
+            // Keyboard shortcuts
+            $(document).keydown(function(e) {
+                // Ctrl + F for search
+                if (e.ctrlKey && e.keyCode === 70) {
+                    e.preventDefault();
+                    $('#globalSearch').focus();
+                }
+
+                // Ctrl + R for refresh
+                if (e.ctrlKey && e.keyCode === 82) {
+                    e.preventDefault();
+                    $('#refreshData').click();
+                }
+
+                // Escape to clear searches
+                if (e.keyCode === 27) {
+                    $('#clearAllSearches').click();
+                }
+            });
+
+            // Auto-hide alerts
+            $('.alert').each(function() {
+                const alert = $(this);
+                setTimeout(() => {
+                    alert.fadeOut(350);
+                }, 5000);
+            });
+
+            console.log('Enhanced search functionality initialized successfully');
+        });
+    </script>
+
+    <style>
+        /* Enhanced Custom Styles */
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .bg-gradient-info {
+            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        }
+
+        .bg-gradient-dark {
+            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+        }
+
+        .bg-gradient-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        .icon-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .stat-card {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: -100%;
+                width: 100%;
+                height: 100%;
+                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                transition: left 0.5s;
+            }
+
+            .stat-card:hover::before {
+                left: 100%;
+            }
+
+            .stat-card:hover {
+                transform: translateY(-5px) scale(1.02);
+                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+                border-color: rgba(0,123,255,0.3);
+            }
+
+        .text-purple {
+            color: #6f42c1 !important;
+        }
+
+        .text-orange {
+            color: #fd7e14 !important;
+        }
+
+        .table-row-hover {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+
+            .table-row-hover:hover {
+                background: linear-gradient(135deg, rgba(0,123,255,0.05) 0%, rgba(0,123,255,0.1) 100%);
+                transform: scale(1.01);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            }
+
+        .table th {
+            background: linear-gradient(135deg, #343a40 0%, #495057 100%);
+            border-bottom: 3px solid #6c757d;
+            font-weight: 600;
+            vertical-align: middle;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        /* Inline Search Styles */
+        .column-search-row {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-bottom: 2px solid #dee2e6;
+        }
+
+            .column-search-row th {
+                padding: 8px 6px;
+                background: transparent;
+                border-bottom: none;
+                position: relative;
+            }
+
+        .column-search-input {
+            width: 100%;
+            height: 32px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 0.85rem;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.9);
+        }
+
+            .column-search-input:focus {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+                background: white;
+                outline: none;
+            }
+
+            .column-search-input.has-value {
+                border-color: #28a745;
+                background: rgba(40, 167, 69, 0.05);
+            }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            font-size: 0.8rem;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 5;
+        }
+
+        .column-search-input.has-value + .search-clear-btn {
+            opacity: 1;
+        }
+
+        .search-clear-btn:hover {
+            color: #dc3545;
+        }
+
+        .mobile-item-card {
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-left: 4px solid #007bff;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .mobile-item-card:hover {
+                box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+                transform: translateY(-3px) scale(1.01);
+                border-left-width: 6px;
+            }
+
+        .border-start-primary {
+            border-left: 4px solid #0d6efd !important;
+        }
+
+        .search-status-indicator {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #28a745;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .column-search-input.has-value ~ .search-status-indicator {
+            opacity: 1;
+        }
+
+        /* Search summary bar */
+        .search-summary {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            padding: 8px 16px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+            .search-summary.active {
+                display: block;
+                animation: slideDown 0.3s ease;
+            }
+
+        @@keyframes slideDown {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        .search-tag {
+            display: inline-block;
+            background: #2196f3;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            margin: 2px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+            .search-tag .remove-tag {
+                margin-left: 8px;
+                cursor: pointer;
+                opacity: 0.7;
+                transition: opacity 0.3s ease;
+            }
+
+                .search-tag .remove-tag:hover {
+                    opacity: 1;
+                }
+
+        /* Mobile search controls */
+        .mobile-search-controls {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .mobile-search-input {
+            margin-bottom: 0.5rem;
+        }
+
+        .table td {
+            vertical-align: middle;
+            padding: 1.2rem 0.8rem;
+        }
+
+        .item-icon, .manufacturer-icon, .origin-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+
+        .info-item {
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+        }
+
+            .info-item:last-child {
+                border-bottom: none;
+            }
+
+        /* Responsive adjustments */
+        @@media (max-width: 991.98px) {
+            .column-search-input
+
+        {
+            font-size: 0.8rem;
+            height: 28px;
+            padding: 2px 6px;
+        }
+
+        }
+
+        @@media (max-width: 767.98px) {
+            .mobile-item-card
+
+        {
+            margin: 0.5rem !important;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+            .btn-group .btn {
+                margin: 2px 0;
+                border-radius: 4px !important;
+            }
+
+        }
+    </style>
+}

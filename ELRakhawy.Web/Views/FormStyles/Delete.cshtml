@@ -1,0 +1,575 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FormStyleDeleteViewModel
+@{
+    ViewData["Title"] = "حذف العملية التجارية";
+    var currentTime = "2025-08-19 20:38:13";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>
+                        <span class="fw-semibold">الجداول العامة</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "FormStyles")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-cogs text-success me-2"></i>
+                        <span class="fw-semibold">العمليات التجارية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-trash text-danger me-2"></i>
+                    <span class="fw-bold text-dark">حذف: @Model.FormName</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Enhanced Header Section -->
+<div class="welcome-card mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body bg-light p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-danger text-white me-3">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-1 text-dark">حذف العملية التجارية</h2>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-exclamation-triangle me-1 text-warning"></i>
+                                تأكيد حذف العملية: <strong class="text-danger">@Model.FormName</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+                        </a>
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                            <i class="fas fa-edit me-1"></i>تعديل بدلاً من الحذف
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Content -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <!-- Delete Confirmation Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0 fw-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد الحذف
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                <!-- Operation Info -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="alert alert-light border-start border-4 border-danger">
+                            <div class="row align-items-center">
+                                <div class="col-md-8">
+                                    <h4 class="alert-heading mb-2 text-danger">
+                                        <i class="fas fa-cogs me-2"></i>@Model.FormName
+                                    </h4>
+                                    <div class="mb-2">
+                                        <strong>الفئة:</strong> <span class="badge bg-info">@Model.FormCategory</span>
+                                    </div>
+                                    <div>
+                                        <strong>معرف العملية:</strong> <code>#@Model.Id</code>
+                                    </div>
+                                </div>
+                                <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                    <div class="text-center p-3 bg-white rounded">
+                                        <div class="display-4 text-danger fw-bold">@Model.UsageCount</div>
+                                        <small class="text-muted">أنماط تعبئة مرتبطة</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @if (Model.IsInUse)
+                {
+                    <!-- Cannot Delete Warning -->
+                    <div class="alert alert-danger border-0 shadow-sm" role="alert">
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-ban fa-2x text-danger me-3"></i>
+                            <div>
+                                <h5 class="alert-heading mb-1">لا يمكن حذف هذه العملية</h5>
+                                <p class="mb-0">العملية التجارية مستخدمة حالياً في <strong>@Model.UsageCount</strong> من أنماط التعبئة.</p>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="fw-bold mb-3">أنماط التعبئة المرتبطة:</h6>
+                                <div class="row g-2">
+                                    @foreach (var style in Model.RelatedPackagingStyles.Take(6))
+                                    {
+                                        <div class="col-md-6">
+                                            <div class="card card-body py-2 bg-light">
+                                                <div class="d-flex align-items-center">
+                                                    <i class="fas fa-box text-primary me-2"></i>
+                                                    <span class="fw-semibold">@style.StyleName</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    @if (Model.RelatedPackagingStyles.Count > 6)
+                                    {
+                                        <div class="col-12">
+                                            <div class="text-center">
+                                                <small class="text-muted">... و @(Model.RelatedPackagingStyles.Count - 6) أنماط أخرى</small>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr class="my-3">
+
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-lightbulb text-warning me-2"></i>
+                            <strong class="me-2">الحل:</strong>
+                            <span>يجب إزالة ارتباط هذه العملية من جميع أنماط التعبئة أولاً قبل الحذف.</span>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons for In-Use Form -->
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-right me-2"></i>العودة للقائمة
+                        </a>
+                        <div class="d-flex gap-3">
+                            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-lg">
+                                <i class="fas fa-edit me-2"></i>تعديل العملية
+                            </a>
+                            <button type="button" class="btn btn-info btn-lg" id="showUsageDetails">
+                                <i class="fas fa-eye me-2"></i>عرض التفاصيل
+                            </button>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <!-- Safe to Delete -->
+                    <div class="alert alert-success border-0 shadow-sm" role="alert">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-check-circle fa-2x text-success me-3"></i>
+                            <div>
+                                <h5 class="alert-heading mb-1">يمكن حذف هذه العملية بأمان</h5>
+                                <p class="mb-0">العملية التجارية غير مستخدمة في أي نمط تعبئة حالياً.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Final Warning -->
+                    <div class="alert alert-warning border-0" role="alert">
+                        <div class="text-center p-3">
+                            <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                            <h4 class="fw-bold mb-3">تحذير نهائي</h4>
+                            <p class="mb-3">
+                                هذا الإجراء <strong class="text-danger">لا يمكن التراجع عنه</strong>.
+                                سيتم حذف العملية التجارية نهائياً من النظام.
+                            </p>
+                            <div class="row justify-content-center">
+                                <div class="col-md-8">
+                                    <div class="card bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title">المعلومات التي ستُحذف:</h6>
+                                            <ul class="list-unstyled mb-0">
+                                                <li><i class="fas fa-times text-danger me-2"></i>اسم العملية: @Model.FormName</li>
+                                                <li><i class="fas fa-times text-danger me-2"></i>فئة العملية: @Model.FormCategory</li>
+                                                <li><i class="fas fa-times text-danger me-2"></i>معرف العملية: #@Model.Id</li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Confirmation Form -->
+                    <form asp-action="Delete" method="post" id="deleteForm">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="row justify-content-center mb-4">
+                            <div class="col-md-8">
+                                <div class="form-check d-flex align-items-center justify-content-center">
+                                    <input type="checkbox" class="form-check-input me-3" id="confirmDelete" required>
+                                    <label class="form-check-label fw-semibold" for="confirmDelete">
+                                        أؤكد أنني أريد حذف هذه العملية التجارية نهائياً
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons for Safe Delete -->
+                        <div class="d-flex justify-content-between">
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-arrow-right me-2"></i>إلغاء والعودة
+                            </a>
+                            <div class="d-flex gap-3">
+                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-lg">
+                                    <i class="fas fa-edit me-2"></i>تعديل بدلاً من الحذف
+                                </a>
+                                <button type="submit" class="btn btn-danger btn-lg" id="confirmDeleteBtn" disabled>
+                                    <i class="fas fa-trash me-2"></i>تأكيد الحذف النهائي
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <!-- Statistics Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-chart-bar me-2"></i>إحصائيات العملية
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="p-2">
+                            <div class="fs-3 fw-bold text-primary">@Model.Id</div>
+                            <small class="text-muted">معرف العملية</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2">
+                            <div class="fs-3 fw-bold @(Model.IsInUse ? "text-danger" : "text-success")">@Model.UsageCount</div>
+                            <small class="text-muted">ارتباطات</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="text-center">
+                    <div class="badge @(Model.IsInUse ? "bg-danger" : "bg-success") px-3 py-2">
+                        <i class="fas @(Model.IsInUse ? "fa-lock" : "fa-unlock") me-1"></i>
+                        @(Model.IsInUse ? "محمي من الحذف" : "قابل للحذف")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delete History Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-history me-2"></i>معلومات الحذف
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-info"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">تم إنشاء العملية</h6>
+                            <p class="timeline-description text-muted small">
+                                العملية التجارية "@Model.FormName" تم إنشاؤها في النظام
+                            </p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-warning"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">الآن - محاولة حذف</h6>
+                            <p class="timeline-description text-muted small">
+                                المستخدم @currentUser يحاول حذف العملية في @currentTime
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Card -->
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-secondary text-white">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-question-circle me-2"></i>المساعدة
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="accordion" id="helpAccordion">
+                    <div class="accordion-item border-0">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpDelete">
+                                <i class="fas fa-trash me-2 text-danger"></i>متى يمكن الحذف؟
+                            </button>
+                        </h2>
+                        <div id="helpDelete" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <small>
+                                    يمكن حذف العملية التجارية فقط عندما لا تكون مستخدمة في أي نمط تعبئة.
+                                    يجب إزالة جميع الارتباطات أولاً.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="accordion-item border-0">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#helpAlternative">
+                                <i class="fas fa-lightbulb me-2 text-warning"></i>بدائل الحذف
+                            </button>
+                        </h2>
+                        <div id="helpAlternative" class="accordion-collapse collapse" data-bs-parent="#helpAccordion">
+                            <div class="accordion-body">
+                                <small>
+                                    بدلاً من الحذف، يمكنك تعديل اسم العملية أو إزالة الارتباطات من أنماط التعبئة.
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage Details Modal -->
+<div class="modal fade" id="usageDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل الاستخدام
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>نمط التعبئة</th>
+                                <th>معرف النمط</th>
+                                <th class="text-center">الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var style in Model.RelatedPackagingStyles)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <i class="fas fa-box text-primary me-2"></i>
+                                            <span class="fw-semibold">@style.StyleName</span>
+                                        </div>
+                                    </td>
+                                    <td><code>#@style.Id</code></td>
+                                    <td class="text-center">
+                                        <a href="/PackagingStyles/Edit/@style.Id" class="btn btn-sm btn-outline-primary" title="تعديل نمط التعبئة">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '@currentTime';
+            const CURRENT_USER = '@currentUser';
+            const FORM_ID = @Model.Id;
+            const FORM_NAME = '@Model.FormName';
+            const IS_IN_USE = @Json.Serialize(Model.IsInUse);
+
+            console.log('Enhanced form styles delete page loaded:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER,
+                formId: FORM_ID,
+                formName: FORM_NAME,
+                isInUse: IS_IN_USE
+            });
+
+            // Initialize modals
+            const usageDetailsModal = new bootstrap.Modal(document.getElementById('usageDetailsModal'));
+
+            // Show usage details modal
+            $('#showUsageDetails').on('click', function() {
+                usageDetailsModal.show();
+            });
+
+            // Confirmation checkbox handler
+            $('#confirmDelete').on('change', function() {
+                const isChecked = $(this).prop('checked');
+                $('#confirmDeleteBtn').prop('disabled', !isChecked);
+
+                if (isChecked) {
+                    $('#confirmDeleteBtn').removeClass('btn-secondary').addClass('btn-danger');
+                } else {
+                    $('#confirmDeleteBtn').removeClass('btn-danger').addClass('btn-secondary');
+                }
+            });
+
+            // Delete form submission
+            $('#deleteForm').on('submit', function(e) {
+                const isConfirmed = $('#confirmDelete').prop('checked');
+
+                if (!isConfirmed) {
+                    e.preventDefault();
+                    alert('يجب تأكيد الحذف أولاً');
+                    return false;
+                }
+
+                // Show confirmation dialog
+                const confirmMessage = `هل أنت متأكد من حذف العملية التجارية "${FORM_NAME}" نهائياً؟\n\nهذا الإجراء لا يمكن التراجع عنه.`;
+
+                if (!confirm(confirmMessage)) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                // Disable form and show loading
+                $('#confirmDeleteBtn')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحذف...');
+
+                return true;
+            });
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert-success, .alert-danger').fadeOut(350);
+            }, 5000);
+
+            console.log('Form styles delete page initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .timeline {
+            position: relative;
+            padding-left: 2rem;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: -2rem;
+            top: 0.5rem;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -1.75rem;
+            top: 1.5rem;
+            width: 2px;
+            height: calc(100% + 0.5rem);
+            background-color: #dee2e6;
+        }
+
+        .timeline-item:last-child::before {
+            display: none;
+        }
+
+        .timeline-title {
+            font-size: 0.9rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .timeline-description {
+            font-size: 0.8rem;
+            margin-bottom: 0;
+        }
+
+        /* Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .icon-circle
+
+        {
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+        }
+
+            .d-flex.justify-content-between .btn,
+            .d-flex.justify-content-between .d-flex {
+                width: 100%;
+                margin: 0.25rem 0;
+            }
+
+            .d-flex.justify-content-between .d-flex {
+                flex-direction: column;
+            }
+
+        .timeline {
+            padding-left: 1.5rem;
+        }
+
+        .timeline-marker {
+            left: -1.5rem;
+        }
+
+        .timeline-item::before {
+            left: -1.25rem;
+        }
+
+        }
+    </style>
+}

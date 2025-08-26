@@ -1,0 +1,71 @@
+﻿@using ELRakhawy.EL.Models
+@model PackagingStyles
+@{
+    ViewData["Title"] = "حذف نمط تعبئة";
+}
+
+<div class="welcome-card mb-4">
+    <div class="row">
+        <div class="col">
+            <h2 class="mb-3">حذف نمط تعبئة</h2>
+            <p class="text-muted">هل أنت متأكد من رغبتك في حذف هذا العنصر؟</p>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header bg-danger bg-opacity-10">
+        <h5 class="mb-0 text-danger">تأكيد الحذف</h5>
+    </div>
+    <div class="section-content">
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            سيتم حذف هذا العنصر وكافة البيانات المرتبطة به. هذا الإجراء غير قابل للتراجع.
+        </div>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">التعبئة</label>
+                    <p class="form-control-static">@Model.StyleName</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">بيان</label>
+                    <p class="form-control-static">
+                        @if (string.IsNullOrEmpty(Model.Comment))
+                        {
+                            <span class="text-muted">لا يوجد بيان</span>
+                        }
+                        else
+                        {
+                            @Model.Comment
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">الواجهات المرتبطة</label>
+            <div>
+                @string.Join("، ", Model.PackagingStyleForms.Select(f => f.Form.FormName))
+            </div>
+        </div>
+
+        <form asp-action="Delete" method="post" class="mt-4">
+            <input type="hidden" name="id" value="@Model.Id" />
+            <div class="d-flex justify-content-end gap-2">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-times me-1"></i>
+                    إلغاء
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i>
+                    تأكيد الحذف
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

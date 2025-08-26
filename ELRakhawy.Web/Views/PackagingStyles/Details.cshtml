@@ -1,0 +1,67 @@
+﻿@using ELRakhawy.EL.Models
+@model PackagingStyles
+@{
+    ViewData["Title"] = "تفاصيل نمط التعبئة";
+}
+
+<div class="welcome-card mb-4">
+    <div class="row">
+        <div class="col">
+            <h2 class="mb-3">تفاصيل نمط التعبئة</h2>
+            <p class="text-muted">عرض كافة بيانات نمط التعبئة والواجهات المرتبطة به</p>
+        </div>
+    </div>
+</div>
+
+<div class="section-card">
+    <div class="section-header">
+        <h5 class="mb-0">البيانات الأساسية</h5>
+        <div>
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-info">
+                <i class="fas fa-edit me-1"></i>
+                تعديل
+            </a>
+            <a asp-action="Index" class="btn btn-sm btn-secondary ms-2">
+                <i class="fas fa-list me-1"></i>
+                العودة للقائمة
+            </a>
+        </div>
+    </div>
+    <div class="section-content">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">التعبئة</label>
+                    <p class="form-control-static">@Model.StyleName</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="mb-4">
+                    <label class="form-label fw-bold">بيان</label>
+                    <p class="form-control-static">
+                        @if (string.IsNullOrEmpty(Model.Comment))
+                        {
+                            <span class="text-muted">لا يوجد بيان</span>
+                        }
+                        else
+                        {
+                            @Model.Comment
+                        }
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">الواجهات المرتبطة</label>
+            <div class="row">
+                @foreach (var form in Model.PackagingStyleForms.Select(f => f.Form))
+                {
+                    <div class="col-md-4 mb-2">
+                        <div class="badge bg-primary p-2 d-inline-block">@form.FormName</div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

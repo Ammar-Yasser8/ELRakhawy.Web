@@ -1,0 +1,1224 @@
+﻿@{
+    ViewData["Title"] = "أنماط التعبئة";
+    var currentTime = "2025-08-16 20:01:16";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>
+                        <span class="fw-semibold">الجداول العامة</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-box text-success me-2"></i>
+                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Enhanced Header Section -->
+<div class="welcome-card mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body bg-light p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-success text-white me-3">
+                            <i class="fas fa-box"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-1 text-dark">إدارة أنماط التعبئة</h2>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                عرض وإدارة أنماط التعبئة المختلفة والواجهات المرتبطة بها
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
+                        <button class="btn btn-outline-info" id="refreshData">
+                            <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
+                        </button>
+                        <button onclick="window.location.href='/PackagingStyles/Create'" class="btn btn-success">
+                            <i class="fas fa-plus-circle me-1"></i>إضافة نمط تعبئة جديد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Data Display Section with Inline Search -->
+<div id="packagingStylesContainer">
+    <div class="section-card">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-list me-2 text-primary"></i>قائمة أنماط التعبئة
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Search Results Info -->
+                        <small class="text-muted">
+                            <span id="resultsInfo">عرض <strong id="visibleCount">0</strong> من أصل <strong id="totalCount">0</strong> نمط</span>
+                        </small>
+                        <div class="badge bg-success px-3 py-2">
+                            <i class="fas fa-database me-1"></i>
+                            <span id="badgeCount">0</span> نمط
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
+                            <i class="fas fa-eraser me-1"></i>مسح المرشحات
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="packagingStylesTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-bold" style="width: 20%;">
+                                    <i class="fas fa-box text-primary me-1"></i>التعبئة
+                                </th>
+                                <th class="fw-bold" style="width: 35%;">
+                                    <i class="fas fa-link text-info me-1"></i>الواجهات المرتبطة
+                                </th>
+                                <th class="fw-bold" style="width: 30%;">
+                                    <i class="fas fa-comment text-warning me-1"></i>البيان
+                                </th>
+                                <th class="text-center fw-bold" style="width: 15%;">
+                                    <i class="fas fa-cogs text-secondary me-1"></i>الإجراءات
+                                </th>
+                            </tr>
+                            <!-- Inline Search Row -->
+                            <tr class="search-row bg-white">
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByName" class="form-control border-start-0"
+                                                   placeholder="ابحث في أسماء التعبئة...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearNameSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByForms" class="form-control border-start-0"
+                                                   placeholder="ابحث في الواجهات...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFormsSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByComment" class="form-control border-start-0"
+                                                   placeholder="ابحث في البيان...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearCommentSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2 text-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter me-1"></i>البحث والتصفية
+                                    </small>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="packagingStylesTableBody">
+                            <!-- Data will be loaded via API -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- No Results Message -->
+    <div id="noResultsMessage" class="text-center py-5" style="display: none;">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد نتائج مطابقة</h5>
+                <p class="text-muted mb-3">لم يتم العثور على أنماط تعبئة تطابق معايير البحث الحالية</p>
+                <button class="btn btn-outline-primary" id="resetSearch">
+                    <i class="fas fa-refresh me-1"></i>إعادة تعيين البحث
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Empty State Message -->
+<div id="emptyState" class="text-center py-5" style="display: none;">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body">
+            <i class="fas fa-box fa-3x text-muted mb-3"></i>
+            <h5 class="text-muted">لا توجد أنماط تعبئة</h5>
+            <p class="text-muted mb-3">لا توجد أنماط تعبئة مضافة بعد في النظام</p>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل نمط التعبئة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="detailsContent">
+                <!-- Details content will be loaded here -->
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+                <button type="button" class="btn btn-info" id="editFromDetails">
+                    <i class="fas fa-edit me-1"></i>تعديل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Create/Edit Modal -->
+<div class="modal fade" id="packagingStyleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom">
+                <h5 class="modal-title fw-bold" id="modalTitle">
+                    <i class="fas fa-plus-circle text-success me-2"></i>إضافة نمط تعبئة جديد
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="packagingStyleForm" class="needs-validation" novalidate>
+                    <input type="hidden" id="styleId" name="Id">
+
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <label for="styleName" class="form-label fw-semibold">
+                                <i class="fas fa-box text-primary me-1"></i>
+                                اسم نمط التعبئة <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="styleName"
+                                   name="StyleName" required maxlength="200"
+                                   placeholder="أدخل اسم نمط التعبئة">
+                            <div class="invalid-feedback">
+                                <i class="fas fa-exclamation-circle me-1"></i>يرجى إدخال اسم نمط التعبئة (الحد الأقصى 200 حرف)
+                            </div>
+                        </div>
+
+                        <div class="col-12 mb-4">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-link text-info me-1"></i>الواجهات المرتبطة
+                            </label>
+                            <div id="availableFormsContainer" class="border rounded p-3 bg-light">
+                                <div class="text-center">
+                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                        <span class="visually-hidden">جاري التحميل...</span>
+                                    </div>
+                                    <span class="text-muted">جاري تحميل الواجهات المتاحة...</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12 mb-3">
+                            <label for="styleComment" class="form-label fw-semibold">
+                                <i class="fas fa-comment-alt text-warning me-1"></i>البيان والتعليقات
+                            </label>
+                            <textarea class="form-control" id="styleComment" name="Comment"
+                                      rows="4" maxlength="1000"
+                                      placeholder="أدخل وصف مفصل عن نمط التعبئة أو أي معلومات إضافية (اختياري)"></textarea>
+                            <div class="form-text">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb me-1"></i>اختياري - يمكن إضافة معلومات إضافية
+                                    </small>
+                                    <small class="text-muted">
+                                        <span id="charCount">0</span> / 1000 حرف
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+                <script>
+                    // دالة لتحويل الأرقام للغة العربية
+                    function toArabicDigits(str) {
+                        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                    }
+
+                    // دالة لتحويل الأرقام للاتينية
+                    function toLatinDigits(str) {
+                        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف عربي
+                    function isArabicChar(c) {
+                        return /[\u0600-\u06FF]/.test(c);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف إنجليزي
+                    function isEnglishChar(c) {
+                        return /[a-zA-Z]/.test(c);
+                    }
+
+                    // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                    function getLastLetter(str) {
+                        for (let i = str.length - 1; i >= 0; i--) {
+                            let char = str[i];
+                            if (isArabicChar(char)) {
+                                return 'arabic';
+                            } else if (isEnglishChar(char)) {
+                                return 'english';
+                            }
+                        }
+                        return 'arabic'; // default is Arabic
+                    }
+
+                    // تطبيق التحويل على كل الحقول النصية
+                    document.addEventListener("input", function (e) {
+                        if (e.target.closest("#packagingStyleForm")) {
+                            let input = e.target;
+                            let val = input.value;
+
+                            if (val.length > 0) {
+                                let lastLetterLang = getLastLetter(val);
+
+                                let newVal;
+                                if (lastLetterLang === 'arabic') {
+                                    // حول جميع الأرقام للعربية
+                                    newVal = toArabicDigits(val);
+                                } else {
+                                    // حول جميع الأرقام للاتينية
+                                    newVal = toLatinDigits(val);
+                                }
+
+                                // تحديث القيمة فقط إذا تغيرت
+                                if (newVal !== val) {
+                                    let cursorPos = input.selectionStart;
+                                    input.value = newVal;
+                                    // استعادة موضع المؤشر
+                                    input.setSelectionRange(cursorPos, cursorPos);
+                                }
+                            }
+
+                            // تحديث عداد الأحرف للتعليقات
+                            if (input.id === 'styleComment') {
+                                document.getElementById('charCount').textContent = val.length;
+                            }
+                        }
+                    });
+
+                    // دالة لإعادة تعيين الفورم
+                    function resetPackagingStyleForm() {
+                        document.getElementById('packagingStyleForm').reset();
+                        document.getElementById('styleId').value = '';
+                        document.getElementById('charCount').textContent = '0';
+
+                        // إزالة حالات التحقق
+                        let form = document.getElementById('packagingStyleForm');
+                        form.classList.remove('was-validated');
+                        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+                    }
+                </script>
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-success" id="savePackagingStyle">
+                    <i class="fas fa-save me-1"></i>حفظ نمط التعبئة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center">
+                    <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                    <h6 class="mb-3">هل أنت متأكد من حذف نمط التعبئة؟</h6>
+                    <div class="alert alert-warning">
+                        <strong id="deleteStyleName" class="text-dark"></strong>
+                    </div>
+                    <p class="text-muted">لا يمكن التراجع عن هذا الإجراء</p>
+                </div>
+                <input type="hidden" id="deleteStyleId">
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="fas fa-trash me-1"></i>تأكيد الحذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Toast Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i id="toastIcon" class="fas fa-check-circle me-2"></i>
+                <span id="toastMessage"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '2025-08-16 20:01:16';
+            const CURRENT_USER = 'Ammar-Yasser8';
+
+            console.log('Enhanced packaging styles with details integration loaded:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER
+            });
+
+            // Initialize components
+            const toastElement = document.getElementById('notificationToast');
+            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+            const modal = new bootstrap.Modal(document.getElementById('packagingStyleModal'));
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+
+            let packagingStylesData = [];
+            let availableForms = [];
+            let currentDetailsId = null;
+
+            // Character counter for comment
+            $('#styleComment').on('input', function() {
+                const count = $(this).val().length;
+                $('#charCount').text(count);
+
+                if (count > 900) {
+                    $('#charCount').addClass('text-warning');
+                } else if (count > 1000) {
+                    $('#charCount').addClass('text-danger');
+                } else {
+                    $('#charCount').removeClass('text-warning text-danger');
+                }
+            });
+
+            // Enhanced notification function
+            function showNotification(message, type = 'success') {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+
+                const colors = {
+                    success: 'bg-success',
+                    error: 'bg-danger',
+                    warning: 'bg-warning',
+                    info: 'bg-info'
+                };
+
+                $('#toastIcon').removeClass().addClass(`fas ${icons[type]} me-2`);
+                $('#toastMessage').text(message);
+                $('#notificationToast').removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
+                    .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
+
+                toast.show();
+            }
+
+            // Loading functions
+            function showLoading() {
+                $('#loadingOverlay').removeClass('d-none');
+            }
+
+            function hideLoading() {
+                $('#loadingOverlay').addClass('d-none');
+            }
+
+            // Load packaging styles data
+            function loadPackagingStyles() {
+                showLoading();
+
+                $.ajax({
+                    url: '/api/PackagingStyles',
+                    method: 'GET',
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            packagingStylesData = response.data;
+                            renderPackagingStyles(packagingStylesData);
+                            updateCounts(packagingStylesData.length);
+
+                            console.log('Loaded packaging styles:', {
+                                count: packagingStylesData.length,
+                                time: CURRENT_TIME,
+                                user: CURRENT_USER
+                            });
+                        } else {
+                            showNotification('حدث خطأ أثناء تحميل البيانات', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+                        showNotification('حدث خطأ أثناء تحميل أنماط التعبئة', 'error');
+                        console.error('Load error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            }
+
+            // Load available forms
+            function loadAvailableForms() {
+                $.ajax({
+                    url: '/api/PackagingStyles/GetAvailableForms',
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            availableForms = response.data;
+                            renderAvailableForms(availableForms);
+                        } else {
+                            showNotification('حدث خطأ أثناء تحميل الواجهات المتاحة', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showNotification('حدث خطأ أثناء تحميل الواجهات المتاحة', 'error');
+                        console.error('Forms load error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            }
+
+            // Load packaging style details via API
+            function loadPackagingStyleDetails(id) {
+                showLoading();
+
+                $.ajax({
+                    url: `/api/PackagingStyles/${id}`,
+                    method: 'GET',
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            renderDetailsModal(response.data);
+                            currentDetailsId = id;
+                            detailsModal.show();
+
+                            console.log('Loaded packaging style details:', {
+                                id: id,
+                                styleName: response.data.styleName,
+                                time: CURRENT_TIME,
+                                user: CURRENT_USER
+                            });
+                        } else {
+                            showNotification('حدث خطأ أثناء تحميل تفاصيل نمط التعبئة', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+                        showNotification('حدث خطأ أثناء تحميل تفاصيل نمط التعبئة', 'error');
+                        console.error('Details load error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            }
+
+            // Render details modal content
+            function renderDetailsModal(style) {
+                const formsHtml = style.forms && style.forms.length > 0
+                    ? style.forms.map(form =>
+                        `<div class="col-auto">
+                            <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 fs-6 py-2 px-3">
+                                <i class="fas fa-link me-1"></i>${form.name}
+                            </span>
+                        </div>`
+                      ).join('')
+                    : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-unlink me-2"></i>لا توجد واجهات مرتبطة</span></div>';
+
+                const commentHtml = style.comment
+                    ? `<div class="alert alert-light border-start border-4 border-warning">
+                        <h6 class="alert-heading mb-2">
+                            <i class="fas fa-comment-alt text-warning me-2"></i>البيان والتعليقات
+                        </h6>
+                        <p class="mb-0">${style.comment}</p>
+                       </div>`
+                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-info-circle me-2"></i>لا يوجد بيان أو تعليقات</div>';
+
+                const detailsContent = `
+                    <div class="p-4">
+                        <!-- Header Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="d-flex align-items-center p-3 bg-light rounded">
+                                    <div class="flex-shrink-0 me-3">
+                                        <div class="icon-circle bg-info text-white">
+                                            <i class="fas fa-cube fa-2x"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h4 class="mb-1 fw-bold text-dark">${style.styleName}</h4>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                </small>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <small class="text-muted">
+                                                    <i class="fas fa-link me-1"></i>عدد الواجهات: <strong>${style.formsCount || 0}</strong>
+                                                </small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Forms Section -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <h6 class="fw-bold text-dark mb-3">
+                                    <i class="fas fa-link text-info me-2"></i>الواجهات المرتبطة
+                                </h6>
+                                <div class="row g-2">
+                                    ${formsHtml}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comment Section -->
+                        <div class="row">
+                            <div class="col-12">
+                                ${commentHtml}
+                            </div>
+                        </div>
+
+                        <!-- Meta Information -->
+                        <div class="row mt-4 pt-3 border-top">
+                            <div class="col-12">
+                                <div class="row text-center">
+                                    <div class="col-md-4">
+                                        <div class="p-2">
+                                            <div class="text-primary fs-5 fw-bold">${style.formsCount || 0}</div>
+                                            <small class="text-muted">واجهات مرتبطة</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#detailsContent').html(detailsContent);
+            }
+
+            // Render packaging styles table
+            function renderPackagingStyles(data) {
+                const tbody = $('#packagingStylesTableBody');
+                tbody.empty();
+
+                if (!data || data.length === 0) {
+                    $('#emptyState').show();
+                    $('#packagingStylesContainer').hide();
+                    return;
+                }
+
+                $('#emptyState').hide();
+                $('#packagingStylesContainer').show();
+
+                data.forEach(function(style) {
+                    const formsHtml = style.forms && style.forms.length > 0
+                        ? style.forms.map(form =>
+                            `<span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25">
+                                <i class="fas fa-link me-1"></i>${form.name}
+                            </span>`
+                          ).join(' ')
+                        : '<span class="text-muted fst-italic"><i class="fas fa-unlink me-1"></i>لا توجد واجهات مرتبطة</span>';
+
+                    const commentHtml = style.comment
+                        ? `<span title="${style.comment}" class="comment-text">
+                            ${style.comment.length > 50 ? style.comment.substring(0, 47) + '...' : style.comment}
+                           </span>`
+                        : '<span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i>لا يوجد بيان</span>';
+
+                    const row = `
+                        <tr data-id="${style.id}" class="packaging-style-row">
+                            <td class="packaging-style-name">
+                                <div class="d-flex align-items-center">
+                                    <div class="packaging-icon me-2">
+                                        <i class="fas fa-cube text-success"></i>
+                                    </div>
+                                    <div>
+                                        <span class="fw-semibold">${style.styleName}</span>
+                                        <br>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="packaging-style-forms">
+                                <div class="d-flex flex-wrap gap-1">
+                                    ${formsHtml}
+                                </div>
+                            </td>
+                            <td class="packaging-style-comment">
+                                ${commentHtml}
+                            </td>
+                            <td class="text-center">
+                                <div class="btn-group" role="group">
+                                    
+                                     <button class="btn btn-sm btn-outline-info edit-style"
+                                             onclick="window.location.href='/PackagingStyles/Edit/${style.id}'"
+                                             title="تعديل ${style.styleName}">
+                                         <i class="fas fa-edit"></i>
+                                     </button>
+                                           
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary view-details"
+                                            data-id="${style.id}" title="تفاصيل ${style.styleName}">
+                                        <i class="fas fa-info-circle"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-danger delete-style"
+                                            data-id="${style.id}" data-name="${style.styleName}" title="حذف ${style.styleName}">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                    tbody.append(row);
+                });
+            }
+
+            // Render available forms
+            function renderAvailableForms(forms, selectedFormIds = []) {
+                const container = $('#availableFormsContainer');
+
+                if (!forms || forms.length === 0) {
+                    container.html(`
+                        <div class="text-center text-muted">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            لا توجد واجهات متاحة
+                        </div>
+                    `);
+                    return;
+                }
+
+                const formsHtml = forms.map(form => `
+                    <div class="form-check form-check-inline mb-2">
+                        <input class="form-check-input" type="checkbox"
+                               id="form_${form.id}" value="${form.id}"
+                               ${selectedFormIds.includes(form.id) ? 'checked' : ''}>
+                        <label class="form-check-label" for="form_${form.id}">
+                            <i class="fas fa-link me-1 text-info"></i>${form.formName}
+                        </label>
+                    </div>
+                `).join('');
+
+                container.html(formsHtml);
+            }
+
+            // Enhanced search functionality
+            function performSearch() {
+                const nameSearch = $('#searchByName').val().toLowerCase().trim();
+                const formsSearch = $('#searchByForms').val().toLowerCase().trim();
+                const commentSearch = $('#searchByComment').val().toLowerCase().trim();
+                let visibleCount = 0;
+
+                $('.packaging-style-row').each(function() {
+                    const row = $(this);
+                    const name = row.find('.packaging-style-name').text().toLowerCase();
+                    const forms = row.find('.packaging-style-forms').text().toLowerCase();
+                    const comment = row.find('.packaging-style-comment').text().toLowerCase();
+
+                    const nameMatch = !nameSearch || name.includes(nameSearch);
+                    const formsMatch = !formsSearch || forms.includes(formsSearch);
+                    const commentMatch = !commentSearch || comment.includes(commentSearch);
+
+                    const shouldShow = nameMatch && formsMatch && commentMatch;
+                    row.toggle(shouldShow);
+
+                    if (shouldShow) visibleCount++;
+                });
+
+                updateSearchInfo(visibleCount, nameSearch, formsSearch, commentSearch);
+            }
+
+            function updateSearchInfo(visibleCount, nameSearch, formsSearch, commentSearch) {
+                $('#visibleCount').text(visibleCount);
+                $('#badgeCount').text(visibleCount);
+
+                // Show/hide clear buttons
+                $('#clearNameSearch').toggle(nameSearch.length > 0);
+                $('#clearFormsSearch').toggle(formsSearch.length > 0);
+                $('#clearCommentSearch').toggle(commentSearch.length > 0);
+
+                const hasAnySearch = nameSearch.length > 0 || formsSearch.length > 0 || commentSearch.length > 0;
+                $('#clearAllSearch').toggle(hasAnySearch);
+
+                // Show/hide no results
+                if (visibleCount === 0 && hasAnySearch) {
+                    $('#noResultsMessage').show();
+                    $('#packagingStylesContainer .section-card').hide();
+                } else {
+                    $('#noResultsMessage').hide();
+                    $('#packagingStylesContainer .section-card').show();
+                }
+
+                // Add visual feedback to search inputs
+                $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
+                $('#searchByForms').toggleClass('border-primary', formsSearch.length > 0);
+                $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
+            }
+
+            function updateCounts(count) {
+                $('#totalCount').text(count);
+                $('#visibleCount').text(count);
+                $('#badgeCount').text(count);
+            }
+
+            // Search events
+            let searchTimeout;
+            $('#searchByName, #searchByForms, #searchByComment').on('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(performSearch, 200);
+            });
+
+            // Clear search buttons
+            $('#clearNameSearch').click(function() {
+                $('#searchByName').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByName').focus();
+            });
+
+            $('#clearFormsSearch').click(function() {
+                $('#searchByForms').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByForms').focus();
+            });
+
+            $('#clearCommentSearch').click(function() {
+                $('#searchByComment').val('').removeClass('border-primary');
+                performSearch();
+                $('#searchByComment').focus();
+            });
+
+            $('#clearAllSearch, #resetSearch').click(function() {
+                $('#searchByName, #searchByForms, #searchByComment').val('').removeClass('border-primary');
+                performSearch();
+            });
+
+            // Modal handlers
+            $('#addNewStyle, #addFirstStyle').click(function() {
+                resetForm();
+                $('#modalTitle').html('<i class="fas fa-plus-circle text-success me-2"></i>إضافة نمط تعبئة جديد');
+                loadAvailableForms();
+                modal.show();
+            });
+
+            $(document).on('click', '.edit-style', function() {
+                const id = $(this).data('id');
+                editPackagingStyle(id);
+            });
+
+            $(document).on('click', '.delete-style', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                $('#deleteStyleId').val(id);
+                $('#deleteStyleName').text(name);
+                deleteModal.show();
+            });
+
+            // Enhanced details view handler
+            $(document).on('click', '.view-details', function() {
+                const id = $(this).data('id');
+                loadPackagingStyleDetails(id);
+            });
+
+            // Edit from details modal
+            $('#editFromDetails').click(function() {
+                if (currentDetailsId) {
+                    detailsModal.hide();
+                    editPackagingStyle(currentDetailsId);
+                }
+            });
+
+            // Reset form
+            function resetForm() {
+                $('#packagingStyleForm')[0].reset();
+                $('#styleId').val('');
+                $('#charCount').text('0');
+                $('#packagingStyleForm .is-invalid').removeClass('is-invalid');
+                $('#packagingStyleForm').removeClass('was-validated');
+                $('#availableFormsContainer input[type="checkbox"]').prop('checked', false);
+            }
+
+            // Edit packaging style
+            function editPackagingStyle(id) {
+                showLoading();
+
+                $.ajax({
+                    url: `/api/PackagingStyles/${id}`,
+                    method: 'GET',
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            const style = response.data;
+
+                            $('#styleId').val(style.id);
+                            $('#styleName').val(style.styleName);
+                            $('#styleComment').val(style.comment || '');
+                            $('#charCount').text((style.comment || '').length);
+
+                            const selectedFormIds = style.forms ? style.forms.map(f => f.id) : [];
+                            renderAvailableForms(availableForms, selectedFormIds);
+
+                            $('#modalTitle').html('<i class="fas fa-edit text-info me-2"></i>تعديل نمط التعبئة');
+                            modal.show();
+                        } else {
+                            showNotification('حدث خطأ أثناء تحميل بيانات نمط التعبئة', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+                        showNotification('حدث خطأ أثناء تحميل بيانات نمط التعبئة', 'error');
+                        console.error('Edit load error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            }
+
+            // Save packaging style
+            $('#savePackagingStyle').click(function() {
+                const form = document.getElementById('packagingStyleForm');
+                if (!form.checkValidity()) {
+                    $(form).addClass('was-validated');
+                    return;
+                }
+
+                const id = $('#styleId').val();
+                const styleName = $('#styleName').val().trim();
+                const comment = $('#styleComment').val().trim();
+                const selectedFormIds = [];
+
+                $('#availableFormsContainer input[type="checkbox"]:checked').each(function() {
+                    selectedFormIds.push(parseInt($(this).val()));
+                });
+
+                const data = {
+                    StyleName: styleName,
+                    Comment: comment,
+                    SelectedFormIds: selectedFormIds
+                };
+
+                const isEdit = id && id !== '';
+                const url = isEdit ? `/api/PackagingStyles/${id}` : '/api/PackagingStyles';
+                const method = isEdit ? 'PUT' : 'POST';
+
+                showLoading();
+
+                $.ajax({
+                    url: url,
+                    method: method,
+                    contentType: 'application/json',
+                    data: JSON.stringify(data),
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            showNotification(response.message, 'success');
+                            modal.hide();
+                            loadPackagingStyles(); // Reload data
+                        } else {
+                            showNotification(response.message, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+
+                        let errorMessage = 'حدث خطأ أثناء حفظ نمط التعبئة';
+                        if (xhr.responseJSON && xhr.responseJSON.message) {
+                            errorMessage = xhr.responseJSON.message;
+                        }
+
+                        showNotification(errorMessage, 'error');
+                        console.error('Save error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            });
+
+            // Delete packaging style
+            $('#confirmDelete').click(function() {
+                const id = $('#deleteStyleId').val();
+
+                showLoading();
+
+                $.ajax({
+                    url: `/api/PackagingStyles/${id}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        hideLoading();
+
+                        if (response.success) {
+                            showNotification(response.message, 'success');
+                            deleteModal.hide();
+                            loadPackagingStyles(); // Reload data
+                        } else {
+                            showNotification(response.message, 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        hideLoading();
+                        showNotification('حدث خطأ أثناء حذف نمط التعبئة', 'error');
+                        console.error('Delete error:', { xhr, status, error, time: CURRENT_TIME });
+                    }
+                });
+            });
+
+            // Refresh data
+            $('#refreshData').click(function() {
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+
+                loadPackagingStyles();
+
+                setTimeout(() => {
+                    btn.prop('disabled', false).html(originalText);
+                }, 1000);
+            });
+
+            // Keyboard shortcuts
+            $(document).keydown(function(e) {
+                if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+                    e.preventDefault();
+                    $('#searchByName').focus();
+                }
+                if (e.ctrlKey && e.keyCode === 78) { // Ctrl+N
+                    e.preventDefault();
+                    $('#addNewStyle').click();
+                }
+                if (e.keyCode === 27) { // Escape
+                    $('#searchByName, #searchByForms, #searchByComment').val('').removeClass('border-primary');
+                    performSearch();
+                }
+            });
+
+            // Initialize page
+            loadPackagingStyles();
+            loadAvailableForms();
+
+            console.log('Enhanced packaging styles page with details modal initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        /* Enhanced Styles */
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .packaging-style-row {
+            transition: all 0.2s ease;
+        }
+
+            .packaging-style-row:hover {
+                background-color: rgba(25,135,84,0.05);
+                transform: scale(1.005);
+            }
+
+        .search-row th {
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 8px 12px;
+        }
+
+        .search-container .input-group {
+            transition: all 0.2s ease;
+        }
+
+            .search-container .input-group:hover {
+                transform: translateY(-1px);
+            }
+
+            .search-container .input-group.shadow-sm {
+                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
+            }
+
+        .search-container .input-group-text {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+            font-size: 0.875rem;
+        }
+
+        .search-container .form-control {
+            border-color: #ced4da;
+            font-size: 0.875rem;
+            padding: 6px 12px;
+        }
+
+            .search-container .form-control:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            }
+
+            .search-container .form-control.border-primary {
+                border-color: #0d6efd !important;
+                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+            }
+
+        .packaging-icon {
+            width: 30px;
+            text-align: center;
+        }
+
+        .btn-group .btn {
+            margin: 0 1px;
+        }
+
+        .comment-text {
+            cursor: help;
+        }
+
+        .toast {
+            min-width: 300px;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        /* Enhanced details modal styling */
+        .details-modal .icon-circle {
+            width: 80px;
+            height: 80px;
+            font-size: 2rem;
+        }
+
+        .border-start {
+            border-left: 4px solid !important;
+        }
+
+        .packaging-style-row {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @@keyframes fadeInUp {
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        }
+
+        .table thead th {
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .table thead tr:first-child th {
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        /* Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .icon-circle
+
+        {
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+            .btn-group .btn {
+                margin: 1px 0;
+                border-radius: 4px !important;
+            }
+
+        .details-modal .icon-circle {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        }
+    </style>
+}

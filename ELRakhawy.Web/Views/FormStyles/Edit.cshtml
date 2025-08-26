@@ -1,0 +1,534 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FormStyleViewModel
+@{
+    ViewData["Title"] = "تعديل العملية التجارية";
+    var currentTime = "2025-08-19 20:38:13";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>
+                        <span class="fw-semibold">الجداول العامة</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "FormStyles")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-cogs text-success me-2"></i>
+                        <span class="fw-semibold">العمليات التجارية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-edit text-warning me-2"></i>
+                    <span class="fw-bold text-dark">تعديل: @Model.FormName</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Enhanced Header Section -->
+<div class="welcome-card mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body bg-light p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <div class="d-flex align-items-center">
+                        <div class="icon-circle bg-warning text-white me-3">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                        <div>
+                            <h2 class="mb-1 text-dark">تعديل العملية التجارية</h2>
+                            <p class="text-muted mb-0">
+                                <i class="fas fa-info-circle me-1"></i>
+                                تعديل بيانات العملية: <strong class="text-primary">@Model.FormName</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                    <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
+                        <a asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+                        </a>
+                        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-info">
+                            <i class="fas fa-eye me-1"></i>عرض التفاصيل
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Usage Warning -->
+@if (ViewBag.IsInUse == true)
+{
+    <div class="alert alert-warning border-0 shadow-sm mb-4" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+            <div>
+                <h5 class="alert-heading mb-1">تحذير: العملية قيد الاستخدام</h5>
+                <p class="mb-1">هذه العملية التجارية مستخدمة حالياً في <strong>@ViewBag.UsageCount</strong> من أنماط التعبئة.</p>
+                <small class="text-muted">تعديل الاسم سيؤثر على جميع أنماط التعبئة المرتبطة بها.</small>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Main Content -->
+<div class="row">
+    <!-- Form Section -->
+    <div class="col-lg-8 mb-4">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold">
+                        <i class="fas fa-edit text-warning me-2"></i>تعديل بيانات العملية
+                    </h5>
+                    <div class="badge bg-info">
+                        <i class="fas fa-hashtag me-1"></i>معرف: @Model.Id
+                    </div>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Edit" method="post" id="editForm" novalidate>
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-4 d-none" id="validationSummary"></div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="form-group mb-4">
+                                <label asp-for="FormName" class="form-label fw-semibold">
+                                    <i class="fas fa-cogs text-primary me-1"></i>
+                                    اسم العملية التجارية <span class="text-danger">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light">
+                                        <i class="fas fa-edit text-muted"></i>
+                                    </span>
+                                    <input asp-for="FormName" class="form-control form-control-lg"
+                                           placeholder="مثال: اضافة وارد غزل، اضافة صادر قماش..."
+                                           autocomplete="off"
+                                           data-original-name="@Model.FormName" />
+                                </div>
+                                <span asp-validation-for="FormName" class="text-danger small"></span>
+
+                                <!-- Real-time validation feedback -->
+                                <div id="formNameFeedback" class="mt-2"></div>
+
+                                <!-- Change tracking -->
+                                <div id="changeIndicator" class="mt-2" style="display: none;">
+                                    <div class="alert alert-info py-2">
+                                        <i class="fas fa-edit me-2"></i>
+                                        <strong>تم تعديل الاسم:</strong> من "<span id="originalName"></span>" إلى "<span id="newName"></span>"
+                                    </div>
+                                </div>
+
+                                <!-- Suggestions dropdown -->
+                                <div id="suggestionsDropdown" class="dropdown-menu w-100 shadow-lg" style="display: none;">
+                                    <div class="dropdown-header">
+                                        <i class="fas fa-lightbulb text-warning me-2"></i>اقتراحات العمليات التجارية
+                                    </div>
+                                    <div id="suggestionsList"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Current Category Display -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light">
+                                <div class="card-body py-3">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-6">
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-folder text-info me-2"></i>
+                                                <strong>الفئة الحالية:</strong>
+                                                <span class="ms-2 badge bg-info">@ViewBag.FormCategory</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                                            <div class="d-flex align-items-center justify-content-md-end">
+                                                <i class="fas fa-chart-bar text-success me-2"></i>
+                                                <strong>مستخدم في:</strong>
+                                                <span class="ms-2 badge bg-success">@ViewBag.UsageCount نمط تعبئة</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between">
+                        <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-arrow-right me-2"></i>العودة للقائمة
+                        </a>
+                        <div class="d-flex gap-3">
+                            
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn">
+                                <i class="fas fa-save me-2"></i>حفظ التغييرات
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar Section -->
+    <div class="col-lg-4">
+        <!-- Change Log Card -->
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h6 class="mb-0 fw-bold">
+                    <i class="fas fa-history me-2"></i>سجل التغييرات
+                </h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush" id="changesLog">
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-clock fa-2x mb-2"></i>
+                        <p class="mb-0">لا توجد تغييرات بعد</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+       
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            const CURRENT_TIME = '@currentTime';
+            const CURRENT_USER = '@currentUser';
+            const ORIGINAL_NAME = '@Model.FormName';
+
+            let suggestionsTimeout;
+            let validationTimeout;
+            let formChanged = false;
+            const changesLog = [];
+
+            console.log('Enhanced form styles edit page loaded:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER,
+                formId: @Model.Id,
+                originalName: ORIGINAL_NAME
+            });
+
+            // Load categorized business operation suggestions
+            loadBusinessOperationCategories();
+
+            // Track form changes
+            function logChange(field, oldValue, newValue) {
+                formChanged = true;
+                changesLog.unshift({
+                    field: field,
+                    oldValue: oldValue,
+                    newValue: newValue,
+                    timestamp: new Date()
+                });
+                updateChangesLog();
+            }
+
+            // Update changes log display
+            function updateChangesLog() {
+                if (changesLog.length === 0) {
+                    $('#changesLog').html(`
+                        <div class="text-center p-4 text-muted">
+                            <i class="fas fa-clock fa-2x mb-2"></i>
+                            <p class="mb-0">لا توجد تغييرات بعد</p>
+                        </div>
+                    `);
+                    return;
+                }
+
+                const logHtml = changesLog.map(change => `
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1 fw-semibold text-primary">${change.field}</h6>
+                                <div class="small">
+                                    <div class="mb-1">
+                                        <strong>من:</strong> <span class="text-danger">${change.oldValue}</span>
+                                    </div>
+                                    <div>
+                                        <strong>إلى:</strong> <span class="text-success">${change.newValue}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <small class="text-muted">
+                                ${new Date(change.timestamp).toLocaleTimeString('ar-SA')}
+                            </small>
+                        </div>
+                    </div>
+                `).join('');
+
+                $('#changesLog').html(logHtml);
+            }
+
+            // Form name input handler
+            $('#FormName').on('input', function() {
+                const currentValue = $(this).val().trim();
+                const originalValue = $(this).data('original-name');
+
+                // Show change indicator
+                if (currentValue !== originalValue && currentValue.length > 0) {
+                    $('#originalName').text(originalValue);
+                    $('#newName').text(currentValue);
+                    $('#changeIndicator').show();
+
+                    if (!changesLog.some(c => c.field === 'اسم العملية')) {
+                        logChange('اسم العملية', originalValue, currentValue);
+                    } else {
+                        // Update existing change
+                        const existingChange = changesLog.find(c => c.field === 'اسم العملية');
+                        if (existingChange) {
+                            existingChange.newValue = currentValue;
+                            existingChange.timestamp = new Date();
+                            updateChangesLog();
+                        }
+                    }
+                } else {
+                    $('#changeIndicator').hide();
+                }
+
+                // Clear previous timeouts
+                clearTimeout(suggestionsTimeout);
+                clearTimeout(validationTimeout);
+
+                if (currentValue.length >= 2) {
+                    // Get suggestions after 300ms delay
+                    suggestionsTimeout = setTimeout(() => {
+                        getSuggestions(currentValue);
+                    }, 300);
+
+                    // Validate after 500ms delay
+                    validationTimeout = setTimeout(() => {
+                        validateFormName(currentValue);
+                    }, 500);
+                } else {
+                    hideSuggestions();
+                    clearValidationFeedback();
+                }
+            });
+
+            // Form submission
+            $('#editForm').on('submit', function(e) {
+                if (!validateForm()) {
+                    e.preventDefault();
+                    return false;
+                }
+
+                $("#submitBtn")
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+
+                return true;
+            });
+
+            // Enhanced form validation
+            function validateForm() {
+                let isValid = true;
+                $("#validationSummary").addClass("d-none");
+
+                // Check name field
+                if (!$("#FormName").val().trim()) {
+                    $("#FormName").addClass("is-invalid");
+                    isValid = false;
+                } else {
+                    $("#FormName").removeClass("is-invalid");
+                }
+
+                return isValid;
+            }
+
+            // Get suggestions from API
+            function getSuggestions(input) {
+                $.ajax({
+                    url: '/FormStyles/GetBusinessOperationSuggestions',
+                    method: 'GET',
+                    data: { input: input },
+                    success: function(response) {
+                        if (response.success && response.suggestions.length > 0) {
+                            showSuggestions(response.suggestions);
+                        } else {
+                            hideSuggestions();
+                        }
+                    },
+                    error: function() {
+                        hideSuggestions();
+                    }
+                });
+            }
+
+            // Show suggestions dropdown
+            function showSuggestions(suggestions) {
+                const suggestionsList = $('#suggestionsList');
+                suggestionsList.empty();
+
+                suggestions.forEach(function(suggestion) {
+                    const confidenceClass = suggestion.confidence >= 80 ? 'text-success' :
+                                          suggestion.confidence >= 60 ? 'text-warning' : 'text-muted';
+                    const typeIcon = suggestion.type === 'operation' ? 'fa-cogs' :
+                                   suggestion.type === 'existing' ? 'fa-check' : 'fa-question';
+
+                    const item = $(`
+                        <button type="button" class="dropdown-item suggestion-item" data-value="${suggestion.name}">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <i class="fas ${typeIcon} me-2 ${confidenceClass}"></i>
+                                    <span>${suggestion.name}</span>
+                                    <small class="text-muted d-block ms-4">${suggestion.category}</small>
+                                </div>
+                                <small class="badge bg-light text-dark">${suggestion.confidence}%</small>
+                            </div>
+                        </button>
+                    `);
+
+                    item.on('click', function() {
+                        $('#FormName').val(suggestion.name);
+                        hideSuggestions();
+                        validateFormName(suggestion.name);
+
+                        // Trigger change event
+                        $('#FormName').trigger('input');
+                    });
+
+                    suggestionsList.append(item);
+                });
+
+                $('#suggestionsDropdown').show();
+            }
+
+            // Hide suggestions dropdown
+            function hideSuggestions() {
+                $('#suggestionsDropdown').hide();
+            }
+
+            // Hide suggestions when clicking outside
+            $(document).on('click', function(e) {
+                if (!$(e.target).closest('#FormName, #suggestionsDropdown').length) {
+                    hideSuggestions();
+                }
+            });
+
+            // Validate form name
+            function validateFormName(formName) {
+                // Implementation for validation
+                console.log('Validating:', formName);
+            }
+
+            // Clear validation feedback
+            function clearValidationFeedback() {
+                $('#formNameFeedback').empty();
+            }
+
+            // Load business operation categories (implementation from previous example)
+            function loadBusinessOperationCategories() {
+                $.ajax({
+                    url: '/FormStyles/GetCategorizedBusinessOperationSuggestions',
+                    method: 'GET',
+                    success: function(response) {
+                        if (response.success) {
+                            renderBusinessOperationCategories(response.categories);
+                        }
+                    }
+                });
+            }
+
+            // Render business operation categories (implementation from previous example)
+            function renderBusinessOperationCategories(categories) {
+                // Implementation similar to create view
+                console.log('Categories loaded:', categories);
+            }
+
+            // Prevent accidental navigation
+            $(window).on('beforeunload', function() {
+                if (formChanged) {
+                    return 'لديك تغييرات غير محفوظة. هل أنت متأكد من المغادرة؟';
+                }
+            });
+
+            console.log('Form styles edit page initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        .suggestion-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        #suggestionsDropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .icon-circle {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* Changes log styling */
+        #changesLog {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .icon-circle
+
+        {
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+        }
+
+        .d-flex.justify-content-between {
+            flex-direction: column;
+        }
+
+            .d-flex.justify-content-between .btn, .d-flex.justify-content-between .d-flex {
+                width: 100%;
+                margin: 0.25rem 0;
+            }
+
+            .d-flex.justify-content-between .d-flex {
+                flex-direction: column;
+            }
+
+        }
+    </style>
+}
