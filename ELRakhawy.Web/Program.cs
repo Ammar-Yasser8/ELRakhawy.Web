@@ -1,13 +1,17 @@
+using Elrakhawy.DAL.Data;
+using ELRakhawy.DAL.Implementaions;
+using ELRakhawy.EL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
-using ELRakhawy.EL.Interfaces;
-using ELRakhawy.DAL.Implementaions;
-using Elrakhawy.DAL.Data;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews().AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    });
 #region Builder Zone for configuertion 
 builder.Services.AddRazorPages();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenaricRepository<>));

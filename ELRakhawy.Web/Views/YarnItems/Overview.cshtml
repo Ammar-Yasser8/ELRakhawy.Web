@@ -2,7 +2,7 @@
 @model IEnumerable<YarnItemViewModel>
 @{
     ViewData["Title"] = "لوحة تحكم مخزون الخيوط";
-    Layout = "_Layout"; // استخدام نفس التخطيط
+    Layout = "_Layout";
 
     // إحصائيات محسوبة من النموذج
     var totalItems = Model.Count();
@@ -10,6 +10,7 @@
     var totalBalance = Model.Sum(x => x.CurrentBalance);
     var lowStockItems = Model.Count(x => x.CurrentBalance <= 10 && x.CurrentBalance > 0);
     var zeroStockItems = Model.Count(x => x.CurrentBalance <= 0);
+    var availableItems = Model.Count(x => x.Status && x.CurrentBalance > 0);
 
     // تجميع البيانات للرسوم البيانية
     var manufacturers = Model
@@ -21,127 +22,201 @@
         .ToList();
 }
 
+<style>
+    .dashboard-header {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+        padding: 20px 0;
+        margin-bottom: 24px;
+        border-radius: 0 0 10px 10px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
 
-    <style>
-        .dashboard-header {
-            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
-            color: white;
-            padding: 20px 0;
-            margin-bottom: 24px;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
+    .card {
+        border: none;
+        border-radius: 10px;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        margin-bottom: 24px;
+    }
 
-        .card {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            margin-bottom: 24px;
-        }
+    .card-header {
+        background-color: #f8f9fc;
+        border-bottom: 1px solid #e3e6f0;
+        font-weight: 700;
+        padding: 15px 20px;
+        border-radius: 10px 10px 0 0 !important;
+    }
 
-        .card-header {
-            background-color: #f8f9fc;
-            border-bottom: 1px solid #e3e6f0;
-            font-weight: 700;
-            padding: 15px 20px;
-            border-radius: 10px 10px 0 0 !important;
-        }
-
-        .summary-card {
-            border-left: 4px solid;
-            transition: transform 0.3s;
-        }
+    .summary-card {
+        border-left: 4px solid;
+        transition: transform 0.3s;
+    }
 
         .summary-card:hover {
             transform: translateY(-5px);
         }
 
-        .summary-card.total { border-left-color: #4e73df; }
-        .summary-card.available { border-left-color: #1cc88a; }
-        .summary-card.low-stock { border-left-color: #f6c23e; }
-        .summary-card.out-of-stock { border-left-color: #e74a3b; }
-
-        .summary-icon {
-            font-size: 2rem;
-            opacity: 0.3;
-            position: absolute;
-            left: 20px;
-            top: 15px;
+        .summary-card.total {
+            border-left-color: #4e73df;
         }
 
-        .chart-container {
-            position: relative;
-            height: 300px;
-            padding: 20px;
+        .summary-card.available {
+            border-left-color: #1cc88a;
         }
 
-        .view-option {
-            cursor: pointer;
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin-right: 10px;
-            background-color: #eaecf4;
-            text-decoration: none;
-            color: #6e707e;
+        .summary-card.low-stock {
+            border-left-color: #f6c23e;
         }
+
+        .summary-card.out-of-stock {
+            border-left-color: #e74a3b;
+        }
+
+    .summary-icon {
+        font-size: 2rem;
+        opacity: 0.3;
+        position: absolute;
+        left: 20px;
+        top: 15px;
+    }
+
+    .chart-container {
+        position: relative;
+        height: 300px;
+        padding: 20px;
+    }
+
+    .view-option {
+        cursor: pointer;
+        padding: 10px 15px;
+        border-radius: 5px;
+        margin-right: 10px;
+        background-color: #eaecf4;
+        text-decoration: none;
+        color: #6e707e;
+    }
 
         .view-option.active {
             background-color: #4e73df;
             color: white;
         }
 
-        .filter-section {
-            background-color: white;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        }
+    .filter-section {
+        background-color: white;
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
 
-        .filter-label {
-            font-weight: 600;
-            color: #5a5c69;
-            margin-bottom: 5px;
-        }
+    .filter-label {
+        font-weight: 600;
+        color: #5a5c69;
+        margin-bottom: 5px;
+    }
 
-        .item-card {
-            transition: all 0.3s ease;
-            height: 100%;
-        }
+    .item-card {
+        transition: all 0.3s ease;
+        height: 100%;
+    }
 
         .item-card:hover {
             transform: translateY(-3px);
             box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
 
-        .search-tag {
-            display: inline-block;
-            background: #eaecf4;
-            color: #4e73df;
-            padding: 4px 10px;
-            border-radius: 15px;
-            margin: 2px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
+    .search-tag {
+        display: inline-block;
+        background: #eaecf4;
+        color: #4e73df;
+        padding: 4px 10px;
+        border-radius: 15px;
+        margin: 2px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
 
-        .search-tag-remove {
-            margin-right: 5px;
-            cursor: pointer;
-        }
+    .search-tag-remove {
+        margin-right: 5px;
+        cursor: pointer;
+    }
 
-        .no-data {
-            text-align: center;
-            padding: 40px;
-            color: #b7b9cc;
-        }
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #b7b9cc;
+    }
 
         .no-data i {
             font-size: 3rem;
             margin-bottom: 15px;
         }
-    </style>
 
+    /* تحسينات جديدة */
+    .export-btn {
+        background-color: #1cc88a;
+        border-color: #1cc88a;
+        color: white;
+    }
+
+        .export-btn:hover {
+            background-color: #17a673;
+            border-color: #17a673;
+            color: white;
+        }
+
+    .whatsapp-btn {
+        background-color: #25D366;
+        border-color: #25D366;
+        color: white;
+    }
+
+        .whatsapp-btn:hover {
+            background-color: #128C7E;
+            border-color: #128C7E;
+            color: white;
+        }
+
+    .available-filter-btn {
+        background-color: #4e73df;
+        border-color: #4e73df;
+        color: white;
+        font-weight: bold;
+    }
+
+        .available-filter-btn.active {
+            background-color: #224abe;
+            border-color: #224abe;
+        }
+
+    .transaction-modal .modal-content {
+        border-radius: 10px;
+    }
+
+    .transaction-table th {
+        background-color: #f8f9fc;
+        font-weight: 600;
+    }
+
+    .product-overview {
+        background: linear-gradient(to right, #f8f9fc, #fff);
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        border-left: 4px solid #4e73df;
+    }
+
+    .see-more-btn {
+        color: #4e73df;
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 0.9rem;
+    }
+
+        .see-more-btn:hover {
+            text-decoration: underline;
+        }
+</style>
 
 <div class="dashboard-header">
     <div class="container">
@@ -155,13 +230,38 @@
                     <span class="view-option active"><i class="fas fa-th-large me-1"></i> لوحة التحكم</span>
                     <a href="@Url.Action("Index")" class="view-option"><i class="fas fa-table me-1"></i> عرض الجدول</a>
                 </div>
-                <button class="btn btn-light"><i class="fas fa-download me-1"></i> إنشاء تقرير</button>
+                <div class="btn-group ms-2">
+                    <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-download me-1"></i> إنشاء تقرير
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-file-pdf me-2"></i>PDF</a></li>
+                        <li><a class="dropdown-item" href="#"><i class="fas fa-file-excel me-2"></i>Excel</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item whatsapp-btn" href="#"><i class="fab fa-whatsapp me-2"></i>إرسال عبر واتساب</a></li>
+                    </ul>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <div class="container">
+    <!-- نظرة عامة على المنتجات النشطة -->
+    <div class="product-overview">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="text-primary"><i class="fas fa-boxes me-2"></i>نظرة عامة على المنتجات النشطة</h4>
+                <p class="mb-0">إجمالي الأصناف النشطة: <span class="fw-bold">@activeItems</span> صنف | إجمالي الرصيد: <span class="fw-bold">@totalBalance.ToString("N3") كجم</span></p>
+            </div>
+            <div class="col-md-4 text-start">
+                <button id="availableFilterBtn" class="btn available-filter-btn">
+                    <i class="fas fa-filter me-1"></i>المتاح فقط (@availableItems)
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- بطاقات الملخص -->
     <div class="row" id="summaryCards">
         <div class="col-xl-3 col-md-6">
@@ -304,88 +404,23 @@
         </div>
     </div>
 
-    <!-- أفضل الأصناف -->
-    <div class="row mt-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-6">
-                    <div class="stat-card bg-primary bg-opacity-10 rounded p-3 text-center h-100">
-                        <div class="stat-icon text-primary mb-2">
-                            <i class="fas fa-boxes fa-2x"></i>
-                        </div>
-                        <div class="h4 mb-1 text-primary" id="sidebarTotalItems">@totalItems</div>
-                        <small class="text-muted">إجمالي الأصناف</small>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="stat-card bg-success bg-opacity-10 rounded p-3 text-center h-100">
-                        <div class="stat-icon text-success mb-2">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                        <div class="h4 mb-1 text-success" id="sidebarActiveItems">@activeItems</div>
-                        <small class="text-muted">الأصناف النشطة</small>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="stat-card bg-warning bg-opacity-10 rounded p-3 text-center h-100">
-                        <div class="stat-icon text-warning mb-2">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
-                        </div>
-                        <div class="h4 mb-1 text-warning" id="sidebarLowStock">@lowStockItems</div>
-                        <small class="text-muted">رصيد منخفض</small>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="stat-card bg-danger bg-opacity-10 rounded p-3 text-center h-100">
-                        <div class="stat-icon text-danger mb-2">
-                            <i class="fas fa-ban fa-2x"></i>
-                        </div>
-                        <div class="h4 mb-1 text-danger" id="sidebarZeroStock">@zeroStockItems</div>
-                        <small class="text-muted">بدون رصيد</small>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Balance Summary -->
-            <hr class="my-3">
-            <div class="balance-summary">
-                <h6 class="text-primary mb-3">
-                    <i class="fas fa-calculator me-2"></i>ملخص الأرصدة
-                </h6>
-                <div class="bg-light rounded p-3">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">إجمالي الرصيد:</span>
-                        <span class="fw-bold text-primary h6 mb-0">@totalBalance.ToString("N3") كجم</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="text-muted">متوسط الرصيد:</span>
-                        <span class="fw-bold text-info">@((totalItems > 0 ? totalBalance / totalItems : 0).ToString("N2")) كجم</span>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                        <span class="text-muted">نسبة النشطة:</span>
-                        <span class="fw-bold text-success">@((totalItems > 0 ? (activeItems * 100.0 / totalItems) : 0).ToString("N1"))%</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <!-- بطاقات الأصناف -->
     <div class="row mt-4">
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <h6 class="m-0 font-weight-bold text-primary">الأصناف</h6>
+                    <h6 class="m-0 font-weight-bold text-primary">الأصناف النشطة</h6>
                     <div>
-                        <span class="badge bg-primary me-1" id="filteredCount">@totalItems</span> من
-                        <span class="badge bg-secondary ms-1">@totalItems</span> إجمالي
+                        <span class="badge bg-primary me-1" id="filteredCount">@activeItems</span> من
+                        <span class="badge bg-secondary ms-1">@activeItems</span> إجمالي
                     </div>
                 </div>
                 <div class="card-body">
                     <div class="row" id="itemsContainer">
-                        @foreach (var item in Model.Take(6))
+                        @foreach (var item in Model.Where(x => x.Status).Take(6))
                         {
                             <div class="col-xl-4 col-md-6 mb-4 item-card-container"
+                                 data-id="@item.Id"
                                  data-status="@(item.Status ? "active" : "inactive")"
                                  data-manufacturer="@item.ManufacturerName"
                                  data-balance="@item.CurrentBalance"
@@ -418,6 +453,19 @@
                                                 <i class="fas fa-@(item.CurrentBalance <= 0 ? "times-circle" : item.CurrentBalance <= 10 ? "exclamation-triangle" : "check-circle") fa-2x text-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success")"></i>
                                             </div>
                                         </div>
+                                        <div class="mt-3 d-flex justify-content-between">
+                                            <a href="#" class="see-more-btn view-transactions" data-id="@item.Id">
+                                                <i class="fas fa-list me-1"></i>عرض المعاملات
+                                            </a>
+                                            <div class="btn-group">
+                                                <button class="btn btn-sm export-btn" data-id="@item.Id">
+                                                    <i class="fas fa-download"></i>
+                                                </button>
+                                                <button class="btn btn-sm whatsapp-btn" data-id="@item.Id">
+                                                    <i class="fab fa-whatsapp"></i>
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -432,11 +480,51 @@
     </div>
 </div>
 
+<!-- Modal for Transactions -->
+<div class="modal fade transaction-modal" id="transactionsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">المعاملات للصنف: <span id="itemName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered transaction-table">
+                        <thead>
+                            <tr>
+                                <th>التاريخ</th>
+                                <th>نوع المعاملة</th>
+                                <th>الكمية</th>
+                                <th>الرصيد بعد المعاملة</th>
+                                <th>ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionsBody">
+                            <!-- سيتم ملؤها بالبيانات عبر JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn export-btn"><i class="fas fa-download me-1"></i>تصدير</button>
+                <button type="button" class="btn whatsapp-btn"><i class="fab fa-whatsapp me-1"></i>إرسال عبر واتساب</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Get AntiForgeryToken for AJAX
+        function getAntiForgeryToken() {
+            return $('input[name="__RequestVerificationToken"]').val();
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Inventory by Manufacturer Chart
+            // Inventory Chart
             const inventoryCtx = document.getElementById('inventoryChart').getContext('2d');
             const inventoryChart = new Chart(inventoryCtx, {
                 type: 'bar',
@@ -505,54 +593,7 @@
                 }
             });
 
-            // Top Items Chart
-            const topItemsData = [
-                @foreach (var item in Model.OrderByDescending(x => x.CurrentBalance).Take(5))
-                {
-                        <text>
-                        {
-                            label: '@item.Item',
-                            value: @item.CurrentBalance
-                        },
-                        </text>
-                }
-            ];
-
-            const topItemsCtx = document.getElementById('topItemsChart').getContext('2d');
-            const topItemsChart = new Chart(topItemsCtx, {
-                type: 'bar',
-                data: {
-                    labels: topItemsData.map(item => item.label),
-                    datasets: [{
-                        label: 'قيمة المخزون',
-                        data: topItemsData.map(item => item.value),
-                        backgroundColor: 'rgba(78, 115, 223, 0.7)',
-                        borderColor: 'rgb(78, 115, 223)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    maintainAspectRatio: false,
-                    scales: {
-                        x: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + ' كجم';
-                                }
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-
-            // Filter functionality
+            // Filters
             const statusFilter = document.getElementById('statusFilter');
             const manufacturerFilter = document.getElementById('manufacturerFilter');
             const balanceFilter = document.getElementById('balanceFilter');
@@ -563,10 +604,11 @@
             const filteredCount = document.getElementById('filteredCount');
             const itemsContainer = document.getElementById('itemsContainer');
             const itemCards = document.querySelectorAll('.item-card-container');
+            const availableFilterBtn = document.getElementById('availableFilterBtn');
 
             let activeFiltersCount = 0;
+            let isAvailableFilterActive = false;
 
-            // تطبيق الفلاتر
             function applyFilters() {
                 const statusValue = statusFilter.value;
                 const manufacturerValue = manufacturerFilter.value;
@@ -588,31 +630,26 @@
                     let balanceMatch = true;
                     let searchMatch = true;
 
-                    // تطبيق فلتر الحالة
                     if (statusValue !== 'all') {
                         if (statusValue === 'active' && status !== 'active') statusMatch = false;
                         if (statusValue === 'inactive' && status !== 'inactive') statusMatch = false;
                     }
-
-                    // تطبيق فلتر الشركة المصنعة
                     if (manufacturerValue !== 'all') {
                         if (manufacturer !== manufacturerValue) manufacturerMatch = false;
                     }
-
-                    // تطبيق فلتر مستوى الرصيد
                     if (balanceValue !== 'all') {
                         if (balanceValue === 'zero' && balance > 0) balanceMatch = false;
                         if (balanceValue === 'low' && (balance <= 0 || balance > 10)) balanceMatch = false;
                         if (balanceValue === 'medium' && (balance <= 10 || balance > 50)) balanceMatch = false;
                         if (balanceValue === 'high' && balance <= 50) balanceMatch = false;
                     }
-
-                    // تطبيق البحث
                     if (searchValue && !searchText.includes(searchValue)) {
                         searchMatch = false;
                     }
+                    if (isAvailableFilterActive && (status !== 'active' || balance <= 0)) {
+                        statusMatch = false;
+                    }
 
-                    // إظهار أو إخفاء البطاقة بناء على النتائج
                     if (statusMatch && manufacturerMatch && balanceMatch && searchMatch) {
                         card.style.display = 'block';
                         visibleCount++;
@@ -621,27 +658,20 @@
                     }
                 });
 
-                // تحديث العداد
                 filteredCount.textContent = visibleCount;
-
-                // إظهار المرشحات النشطة
                 updateActiveFilters(statusValue, manufacturerValue, balanceValue, searchValue);
             }
 
-            // تحديث عرض المرشحات النشطة
             function updateActiveFilters(status, manufacturer, balance, search) {
                 filterTags.innerHTML = '';
-
                 if (status !== 'all') {
                     addFilterTag('الحالة: ' + (status === 'active' ? 'نشط' : 'غير نشط'), 'status');
                     activeFiltersCount++;
                 }
-
                 if (manufacturer !== 'all') {
                     addFilterTag('الشركة: ' + manufacturer, 'manufacturer');
                     activeFiltersCount++;
                 }
-
                 if (balance !== 'all') {
                     let balanceText = '';
                     switch(balance) {
@@ -653,71 +683,130 @@
                     addFilterTag('المستوى: ' + balanceText, 'balance');
                     activeFiltersCount++;
                 }
-
                 if (search) {
                     addFilterTag('بحث: ' + search, 'search');
                     activeFiltersCount++;
                 }
-
-                // إظهار أو إخفاء قسم المرشحات النشطة
-                if (activeFiltersCount > 0) {
-                    activeFilters.style.display = 'block';
-                } else {
-                    activeFilters.style.display = 'none';
+                if (isAvailableFilterActive) {
+                    addFilterTag('المتاح فقط', 'available');
+                    activeFiltersCount++;
                 }
+                activeFilters.style.display = activeFiltersCount > 0 ? 'block' : 'none';
             }
 
-            // إضافة وسم للمرشح النشط
             function addFilterTag(text, type) {
                 const tag = document.createElement('span');
                 tag.className = 'search-tag';
-                tag.innerHTML = `
-                    <i class="fas fa-times search-tag-remove" data-type="${type}"></i>
-                    ${text}
-                `;
+                tag.innerHTML = `<i class="fas fa-times search-tag-remove" data-type="${type}"></i>${text}`;
                 filterTags.appendChild(tag);
             }
 
-            // إضافة مستمعي الأحداث
             statusFilter.addEventListener('change', applyFilters);
             manufacturerFilter.addEventListener('change', applyFilters);
             balanceFilter.addEventListener('change', applyFilters);
             searchInput.addEventListener('input', applyFilters);
 
-            // مسح جميع المرشحات
+            availableFilterBtn.addEventListener('click', function() {
+                isAvailableFilterActive = !isAvailableFilterActive;
+                if (isAvailableFilterActive) {
+                    this.classList.add('active');
+                } else {
+                    this.classList.remove('active');
+                }
+                applyFilters();
+            });
+
             clearFilters.addEventListener('click', function() {
                 statusFilter.value = 'all';
                 manufacturerFilter.value = 'all';
                 balanceFilter.value = 'all';
                 searchInput.value = '';
+                isAvailableFilterActive = false;
+                availableFilterBtn.classList.remove('active');
                 applyFilters();
             });
 
-            // إزالة مرشح معين
             document.addEventListener('click', function(e) {
                 if (e.target.classList.contains('search-tag-remove')) {
                     const type = e.target.dataset.type;
-
                     switch(type) {
-                        case 'status':
-                            statusFilter.value = 'all';
-                            break;
-                        case 'manufacturer':
-                            manufacturerFilter.value = 'all';
-                            break;
-                        case 'balance':
-                            balanceFilter.value = 'all';
-                            break;
-                        case 'search':
-                            searchInput.value = '';
-                            break;
+                        case 'status': statusFilter.value = 'all'; break;
+                        case 'manufacturer': manufacturerFilter.value = 'all'; break;
+                        case 'balance': balanceFilter.value = 'all'; break;
+                        case 'search': searchInput.value = ''; break;
+                        case 'available': isAvailableFilterActive = false; availableFilterBtn.classList.remove('active'); break;
                     }
-
                     applyFilters();
                 }
             });
 
-            // تطبيق الفلاتر أول مرة لضمان التوافق
+            // --- Transaction Modal ---
+            const transactionsModal = new bootstrap.Modal(document.getElementById('transactionsModal'));
+            const viewTransactionsButtons = document.querySelectorAll('.view-transactions');
+
+            function fetchItemDetails(itemId) {
+                $.ajax({
+                    url: `/YarnTransactions/ItemDetails/${itemId}`,
+                    type: 'GET',
+                    headers: {
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    success: function(response) {
+                        if (!response.success) {
+                            document.getElementById('transactionsBody').innerHTML = `<tr><td colspan="5">${response.message || 'تعذر تحميل تفاصيل الصنف'}</td></tr>`;
+                            document.getElementById('itemName').textContent = '';
+                            document.getElementById('balanceInfo').textContent = '';
+                            return;
+                        }
+                        const yarn = response.yarnItem;
+                        document.getElementById('itemName').textContent = yarn.name || 'غير محدد';
+
+                        // Defensive fix: always default to 0 before .toFixed
+                        document.getElementById('balanceInfo').textContent =
+                            `الرصيد: ${(yarn.quantityBalance !== undefined && yarn.quantityBalance !== null ? Number(yarn.quantityBalance) : 0).toFixed(2)} كجم / عدد: ${(yarn.countBalance !== undefined && yarn.countBalance !== null ? Number(yarn.countBalance) : 0).toFixed(0)}`
+
+                        const transactionsBody = document.getElementById('transactionsBody');
+                        transactionsBody.innerHTML = '';
+                        if (response.transactions && response.transactions.length > 0) {
+                            response.transactions.forEach(transaction => {
+                                // Defensive: always default to 0 before .toFixed
+                                const q = (transaction.Quantity !== undefined && transaction.Quantity !== null && !isNaN(transaction.Quantity)) ? Number(transaction.Quantity) : 0;
+                                const qb = (transaction.QuantityBalance !== undefined && transaction.QuantityBalance !== null && !isNaN(transaction.QuantityBalance)) ? Number(transaction.QuantityBalance) : 0;
+                                const date = transaction.Date || '';
+                                const isInbound = transaction.IsInbound ? 'شراء' : 'بيع';
+                                const comment = transaction.Comment || '';
+                                const quantityClass = transaction.IsInbound ? 'text-success' : 'text-danger';
+
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${date}</td>
+                                    <td>${isInbound}</td>
+                                    <td class="${quantityClass}">${q.toFixed(2)} كجم</td>
+                                    <td>${qb.toFixed(2)} كجم</td>
+                                    <td>${comment}</td>
+                                `;
+                                transactionsBody.appendChild(row);
+                            });
+                        } else {
+                            transactionsBody.innerHTML = `<tr><td colspan="5">لا توجد معاملات متاحة</td></tr>`;
+                        }
+                    },
+                    error: function(xhr) {
+                        document.getElementById('transactionsBody').innerHTML = `<tr><td colspan="5">حدث خطأ أثناء تحميل التفاصيل</td></tr>`;
+                        document.getElementById('itemName').textContent = '';
+                        document.getElementById('balanceInfo').textContent = '';
+                    }
+                });
+            }
+
+            viewTransactionsButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    const itemId = this.dataset.id;
+                    fetchItemDetails(itemId);
+                    transactionsModal.show();
+                });
+            });
+
             applyFilters();
         });
     </script>

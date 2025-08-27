@@ -1,0 +1,786 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model YarnOverviewViewModel
+
+@{
+    ViewData["Title"] = "نظرة عامة على أرصدة الغزل";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="text-primary mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    نظرة عامة على أرصدة الغزل
+                </h2>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        تحديث
+                    </button>
+                    <div class="dropdown">
+                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download me-1"></i>
+                            تصدير ومشاركة
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <button class="dropdown-item" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-2 text-success"></i>
+                                    تصدير إلى Excel
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="shareWhatsApp()">
+                                    <i class="fab fa-whatsapp me-2 text-success"></i>
+                                    مشاركة عبر واتساب
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button class="dropdown-item" onclick="printOverview()">
+                                    <i class="fas fa-print me-2"></i>
+                                    طباعة
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-primary h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary">@Model.TotalItems</h4>
+                    <p class="text-muted mb-0">إجمالي الأصناف</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h4 class="text-success">@Model.AvailableItems</h4>
+                    <p class="text-muted mb-0">الأصناف المتاحة</p>
+                    <small class="text-success">@Model.PercentageAvailable.ToString("F1")%</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-info h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-weight fa-2x text-info mb-2"></i>
+                    <h4 class="text-info">@Model.TotalQuantityBalance.ToString("N2")</h4>
+                    <p class="text-muted mb-0">إجمالي الكمية</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-sort-numeric-up fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning">@Model.TotalCountBalance</h4>
+                    <p class="text-muted mb-0">إجمالي العدد</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="availableOnlyFilter"
+                                       @(Model.AvailableOnly ? "checked" : "") onchange="toggleAvailableFilter()">
+                                <label class="form-check-label" for="availableOnlyFilter">
+                                    <i class="fas fa-filter me-1"></i>
+                                    المتاح فقط
+                                </label>
+                            </div>
+
+                            <div class="input-group" style="width: 250px;">
+                                <input type="text" class="form-control" id="searchInput"
+                                       placeholder="البحث في الأصناف..." onkeyup="filterItems()">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-muted">
+                                آخر تحديث: @Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="overviewTable">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>صنف الغزل</th>
+                                    <th>الغزل الأصلي</th>
+                                    <th>الشركة المصنعة</th>
+                                    <th>رصيد الكمية</th>
+                                    <th>رصيد العدد</th>
+                                    <th>الحالة</th>
+                                    <th>إجمالي المعاملات</th>
+                                    <th>آخر معاملة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OverviewItems)
+                                {
+                                    <tr class="yarn-item-row" data-yarn-id="@item.YarnItemId"
+                                        data-available="@item.IsAvailable.ToString().ToLower()"
+                                        data-search-text="@($"{item.YarnItemName} {item.OriginYarnName} {item.ManufacturerName}".ToLower())">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2">
+                                                    @if (item.IsAvailable)
+                                                    {
+                                                        <div class="bg-success rounded-circle" style="width: 10px; height: 10px;"></div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-danger rounded-circle" style="width: 10px; height: 10px;"></div>
+                                                    }
+                                                </div>
+                                                <strong>@item.YarnItemName</strong>
+                                            </div>
+                                        </td>
+                                        <td>@(item.OriginYarnName ?? "غير محدد")</td>
+                                        <td>@(item.ManufacturerName ?? "غير محدد")</td>
+                                        <td>
+                                            <span class="@(item.QuantityBalance > 0 ? "text-success" : "text-danger") fw-bold">
+                                                @item.QuantityBalance.ToString("N3")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="@(item.CountBalance > 0 ? "text-success" : "text-danger") fw-bold">
+                                                @item.CountBalance
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(item.IsAvailable ? "bg-success" : "bg-danger")">
+                                                @item.AvailabilityStatus
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex flex-column">
+                                                <span class="fw-bold">@item.TotalTransactions</span>
+                                                @if (item.TotalTransactions > 0)
+                                                {
+                                                    <small class="text-muted">
+                                                        وارد: @item.InboundTransactions | صادر: @item.OutboundTransactions
+                                                    </small>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (item.LastTransactionDate.HasValue)
+                                            {
+                                                <div class="d-flex flex-column">
+                                                    <span>@item.LastTransactionText</span>
+                                                    @if (item.DaysSinceLastTransaction >= 0)
+                                                    {
+                                                        <small class="text-muted">
+                                                            منذ @item.DaysSinceLastTransaction يوم
+                                                        </small>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">لا توجد معاملات</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button class="btn btn-outline-info"
+                                                        onclick="viewItemDetails(@item.YarnItemId, '@item.YarnItemName')"
+                                                        title="عرض التفاصيل">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <a href="@Url.Action("Search", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
+                                                   class="btn btn-outline-primary" title="البحث في المعاملات">
+                                                    <i class="fas fa-search"></i>
+                                                </a>
+                                                @if (item.IsAvailable)
+                                                {
+                                                    <a href="@Url.Action("Outbound", "YarnTransactions", new { YarnItemId = item.YarnItemId, IsInbound = false })"
+                                                       class="btn btn-outline-warning" title="إنشاء معاملة صادر">
+                                                        <i class="fas fa-arrow-up"></i>
+                                                    </a>
+                                                }
+                                                <a href="@Url.Action("Inbound", "YarnTransactions", new { YarnItemId = item.YarnItemId, IsInbound = true })"
+                                                   class="btn btn-outline-success" title="إنشاء معاملة وارد">
+                                                    <i class="fas fa-arrow-down"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.OverviewItems.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h5>لا توجد أصناف غزل</h5>
+                    <p>لم يتم العثور على أي أصناف غزل نشطة في النظام.</p>
+                    <a href="@Url.Action("Create", "YarnItems")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        إضافة صنف جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Item Details Modal -->
+<div class="modal fade" id="itemDetailsModal" tabindex="-1" aria-labelledby="itemDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="itemDetailsModalLabel">
+                    <i class="fas fa-info-circle me-2"></i>
+                    تفاصيل صنف الغزل
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <button type="button" class="btn btn-primary" id="seeMoreBtn" onclick="seeMoreTransactions()">
+                    <i class="fas fa-eye me-1"></i>
+                    عرض المزيد
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentYarnItemId = 0;
+        let currentPage = 1;
+        const pageSize = 10;
+
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            // Auto-refresh every 5 minutes
+            setInterval(function() {
+                refreshData();
+            }, 300000);
+        });
+
+        // Filter functions
+        function toggleAvailableFilter() {
+            const availableOnly = $('#availableOnlyFilter').is(':checked');
+            window.location.href = '@Url.Action("Overview", "YarnTransactions")?availableOnly=' + availableOnly;
+        }
+
+        function filterItems() {
+            const searchTerm = $('#searchInput').val().toLowerCase();
+            const availableOnly = $('#availableOnlyFilter').is(':checked');
+
+            $('.yarn-item-row').each(function() {
+                const row = $(this);
+                const searchText = row.data('search-text');
+                const isAvailable = row.data('available');
+
+                let showRow = true;
+
+                // Apply search filter
+                if (searchTerm && !searchText.includes(searchTerm)) {
+                    showRow = false;
+                }
+
+                // Apply availability filter
+                if (availableOnly && !isAvailable) {
+                    showRow = false;
+                }
+
+                if (showRow) {
+                    row.show();
+                } else {
+                    row.hide();
+                }
+            });
+
+            // Update visible count
+            updateVisibleCount();
+        }
+
+        function updateVisibleCount() {
+            const visibleRows = $('.yarn-item-row:visible').length;
+            const totalRows = $('.yarn-item-row').length;
+
+            // You can add a count display element if needed
+            console.log(`Showing ${visibleRows} of ${totalRows} items`);
+        }
+
+        // Data operations
+        function refreshData() {
+            showLoadingOverlay();
+            const availableOnly = $('#availableOnlyFilter').is(':checked');
+            window.location.href = '@Url.Action("Overview", "YarnTransactions")?availableOnly=' + availableOnly;
+        }
+
+        function viewItemDetails(yarnItemId, yarnItemName) {
+            currentYarnItemId = yarnItemId;
+            currentPage = 1;
+
+            $('#itemDetailsModalLabel').html(`<i class="fas fa-info-circle me-2"></i>تفاصيل صنف الغزل: ${yarnItemName}`);
+            $('#itemDetailsModal').modal('show');
+
+            loadItemDetails();
+        }
+
+        function loadItemDetails() {
+            $('#modalBody').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            `);
+
+            $.ajax({
+                url: '@Url.Action("ItemDetails", "YarnTransactions")',
+                type: 'GET',
+                data: {
+                    id: currentYarnItemId,
+                    page: currentPage,
+                    pageSize: pageSize
+                },
+                success: function(response) {
+                    if (response.success) {
+                        renderItemDetails(response);
+                    } else {
+                        showError(response.message || 'حدث خطأ أثناء تحميل البيانات');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading item details:', error);
+                    showError('حدث خطأ أثناء تحميل البيانات');
+                }
+            });
+        }
+
+        function renderItemDetails(data) {
+            const yarnItem = data.yarnItem;
+            const transactions = data.transactions;
+            const pagination = data.pagination;
+
+            let html = `
+                <!-- Item Summary -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-info">
+                            <div class="card-header bg-info text-white">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-info me-2"></i>
+                                    معلومات الصنف
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>اسم الصنف:</strong> ${yarnItem.name}</p>
+                                        <p><strong>الغزل الأصلي:</strong> ${yarnItem.originYarn || 'غير محدد'}</p>
+                                        <p><strong>الشركة المصنعة:</strong> ${yarnItem.manufacturer || 'غير محدد'}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row text-center">
+                                            <div class="col-6">
+                                                <div class="border-end">
+                                                    <h5 class="text-${yarnItem.quantityBalance >= 0 ? 'success' : 'danger'}">${yarnItem.quantityBalance.toFixed(3)}</h5>
+                                                    <small class="text-muted">رصيد الكمية</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <h5 class="text-${yarnItem.countBalance >= 0 ? 'success' : 'danger'}">${yarnItem.countBalance}</h5>
+                                                <small class="text-muted">رصيد العدد</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row mt-3 text-center">
+                                    <div class="col-md-3">
+                                        <h6 class="text-success">${yarnItem.totalInbound.toFixed(3)}</h6>
+                                        <small class="text-muted">إجمالي الوارد</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="text-danger">${yarnItem.totalOutbound.toFixed(3)}</h6>
+                                        <small class="text-muted">إجمالي الصادر</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <h6 class="text-info">${yarnItem.totalTransactions}</h6>
+                                        <small class="text-muted">إجمالي المعاملات</small>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <span class="badge ${yarnItem.isAvailable ? 'bg-success' : 'bg-danger'} fs-6">
+                                            ${yarnItem.isAvailable ? 'متاح' : 'غير متاح'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            if (transactions.length > 0) {
+                html += `
+                    <!-- Recent Transactions -->
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="mb-3">
+                                <i class="fas fa-history me-2"></i>
+                                المعاملات الأخيرة
+                                <small class="text-muted">(الصفحة ${pagination.currentPage} من ${pagination.totalPages})</small>
+                            </h6>
+
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>رقم المعاملة</th>
+                                            <th>التاريخ</th>
+                                            <th>النوع</th>
+                                            <th>الكمية</th>
+                                            <th>العدد</th>
+                                            <th>التاجر</th>
+                                            <th>رصيد الكمية</th>
+                                            <th>ملاحظات</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                `;
+
+                transactions.forEach(function(transaction) {
+                    html += `
+                        <tr>
+                            <td>
+                                <span class="fw-bold">${transaction.TransactionId}</span>
+                                ${transaction.InternalId ? `<br><small class="text-muted">داخلي: ${transaction.InternalId}</small>` : ''}
+                            </td>
+                            <td>${new Date(transaction.Date).toLocaleDateString('ar-EG')}</td>
+                            <td>
+                                <span class="badge ${transaction.IsInbound ? 'bg-success' : 'bg-danger'}">
+                                    ${transaction.IsInbound ? 'وارد' : 'صادر'}
+                                </span>
+                            </td>
+                            <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'}">${transaction.Quantity.toFixed(3)}</td>
+                            <td>${transaction.Count}</td>
+                            <td>
+                                <div>
+                                    <small class="text-muted">${transaction.StakeholderTypeName}</small><br>
+                                    ${transaction.StakeholderName}
+                                </div>
+                            </td>
+                            <td class="fw-bold">${transaction.QuantityBalance.toFixed(3)}</td>
+                            <td>${transaction.Comment || ''}</td>
+                        </tr>
+                    `;
+                });
+
+                html += `
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Add pagination if needed
+                if (pagination.totalPages > 1) {
+                    html += `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <nav aria-label="تنقل المعاملات">
+                                    <ul class="pagination pagination-sm justify-content-center">
+                    `;
+
+                    if (pagination.hasPreviousPage) {
+                        html += `<li class="page-item">
+                            <a class="page-link" href="#" onclick="loadPage(${pagination.currentPage - 1})">السابق</a>
+                        </li>`;
+                    }
+
+                    for (let i = Math.max(1, pagination.currentPage - 2);
+                         i <= Math.min(pagination.totalPages, pagination.currentPage + 2);
+                         i++) {
+                        html += `<li class="page-item ${i === pagination.currentPage ? 'active' : ''}">
+                            <a class="page-link" href="#" onclick="loadPage(${i})">${i}</a>
+                        </li>`;
+                    }
+
+                    if (pagination.hasNextPage) {
+                        html += `<li class="page-item">
+                            <a class="page-link" href="#" onclick="loadPage(${pagination.currentPage + 1})">التالي</a>
+                        </li>`;
+                    }
+
+                    html += `
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                html += `
+                    <div class="alert alert-info text-center">
+                        <i class="fas fa-info-circle fa-2x mb-3"></i>
+                        <h6>لا توجد معاملات</h6>
+                        <p>لم يتم تسجيل أي معاملات لهذا الصنف حتى الآن.</p>
+                    </div>
+                `;
+            }
+
+            $('#modalBody').html(html);
+
+            // Update "See More" button
+            if (pagination.totalTransactions > 10) {
+                $('#seeMoreBtn').show();
+            } else {
+                $('#seeMoreBtn').hide();
+            }
+        }
+
+        function loadPage(page) {
+            currentPage = page;
+            loadItemDetails();
+        }
+
+        function seeMoreTransactions() {
+            $('#itemDetailsModal').modal('hide');
+            window.location.href = `@Url.Action("Search", "YarnTransactions")?YarnItemId=${currentYarnItemId}`;
+        }
+
+        // Export functions
+        function exportToExcel() {
+            showLoadingOverlay();
+
+            const form = $('<form>', {
+                method: 'POST',
+                action: '@Url.Action("ExportOverview", "YarnTransactions")'
+            });
+
+            // Add anti-forgery token
+            form.append($('@Html.AntiForgeryToken()'));
+
+            // Add available only filter
+            form.append($('<input>', {
+                type: 'hidden',
+                name: 'availableOnly',
+                value: $('#availableOnlyFilter').is(':checked')
+            }));
+
+            form.appendTo('body').submit().remove();
+
+            setTimeout(hideLoadingOverlay, 2000);
+        }
+
+        function shareWhatsApp() {
+            showLoadingOverlay();
+
+            $.ajax({
+                url: '@Url.Action("ShareWhatsApp", "YarnTransactions")',
+                type: 'POST',
+                data: {
+                    availableOnly: $('#availableOnlyFilter').is(':checked'),
+                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                },
+                success: function(response) {
+                    hideLoadingOverlay();
+                    if (response.success) {
+                        const message = encodeURIComponent(response.message);
+                        const whatsappUrl = `https://wa.me/?text=${message}`;
+                        window.open(whatsappUrl, '_blank');
+                    } else {
+                        showError(response.message || 'حدث خطأ أثناء إنشاء رسالة واتساب');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    hideLoadingOverlay();
+                    console.error('Error sharing WhatsApp:', error);
+                    showError('حدث خطأ أثناء إنشاء رسالة واتساب');
+                }
+            });
+        }
+
+        function printOverview() {
+            window.print();
+        }
+
+        // Utility functions
+        function showLoadingOverlay() {
+            $('#loadingOverlay').show();
+        }
+
+        function hideLoadingOverlay() {
+            $('#loadingOverlay').hide();
+        }
+
+        function showError(message) {
+            $('#modalBody').html(`
+                <div class="alert alert-danger text-center">
+                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                    <h6>حدث خطأ</h6>
+                    <p>${message}</p>
+                </div>
+            `);
+        }
+
+        // Keyboard shortcuts
+        $(document).keydown(function(e) {
+            // Ctrl+R for refresh
+            if (e.ctrlKey && e.keyCode === 82) {
+                e.preventDefault();
+                refreshData();
+            }
+
+            // Escape to close modal
+            if (e.keyCode === 27) {
+                $('#itemDetailsModal').modal('hide');
+            }
+        });
+    </script>
+    }
+
+    <style>
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .sticky-top {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .yarn-item-row {
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+            .yarn-item-row:hover {
+                background-color: rgba(0, 123, 255, 0.1);
+            }
+
+        .border-end {
+            border-right: 1px solid #dee2e6 !important;
+        }
+
+        @@media (max-width: 768px) {
+            .border-end
+
+        {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
+
+        .btn-group-sm > .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.8rem;
+        }
+
+        }
+
+        @@media print {
+            .btn, .dropdown, .form-check, .input-group, .no-print
+
+        {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .table {
+            font-size: 11px;
+        }
+
+        .modal {
+            display: none !important;
+        }
+
+        }
+
+        .card:hover {
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: box-shadow 0.3s;
+        }
+
+        .pagination-sm .page-link {
+            font-size: 0.875rem;
+        }
+    </style>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">

@@ -1,0 +1,127 @@
+﻿@using ELRakhawy.EL.Models
+@model FullWarpBeam
+@{
+    var originYarns = ViewBag.OriginYarns as List<YarnItem>;
+    ViewData["Title"] = "إضافة سدى جديد";
+}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2 px-3">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>الرئيسية
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>الجداول العامة
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "FullWarpBeam")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-cogs text-success me-2"></i>إدارة السدى
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-plus-circle text-warning me-2"></i>
+                    <span class="fw-bold text-dark">إضافة سدى جديد</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h4 class="mb-0 fw-bold text-primary">
+            <i class="fas fa-plus-circle me-2"></i>إضافة سدى جديد
+        </h4>
+    </div>
+    <div class="card-body">
+        <form asp-action="Create" method="post" autocomplete="off">
+            <div class="mb-3">
+                <label asp-for="Item" class="form-label fw-bold"></label>
+                <input asp-for="Item" class="form-control" placeholder="اسم السدى" maxlength="200" />
+                <span asp-validation-for="Item" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="OriginYarnId" class="form-label fw-bold"></label>
+                <select asp-for="OriginYarnId" class="form-select">
+                    <option value="">اختر الغزل المكون (اختياري)</option>
+                    @foreach (var yarn in originYarns ?? new List<YarnItem>())
+                    {
+                        <option value="@yarn.Id">@yarn.Item</option>
+                    }
+                </select>
+                <span asp-validation-for="OriginYarnId" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Status" class="form-label fw-bold">الحالة</label>
+                <div class="form-check form-switch">
+                    <input asp-for="Status" class="form-check-input" type="checkbox" checked />
+                    <label class="form-check-label" for="Status">
+                        <span class="badge bg-success px-2">نشط</span>
+                    </label>
+                </div>
+                <span asp-validation-for="Status" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Comment" class="form-label fw-bold">بيان (اختياري)</label>
+                <textarea asp-for="Comment" class="form-control" rows="3" maxlength="1000" placeholder="اكتب أي ملاحظات أو بيان هنا..."></textarea>
+                <span asp-validation-for="Comment" class="text-danger small"></span>
+            </div>
+
+            <div class="d-flex gap-2 mt-4">
+                <button type="submit" class="btn btn-success px-4">
+                    <i class="fas fa-save me-1"></i>حفظ السدى
+                </button>
+                <a asp-action="Index" class="btn btn-secondary px-4">
+                    <i class="fas fa-arrow-left me-1"></i>عودة للقائمة
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Accessibility: focus first input
+        $(function(){ $('input:visible:first').focus(); });
+    </script>
+    <style>
+        .card {
+            border-radius: 12px;
+        }
+
+        .form-label {
+            font-weight: 600;
+        }
+
+        .form-check-label .badge {
+            font-size: 0.95em;
+        }
+
+        .form-control, .form-select {
+            font-size: 1.05em;
+        }
+
+        .btn {
+            font-size: 1.07em;
+        }
+        @@media (max-width: 991.98px) {
+            .card-body
+
+        {
+            padding: 1rem;
+        }
+
+        }
+    </style>
+}

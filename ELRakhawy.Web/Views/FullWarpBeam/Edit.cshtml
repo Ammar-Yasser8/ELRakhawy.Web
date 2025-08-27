@@ -1,0 +1,133 @@
+﻿@using ELRakhawy.EL.Models
+@model FullWarpBeam
+@{
+    ViewData["Title"] = "تعديل السدى";
+    var yarnItems = ViewBag.OriginYarns as List<YarnItem> ?? new List<YarnItem>();
+}
+
+<!-- Breadcrumb Navigation -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2 px-3">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>الرئيسية
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("PublicTables", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-table text-info me-2"></i>الجداول العامة
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "FullWarpBeam")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-cogs text-success me-2"></i>إدارة السدى
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-edit text-warning me-2"></i>
+                    <span class="fw-bold text-dark">تعديل السدى</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h4 class="mb-0 fw-bold text-primary"><i class="fas fa-edit me-2"></i>تعديل السدى</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post" autocomplete="off">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="Id" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-2"></div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Item" class="form-label fw-bold">اسم السدى *</label>
+                                    <input asp-for="Item" class="form-control" maxlength="200" placeholder="اسم السدى" />
+                                    <span asp-validation-for="Item" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="OriginYarnId" class="form-label fw-bold">الغزل المكون</label>
+                                    <select asp-for="OriginYarnId" class="form-select" id="OriginYarnId">
+                                        <option value="">اختر الغزل المكون (اختياري)</option>
+                                        @foreach (var yarn in yarnItems)
+                                        {
+                                            <option value="@yarn.Id" @@(yarn.Id == Model.OriginYarnId ? "selected" : "")>
+                                                @yarn.Item
+                                            </option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="OriginYarnId" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Status" class="form-label fw-bold">الحالة</label>
+                                    <div class="form-check form-switch">
+                                        <input asp-for="Status" class="form-check-input" type="checkbox" id="statusSwitch">
+                                        <label class="form-check-label fw-semibold" id="statusLabel" for="statusSwitch">
+                                            @(Model.Status ? "نشط" : "غير نشط")
+                                        </label>
+                                    </div>
+                                    <span asp-validation-for="Status" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Comment" class="form-label fw-bold">بيان (اختياري)</label>
+                            <textarea asp-for="Comment" class="form-control" rows="3" maxlength="1000" placeholder="اكتب أي ملاحظات أو بيان هنا...">@Model.Comment</textarea>
+                            <span asp-validation-for="Comment" class="text-danger small"></span>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="fas fa-save me-1"></i>تحديث السدى
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary px-4">
+                                <i class="fas fa-arrow-left me-1"></i>عودة للقائمة
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Update the status label when the switch is toggled
+        document.addEventListener('DOMContentLoaded', function () {
+            var statusSwitch = document.getElementById('statusSwitch');
+            var statusLabel = document.getElementById('statusLabel');
+            statusSwitch.addEventListener('change', function () {
+                statusLabel.textContent = this.checked ? 'نشط' : 'غير نشط';
+            });
+        });
+    </script>
+    <style>
+        .card { border-radius: 12px; }
+        .form-label { font-weight: 600; }
+        .form-check-label { font-size: 1em; }
+        .form-control, .form-select { font-size: 1.05em; }
+        .btn { font-size: 1.07em; }
+        @@media (max-width: 991.98px) {
+            .card-body { padding: 1rem; }
+        }
+    </style>
+}

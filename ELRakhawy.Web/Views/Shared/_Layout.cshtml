@@ -703,7 +703,7 @@
                                     <a class="nav-link" href="@Url.Action("Index", "YarnItems")">
                                         <i class="fas fa-cog me-2"></i>
                                         <span>إدارة الأصناف</span>
-                                    </a>
+                                    </a>s
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="@Url.Action("Inbound", "YarnTransactions")">
@@ -723,205 +723,20 @@
                                         <span>البحث في المعاملات</span>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="@Url.Action("Overview", "YarnTransactions")">
+                                        <i class="fas fa-search me-2"></i>
+                                        <span>  المعاملات</span>
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </li>
 
-                    <!-- CSS Styles (add to your CSS file or in a <style> tag) -->
-                    <style>
-                        .arrow {
-                            transition: transform 0.3s ease;
-                        }
+                   
+                        
+                 
 
-                        .nav-link[aria-expanded="true"] .arrow {
-                            transform: rotate(180deg);
-                        }
-
-                        .main-header {
-                            cursor: pointer;
-                        }
-
-                        .sub-menu {
-                            background-color: rgba(0,0,0,0.05);
-                            border-radius: 0.375rem;
-                            margin-top: 0.5rem;
-                            padding: 0.5rem 0;
-                        }
-                    </style>
-
-                    <!-- JavaScript (add to your layout file or at the bottom of your page) -->
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function() {
-                            console.log('Navigation script loaded'); // Debug log
-
-                            // Handle main header clicks
-                            const mainHeaders = document.querySelectorAll('.main-header');
-                            console.log('Found main headers:', mainHeaders.length); // Debug log
-
-                            mainHeaders.forEach(header => {
-                                header.addEventListener('click', function(e) {
-                                    console.log('Header clicked'); // Debug log
-                                    e.preventDefault(); // Prevent default link behavior
-                                    e.stopPropagation(); // Stop event bubbling
-
-                                    // Get the navigation URL
-                                    const navigateUrl = this.getAttribute('data-navigate-url');
-                                    console.log('Navigate URL:', navigateUrl); // Debug log
-
-                                    // Get the target submenu element
-                                    const targetId = this.getAttribute('href').substring(1);
-                                    const targetElement = document.getElementById(targetId);
-
-                                    if (targetElement) {
-                                        // Check if submenu is currently closed, if so, open it
-                                        if (!targetElement.classList.contains('show')) {
-                                            // Create or get existing Bootstrap collapse instance
-                                            let bsCollapse = bootstrap.Collapse.getInstance(targetElement);
-                                            if (!bsCollapse) {
-                                                bsCollapse = new bootstrap.Collapse(targetElement, {
-                                                    toggle: false
-                                                });
-                                            }
-
-                                            // Show the collapse (don't toggle, just show)
-                                            bsCollapse.show();
-
-                                            // Update aria-expanded attribute
-                                            this.setAttribute('aria-expanded', 'true');
-                                        }
-                                    }
-
-                                    // Navigate to dashboard immediately (no delay needed since we're not waiting for collapse)
-                                    if (navigateUrl) {
-                                        console.log('Navigating to:', navigateUrl); // Debug log
-                                        window.location.href = navigateUrl;
-                                    } else {
-                                        console.log('No navigation URL found'); // Debug log
-                                    }
-                                });
-                            });
-
-                            // Handle collapse events for arrow animation
-                            const collapseElements = document.querySelectorAll('.collapse');
-                            collapseElements.forEach(collapse => {
-                                collapse.addEventListener('show.bs.collapse', function() {
-                                    const trigger = document.querySelector(`[href="#${this.id}"]`);
-                                    if (trigger) {
-                                        trigger.setAttribute('aria-expanded', 'true');
-                                    }
-                                });
-
-                                collapse.addEventListener('hide.bs.collapse', function() {
-                                    const trigger = document.querySelector(`[href="#${this.id}"]`);
-                                    if (trigger) {
-                                        trigger.setAttribute('aria-expanded', 'false');
-                                    }
-                                });
-                            });
-
-                            // Optional: Keep submenu open when navigating back from dashboard
-                            // Check if we're on a page within the Yarn section and keep the menu expanded
-                            const currentPath = window.location.pathname.toLowerCase();
-                            if (currentPath.includes('/yarnitems/') || currentPath.includes('/yarntransactions/')) {
-                                const yarnMenu = document.getElementById('YarnFabricMenu');
-                                const yarnTrigger = document.querySelector('[href="#YarnFabricMenu"]');
-
-                                if (yarnMenu && yarnTrigger) {
-                                    // Open the submenu automatically
-                                    let bsCollapse = bootstrap.Collapse.getInstance(yarnMenu);
-                                    if (!bsCollapse) {
-                                        bsCollapse = new bootstrap.Collapse(yarnMenu, {
-                                            toggle: false
-                                        });
-                                    }
-
-                                    setTimeout(() => {
-                                        bsCollapse.show();
-                                        yarnTrigger.setAttribute('aria-expanded', 'true');
-                                    }, 100);
-                                }
-                            }
-                        });
-                    </script>
-
-                    
-
-                        <!-- Place the script here, before closing </body> -->
-                        <script>
-                            document.addEventListener('DOMContentLoaded', function() {
-                                // Handle main header clicks
-                                const mainHeaders = document.querySelectorAll('.main-header');
-                                mainHeaders.forEach(header => {
-                                    header.addEventListener('click', function(e) {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-
-                                        // Get the navigation URL
-                                        const navigateUrl = this.getAttribute('data-navigate-url');
-
-                                        // Get the target submenu element
-                                        const targetId = this.getAttribute('href').substring(1);
-                                        const targetElement = document.getElementById(targetId);
-
-                                        if (targetElement) {
-                                            // Check if submenu is currently closed, if so, open it
-                                            if (!targetElement.classList.contains('show')) {
-                                                let bsCollapse = bootstrap.Collapse.getInstance(targetElement);
-                                                if (!bsCollapse) {
-                                                    bsCollapse = new bootstrap.Collapse(targetElement, {
-                                                        toggle: false
-                                                    });
-                                                }
-                                                bsCollapse.show();
-                                                this.setAttribute('aria-expanded', 'true');
-                                            }
-                                        }
-
-                                        // Only redirect if not already on the dashboard page
-                                        if (navigateUrl && window.location.pathname !== new URL(navigateUrl, window.location.origin).pathname) {
-                                            window.location.href = navigateUrl;
-                                        }
-                                    });
-                                });
-
-                                // Handle collapse events for arrow animation
-                                const collapseElements = document.querySelectorAll('.collapse');
-                                collapseElements.forEach(collapse => {
-                                    collapse.addEventListener('show.bs.collapse', function() {
-                                        const trigger = document.querySelector(`[href="#${this.id}"]`);
-                                        if (trigger) {
-                                            trigger.setAttribute('aria-expanded', 'true');
-                                        }
-                                    });
-
-                                    collapse.addEventListener('hide.bs.collapse', function() {
-                                        const trigger = document.querySelector(`[href="#${this.id}"]`);
-                                        if (trigger) {
-                                            trigger.setAttribute('aria-expanded', 'false');
-                                        }
-                                    });
-                                });
-
-                                // Keep submenu open when navigating back from dashboard
-                                const currentPath = window.location.pathname.toLowerCase();
-                                if (currentPath.includes('/yarnitems/') || currentPath.includes('/yarntransactions/')) {
-                                    const yarnMenu = document.getElementById('YarnFabricMenu');
-                                    const yarnTrigger = document.querySelector('[href="#YarnFabricMenu"]');
-                                    if (yarnMenu && yarnTrigger) {
-                                        let bsCollapse = bootstrap.Collapse.getInstance(yarnMenu);
-                                        if (!bsCollapse) {
-                                            bsCollapse = new bootstrap.Collapse(yarnMenu, {
-                                                toggle: false
-                                            });
-                                        }
-                                        setTimeout(() => {
-                                            bsCollapse.show();
-                                            yarnTrigger.setAttribute('aria-expanded', 'true');
-                                        }, 100);
-                                    }
-                                }
-                            });
-                        </script>
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="collapse" href="#finishedFabricMenu" role="button" aria-expanded="false">
                             <i class="fas fa-cut"></i>
@@ -981,6 +796,106 @@
             </nav>
 
         </aside>
+        <!-- CSS Styles (add to your CSS file or in a <style> tag) -->
+        <style>
+            .arrow {
+                transition: transform 0.3s ease;
+            }
+
+            .nav-link[aria-expanded="true"] .arrow {
+                transform: rotate(180deg);
+            }
+
+            .main-header {
+                cursor: pointer;
+            }
+
+            .sub-menu {
+                background-color: rgba(0,0,0,0.05);
+                border-radius: 0.375rem;
+                margin-top: 0.5rem;
+                padding: 0.5rem 0;
+            }
+        </style>
+
+        <!-- JavaScript (add to your layout file or at the bottom of your page) -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                      // Handle main header clicks
+                      const mainHeaders = document.querySelectorAll('.main-header');
+                      mainHeaders.forEach(header => {
+                          header.addEventListener('click', function(e) {
+                              e.preventDefault();
+                              e.stopPropagation();
+
+                              // Get the navigation URL
+                              const navigateUrl = this.getAttribute('data-navigate-url');
+
+                              // Get the target submenu element
+                              const targetId = this.getAttribute('href').substring(1);
+                              const targetElement = document.getElementById(targetId);
+
+                              if (targetElement) {
+                                  // Check if submenu is currently closed, if so, open it
+                                  if (!targetElement.classList.contains('show')) {
+                                      let bsCollapse = bootstrap.Collapse.getInstance(targetElement);
+                                      if (!bsCollapse) {
+                                          bsCollapse = new bootstrap.Collapse(targetElement, {
+                                              toggle: false
+                                          });
+                                      }
+                                      bsCollapse.show();
+                                      this.setAttribute('aria-expanded', 'true');
+                                  }
+                              }
+
+                              // Only redirect if not already on the dashboard page
+                              if (navigateUrl && window.location.pathname !== new URL(navigateUrl, window.location.origin).pathname) {
+                                  window.location.href = navigateUrl;
+                              }
+                          });
+                      });
+
+                      // Handle collapse events for arrow animation
+                      const collapseElements = document.querySelectorAll('.collapse');
+                      collapseElements.forEach(collapse => {
+                          collapse.addEventListener('show.bs.collapse', function() {
+                              const trigger = document.querySelector(`[href="#${this.id}"]`);
+                              if (trigger) {
+                                  trigger.setAttribute('aria-expanded', 'true');
+                              }
+                          });
+
+                          collapse.addEventListener('hide.bs.collapse', function() {
+                              const trigger = document.querySelector(`[href="#${this.id}"]`);
+                              if (trigger) {
+                                  trigger.setAttribute('aria-expanded', 'false');
+                              }
+                          });
+                      });
+
+                      // Keep submenu open when navigating back from dashboard
+                      const currentPath = window.location.pathname.toLowerCase();
+                      if (currentPath.includes('/yarnitems/') || currentPath.includes('/yarntransactions/')) {
+                          const yarnMenu = document.getElementById('YarnFabricMenu');
+                          const yarnTrigger = document.querySelector('[href="#YarnFabricMenu"]');
+                          if (yarnMenu && yarnTrigger) {
+                              let bsCollapse = bootstrap.Collapse.getInstance(yarnMenu);
+                              if (!bsCollapse) {
+                                  bsCollapse = new bootstrap.Collapse(yarnMenu, {
+                                      toggle: false
+                                  });
+                              }
+                              setTimeout(() => {
+                                  bsCollapse.show();
+                                  yarnTrigger.setAttribute('aria-expanded', 'true');
+                              }, 100);
+                          }
+                      }
+                  });
+        </script>
+
+
 
         <!-- Content Wrapper -->
         <div class="content">
