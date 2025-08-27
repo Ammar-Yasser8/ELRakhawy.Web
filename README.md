@@ -118,14 +118,16 @@ Then open:
 👉 https://localhost:5001 
 
 
-## 🛡️ Security Notes
+### 🛡️ Security Notes
 
-All API endpoints are secured with JWT + role-based access.
+#All API endpoints are secured with JWT + role-based access.
 
-Database uses restricted access and selective encryption.
+#Database uses restricted access and selective encryption.
 
-Transactions are versioned for audit trails.
-## License
+#Transactions are versioned for audit trails.
+
+
+### License
 
 [Ammar Yasser & VecorEG](https://www.linkedin.com/in/ammar-yasser-a01772250/)
 
