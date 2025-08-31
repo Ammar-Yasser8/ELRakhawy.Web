@@ -11,7 +11,7 @@ The application provides full support for **stocks management**, **sales & procu
 - **Frontend:** Razor Views (Server-side rendered, responsive, Arabic-first design)
 - **Database:** Microsoft SQL Server (Cloud-hosted with backups & selective encryption)
 - **Authentication:** Identity + Client-side certificate (2FA support)
-- **Deployment:** Azure / AWS
+- **Deployment:** AWS
 - **Features:** Arabic & Indic number formatting, export to Excel/PDF/Print, WhatsApp integration
 
 ---
