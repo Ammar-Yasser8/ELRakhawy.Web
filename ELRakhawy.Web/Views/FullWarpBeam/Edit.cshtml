@@ -42,7 +42,7 @@
                     <h4 class="mb-0 fw-bold text-primary"><i class="fas fa-edit me-2"></i>تعديل السدى</h4>
                 </div>
                 <div class="card-body">
-                    <form asp-action="Edit" method="post" autocomplete="off">
+                    <form asp-action="Edit" id="editForm" method="post" autocomplete="off">
                         @Html.AntiForgeryToken()
                         <input type="hidden" asp-for="Id" />
 
@@ -102,6 +102,228 @@
                             </a>
                         </div>
                     </form>
+                    <script>
+                        // دالة لتحويل الأرقام للغة العربية
+                        function toArabicDigits(str) {
+                            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                        }
+
+                        // دالة لتحويل الأرقام للاتينية
+                        function toLatinDigits(str) {
+                            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                        }
+
+                        // دالة لاكتشاف إذا كان الحرف عربي
+                        function isArabicChar(c) {
+                            return /[\u0600-\u06FF]/.test(c);
+                        }
+
+                        // دالة لاكتشاف إذا كان الحرف إنجليزي
+                        function isEnglishChar(c) {
+                            return /[a-zA-Z]/.test(c);
+                        }
+
+                        // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                        function getLastLetter(str) {
+                            for (let i = str.length - 1; i >= 0; i--) {
+                                let char = str[i];
+                                if (isArabicChar(char)) {
+                                    return 'arabic';
+                                } else if (isEnglishChar(char)) {
+                                    return 'english';
+                                }
+                            }
+                            return 'arabic'; // default is Arabic
+                        }
+
+                        // تطبيق التحويل على كل الحقول النصية
+                        document.addEventListener("input", function (e) {
+                            if (e.target.closest("#editForm")) {
+                                let input = e.target;
+                                let val = input.value;
+
+                                // تطبيق التحويل على حقول النص والتعليقات فقط
+                                if (input.type === 'text' || input.tagName === 'TEXTAREA') {
+                                    if (val.length > 0) {
+                                        let lastLetterLang = getLastLetter(val);
+
+                                        let newVal;
+                                        if (lastLetterLang === 'arabic') {
+                                            // حول جميع الأرقام للعربية
+                                            newVal = toArabicDigits(val);
+                                        } else {
+                                            // حول جميع الأرقام للاتينية
+                                            newVal = toLatinDigits(val);
+                                        }
+
+                                        // تحديث القيمة فقط إذا تغيرت
+                                        if (newVal !== val) {
+                                            let cursorPos = input.selectionStart;
+                                            input.value = newVal;
+                                            // استعادة موضع المؤشر
+                                            input.setSelectionRange(cursorPos, cursorPos);
+                                        }
+                                    }
+
+                                    // تحديث عداد الأحرف للتعليقات
+                                    if (input.id === 'commentTextarea') {
+                                        document.getElementById('charCount').textContent = val.length;
+                                    }
+                                }
+                            }
+                        });
+
+                        // وظائف إضافية للفورم
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // تحديث مؤشر الحالة
+                            const statusSwitch = document.getElementById('statusSwitch');
+                            const statusText = document.querySelector('.status-text');
+                            const statusBadge = document.querySelector('.status-badge');
+                            const statusBadgeText = document.querySelector('.status-badge-text');
+
+                            if (statusSwitch && statusText && statusBadge && statusBadgeText) {
+                                statusSwitch.addEventListener('change', function() {
+                                    if (this.checked) {
+                                        statusText.textContent = 'نشط';
+                                        statusBadgeText.textContent = 'نشط';
+                                        statusBadge.className = 'badge status-badge bg-success px-3 py-2';
+                                        statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="status-badge-text">نشط</span>';
+                                    } else {
+                                        statusText.textContent = 'غير نشط';
+                                        statusBadgeText.textContent = 'غير نشط';
+                                        statusBadge.className = 'badge status-badge bg-danger px-3 py-2';
+                                        statusBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i><span class="status-badge-text">غير نشط</span>';
+                                    }
+                                });
+                            }
+
+                            // وظائف الأزرار الإضافية
+                            const addManufacturerBtn = document.getElementById('addManufacturerBtn');
+                            const refreshOriginYarnBtn = document.getElementById('refreshOriginYarnBtn');
+                            const previewBtn = document.getElementById('previewBtn');
+                            const resetBtn = document.getElementById('resetBtn');
+
+                            // إضافة شركة مصنعة جديدة
+                            if (addManufacturerBtn) {
+                                addManufacturerBtn.addEventListener('click', function() {
+                                    // يمكن فتح مودال لإضافة شركة مصنعة جديدة
+                                    console.log('فتح نافذة إضافة شركة مصنعة جديدة');
+                                    // modal للشركة المصنعة يمكن إضافته هنا
+                                });
+                            }
+
+                            // تحديث قائمة الغزل المكون
+                            if (refreshOriginYarnBtn) {
+                                refreshOriginYarnBtn.addEventListener('click', function() {
+                                    const button = this;
+                                    const icon = button.querySelector('i');
+
+                                    // تأثير بصري للتحديث
+                                    icon.classList.add('fa-spin');
+                                    button.disabled = true;
+
+                                    // محاكاة عملية التحديث (يمكن استبدالها بـ AJAX call)
+                                    setTimeout(() => {
+                                        icon.classList.remove('fa-spin');
+                                        button.disabled = false;
+
+                                        // عرض رسالة نجاح مؤقتة
+                                        const tempMsg = document.createElement('div');
+                                        tempMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
+                                        tempMsg.innerHTML = '<i class="fas fa-check me-2"></i>تم تحديث قائمة الغزل المكون بنجاح';
+                                        button.parentNode.appendChild(tempMsg);
+
+                                        setTimeout(() => {
+                                            tempMsg.remove();
+                                        }, 3000);
+                                    }, 2000);
+                                });
+                            }
+
+                            // معاينة البيانات
+                            if (previewBtn) {
+                                previewBtn.addEventListener('click', function() {
+                                    const formData = new FormData(document.getElementById('createForm'));
+                                    let previewData = {
+                                        item: formData.get('Item'),
+                                        manufacturer: document.getElementById('manufacturerSelect').selectedOptions[0]?.text || 'غير محدد',
+                                        originYarn: document.getElementById('originYarnSelect').selectedOptions[0]?.text || 'غير محدد',
+                                        status: formData.get('Status') ? 'نشط' : 'غير نشط',
+                                        comment: formData.get('Comment') || 'لا توجد ملاحظات'
+                                    };
+
+                                    let previewHtml = `
+                                        <div class="preview-container">
+                                            <h5><i class="fas fa-eye me-2"></i>معاينة بيانات الصنف</h5>
+                                            <table class="table table-striped">
+                                                <tr><th>اسم الصنف:</th><td>${previewData.item || 'غير مدخل'}</td></tr>
+                                                <tr><th>الشركة المصنعة:</th><td>${previewData.manufacturer}</td></tr>
+                                                <tr><th>الغزل المكون:</th><td>${previewData.originYarn}</td></tr>
+                                                <tr><th>الحالة:</th><td>${previewData.status}</td></tr>
+                                                <tr><th>الملاحظات:</th><td>${previewData.comment}</td></tr>
+                                            </table>
+                                        </div>
+                                    `;
+
+                                    // عرض المعاينة في alert أو modal
+                                    const previewDiv = document.createElement('div');
+                                    previewDiv.innerHTML = previewHtml;
+                                    previewDiv.className = 'alert alert-info mt-3';
+
+                                    // إزالة المعاينة السابقة إن وجدت
+                                    const existingPreview = document.querySelector('.preview-container');
+                                    if (existingPreview) {
+                                        existingPreview.parentNode.remove();
+                                    }
+
+                                    // إضافة المعاينة الجديدة
+                                    previewBtn.parentNode.appendChild(previewDiv);
+                                });
+                            }
+
+                            // إعادة تعيين النموذج
+                            if (resetBtn) {
+                                resetBtn.addEventListener('click', function() {
+                                    if (confirm('هل أنت متأكد من إعادة تعيين جميع البيانات؟')) {
+                                        document.getElementById('createForm').reset();
+                                        document.getElementById('charCount').textContent = '0';
+
+                                        // إعادة تعيين حالة التبديل
+                                        if (statusSwitch) {
+                                            statusSwitch.checked = true;
+                                            statusSwitch.dispatchEvent(new Event('change'));
+                                        }
+
+                                        // إزالة أي معاينة موجودة
+                                        const existingPreview = document.querySelector('.preview-container');
+                                        if (existingPreview) {
+                                            existingPreview.parentNode.remove();
+                                        }
+                                    }
+                                });
+                            }
+
+                            // تهيئة عداد الأحرف
+                            const commentTextarea = document.getElementById('commentTextarea');
+                            if (commentTextarea) {
+                                document.getElementById('charCount').textContent = commentTextarea.value.length;
+                            }
+
+                            // تحسين تجربة المستخدم للنماذج العائمة
+                            const floatingInputs = document.querySelectorAll('.form-floating input, .form-floating textarea');
+                            floatingInputs.forEach(input => {
+                                input.addEventListener('focus', function() {
+                                    this.parentNode.classList.add('focused');
+                                });
+
+                                input.addEventListener('blur', function() {
+                                    if (!this.value) {
+                                        this.parentNode.classList.remove('focused');
+                                    }
+                                });
+                            });
+                        });
+                    </script>
                 </div>
             </div>
         </div>
