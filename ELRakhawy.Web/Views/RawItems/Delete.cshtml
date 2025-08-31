@@ -1,0 +1,189 @@
+﻿@using ELRakhawy.EL.Models
+@model RawItem
+
+@{
+    ViewData["Title"] = "حذف الصنف الخام";
+    Layout = "_Layout";
+}
+
+<!-- Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4" dir="rtl">
+    <ol class="breadcrumb bg-light rounded-pill px-4 py-3 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home me-1"></i>الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-boxes me-1"></i>إدارة الأصناف
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-trash me-1"></i>حذف الصنف
+        </li>
+    </ol>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-danger text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> حذف الصنف الخام</h5>
+                </div>
+                <div class="card-body" dir="rtl">
+                    <h6 class="text-danger text-center">
+                        <i class="fas fa-exclamation-circle"></i> هل أنت متأكد من رغبتك في حذف هذا الصنف؟
+                    </h6>
+                    <hr />
+
+                    <!-- Display error message if exists -->
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger text-center">
+                            <i class="fas fa-times-circle"></i> @TempData["ErrorMessage"]
+                        </div>
+                    }
+
+                    <!-- Display success message if exists -->
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success text-center">
+                            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                        </div>
+                    }
+
+                    <dl class="row">
+                        <dt class="col-sm-3 text-end">
+                            اﻟﺼﻨﻒ
+                        </dt>
+                        <dd class="col-sm-9">
+                            @Html.DisplayFor(model => model.Item)
+                        </dd>
+
+                        <dt class="col-sm-3 text-end">
+                            اﻟﻠﺤﻤﺔ
+                        </dt>
+                        <dd class="col-sm-9">
+                            @Html.DisplayFor(model => model.Warp.Item)
+                        </dd>
+
+                        <dt class="col-sm-3 text-end">
+                            اﻟﺴﺪاء
+                        </dt>
+                        <dd class="col-sm-9">
+                            @Html.DisplayFor(model => model.Weft.Item)
+                        </dd>
+
+                        @if (!string.IsNullOrEmpty(Model.Comment))
+                        {
+                            <dt class="col-sm-3 text-end">
+                                ﺑﻴﺎن اﻟﺤﺎﻟﺔ
+                            </dt>
+                            <dd class="col-sm-9">
+                                @Html.DisplayFor(model => model.Comment)
+                            </dd>
+                        }
+
+                        <dt class="col-sm-3 text-end">
+                            الحالة
+                        </dt>
+                        <dd class="col-sm-9">
+                            @if (Model.Status)
+                            {
+                                <span class="badge bg-success">نشط</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-danger">غير نشط</span>
+                            }
+                        </dd>
+                    </dl>
+
+                    <form asp-action="Delete" id="deleteForm">
+                        <input type="hidden" asp-for="Id" />
+
+                        <div class="form-group mt-4 text-center">
+                            <button type="submit" class="btn btn-danger mx-2">
+                                <i class="fas fa-trash"></i> تأكيد الحذف
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary mx-2">
+                                <i class="fas fa-arrow-right"></i> العودة للقائمة
+                            </a>
+                           
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <style>
+        .card-body {
+            text-align: right;
+        }
+
+        dl.row dt {
+            font-weight: bold;
+            color: #495057;
+        }
+
+        dl.row dd {
+            margin-bottom: 1rem;
+        }
+
+        .text-end {
+            text-align: right !important;
+        }
+
+        .btn {
+            min-width: 120px;
+            margin: 5px;
+        }
+
+        .breadcrumb {
+            direction: rtl;
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            float: right;
+            padding-left: 0.5rem;
+            padding-right: 0;
+        }
+
+        .alert {
+            direction: rtl;
+        }
+    </style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Confirm before deletion with Arabic message
+            $('#deleteForm').on('submit', function(e) {
+                e.preventDefault();
+
+                if (confirm('هل أنت متأكد تمامًا من رغبتك في حذف هذا الصنف؟ لا يمكن التراجع عن هذا الإجراء.')) {
+                    this.submit();
+                }
+            });
+
+            // Display toastr messages if they exist
+            @if (TempData["ErrorMessage"] != null)
+            {
+                    <text>
+                    toastr.error('@TempData["ErrorMessage"]', 'خطأ');
+                    </text>
+            }
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                    <text>
+                    toastr.success('@TempData["SuccessMessage"]', 'نجاح');
+                    </text>
+            }
+        });
+    </script>
+}

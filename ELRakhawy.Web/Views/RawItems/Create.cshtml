@@ -1,0 +1,297 @@
+﻿@using ELRakhawy.EL.Models
+@model RawItem
+
+@{
+    ViewData["Title"] = "إضافة صنف خام جديد";
+    Layout = "_Layout";
+
+    var warps = ViewBag.Warps as IEnumerable<FullWarpBeam> ?? new List<FullWarpBeam>();
+    var wefts = ViewBag.Wefts as IEnumerable<YarnItem> ?? new List<YarnItem>();
+}
+
+<!-- Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-pill px-4 py-3 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home me-1"></i>الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-boxes me-1"></i>إدارة الأصناف
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-plus-circle me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-plus"></i> إضافة صنف خام جديد</h5>
+                </div>
+                <div class="card-body">
+                   <form asp-action ="Create" id="createForm" dir="rtl">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Item" class="control-label">اﻟﺼﻨﻒ</label>
+                            <input asp-for="Item" class="form-control" placeholder="أدخل اسم الصنف..." />
+                            <span asp-validation-for="Item" class="text-danger"></span>
+                            @if (ViewContext.ViewData.ModelState["Item"]?.Errors.Count > 0)
+                            {
+                                <span class="text-danger">@ViewContext.ViewData.ModelState["Item"].Errors[0].ErrorMessage</span>
+                            }
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="WarpId" class="control-label">اﻟﻠﺤﻤﺔ</label>
+                                    <select asp-for="WarpId" class="form-control">
+                                        <option value="">-- اختر اللحمة --</option>
+                                        @foreach (var warp in warps)
+                                        {
+                                            <option value="@warp.Id">@warp.Item</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="WarpId" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label asp-for="WeftId" class="control-label">اﻟﺴﺪاء</label>
+                                    <select asp-for="WeftId" class="form-control">
+                                        <option value="">-- اختر السدى --</option>
+                                        @foreach (var weft in wefts)
+                                        {
+                                            <option value="@weft.Id">@weft.Item</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="WeftId" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Comment" class="control-label">ﺑﻴﺎن اﻟﺤﺎﻟﺔ</label>
+                            <textarea asp-for="Comment" class="form-control" rows="3" placeholder="أدخل بيان الحالة أو ملاحظات..."></textarea>
+                            <span asp-validation-for="Comment" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group form-check mb-3">
+                            <input class="form-check-input" asp-for="Status" />
+                            <label class="form-check-label" asp-for="Status">الحالة (نشط/غير نشط)</label>
+                        </div>
+
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-primary mx-2">
+                                <i class="fas fa-save"></i> حفظ
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary mx-2">
+                                <i class="fas fa-arrow-right"></i> العودة للقائمة
+                            </a>
+                        </div>
+                    </form>
+                    <script>
+                        // دالة لتحويل الأرقام للغة العربية
+                        function toArabicDigits(str) {
+                            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                        }
+
+                        // دالة لتحويل الأرقام للاتينية
+                        function toLatinDigits(str) {
+                            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                        }
+
+                        // دالة لاكتشاف إذا كان الحرف عربي
+                        function isArabicChar(c) {
+                            return /[\u0600-\u06FF]/.test(c);
+                        }
+
+                        // دالة لاكتشاف إذا كان الحرف إنجليزي
+                        function isEnglishChar(c) {
+                            return /[a-zA-Z]/.test(c);
+                        }
+
+                        // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                        function getLastLetter(str) {
+                            for (let i = str.length - 1; i >= 0; i--) {
+                                let char = str[i];
+                                if (isArabicChar(char)) {
+                                    return 'arabic';
+                                } else if (isEnglishChar(char)) {
+                                    return 'english';
+                                }
+                            }
+                            return 'arabic'; // default is Arabic
+                        }
+
+                        // تطبيق التحويل على كل الحقول النصية
+                        document.addEventListener("input", function (e) {
+                            if (e.target.closest("#createForm")) {
+                                let input = e.target;
+                                let val = input.value;
+
+                                // تطبيق التحويل على حقول النص والتعليقات فقط
+                                if (input.type === 'text' || input.tagName === 'TEXTAREA') {
+                                    if (val.length > 0) {
+                                        let lastLetterLang = getLastLetter(val);
+
+                                        let newVal;
+                                        if (lastLetterLang === 'arabic') {
+                                            // حول جميع الأرقام للعربية
+                                            newVal = toArabicDigits(val);
+                                        } else {
+                                            // حول جميع الأرقام للاتينية
+                                            newVal = toLatinDigits(val);
+                                        }
+
+                                        // تحديث القيمة فقط إذا تغيرت
+                                        if (newVal !== val) {
+                                            let cursorPos = input.selectionStart;
+                                            input.value = newVal;
+                                            // استعادة موضع المؤشر
+                                            input.setSelectionRange(cursorPos, cursorPos);
+                                        }
+                                    }
+
+                                    // تحديث عداد الأحرف للتعليقات
+                                    if (input.id === 'commentTextarea') {
+                                        document.getElementById('charCount').textContent = input.value.length;
+                                    }
+                                }
+                            }
+                        });
+
+                        // وظائف إضافية للفورم
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // تحديث مؤشر الحالة
+                            const statusSwitch = document.getElementById('statusSwitch');
+                            const statusText = document.querySelector('.status-text');
+                            const statusBadge = document.querySelector('.status-badge');
+                            const statusBadgeText = document.querySelector('.status-badge-text');
+
+                            if (statusSwitch && statusText && statusBadge && statusBadgeText) {
+                                statusSwitch.addEventListener('change', function() {
+                                    if (this.checked) {
+                                        statusText.textContent = 'نشط';
+                                        statusBadgeText.textContent = 'نشط';
+                                        statusBadge.className = 'badge status-badge bg-success px-3 py-2';
+                                        statusBadge.innerHTML = '<i class="fas fa-check-circle me-1"></i><span class="status-badge-text">نشط</span>';
+                                    } else {
+                                        statusText.textContent = 'غير نشط';
+                                        statusBadgeText.textContent = 'غير نشط';
+                                        statusBadge.className = 'badge status-badge bg-danger px-3 py-2';
+                                        statusBadge.innerHTML = '<i class="fas fa-times-circle me-1"></i><span class="status-badge-text">غير نشط</span>';
+                                    }
+                                });
+                            }
+
+                            // وظائف الأزرار الإضافية
+                            const addManufacturerBtn = document.getElementById('addManufacturerBtn');
+                            const refreshOriginYarnBtn = document.getElementById('refreshOriginYarnBtn');
+                            const previewBtn = document.getElementById('previewBtn');
+                            const resetBtn = document.getElementById('resetBtn');
+
+                            // إضافة شركة مصنعة جديدة
+                            if (addManufacturerBtn) {
+                                addManufacturerBtn.addEventListener('click', function() {
+                                    // يمكن فتح مودال لإضافة شركة مصنعة جديدة
+                                    console.log('فتح نافذة إضافة شركة مصنعة جديدة');
+                                    // modal للشركة المصنعة يمكن إضافته هنا
+                                });
+                            }
+
+                            // تحديث قائمة الغزل المكون
+                            if (refreshOriginYarnBtn) {
+                                refreshOriginYarnBtn.addEventListener('click', function() {
+                                    const button = this;
+                                    const icon = button.querySelector('i');
+
+                                    // تأثير بصري للتحديث
+                                    icon.classList.add('fa-spin');
+                                    button.disabled = true;
+
+                                    // محاكاة عملية التحديث (يمكن استبدالها بـ AJAX call)
+                                    setTimeout(() => {
+                                        icon.classList.remove('fa-spin');
+                                        button.disabled = false;
+
+                                        // عرض رسالة نجاح مؤقتة
+                                        const tempMsg = document.createElement('div');
+                                        tempMsg.className = 'alert alert-success alert-dismissible fade show mt-2';
+                                        tempMsg.innerHTML = '<i class="fas fa-check me-2"></i>تم تحديث قائمة الغزل المكون بنجاح';
+                                        button.parentNode.appendChild(tempMsg);
+
+                                        setTimeout(() => {
+                                            tempMsg.remove();
+                                        }, 3000);
+                                    }, 2000);
+                                });
+                            }
+                        });
+                    </script>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <style>
+        .form-control {
+            text-align: right;
+            direction: rtl;
+        }
+
+        .form-select {
+            text-align: right;
+            direction: rtl;
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .card-header {
+            direction: rtl;
+        }
+
+        .form-check-label {
+            margin-right: 5px;
+        }
+
+        .btn {
+            min-width: 100px;
+        }
+    </style>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <script>
+        $(document).ready(function() {
+            // Client-side validation for unique item name
+            $('#Item').on('blur', function() {
+                var itemName = $(this).val();
+                if (itemName) {
+                    // You could implement an AJAX call to check uniqueness here
+                    // This would prevent the need for a full form submission
+                }
+            });
+
+            // Auto-resize textarea
+            $('textarea').on('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        });
+    </script>
+}

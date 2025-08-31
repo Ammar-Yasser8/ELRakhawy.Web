@@ -733,26 +733,56 @@
                         </div>
                     </li>
 
-                   
-                        
-                 
 
+
+                    <!-- Updated HTML Structure for Raw Section -->
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#finishedFabricMenu" role="button" aria-expanded="false">
-                            <i class="fas fa-cut"></i>
-                            <span>قسم الأقمشة الجاهزة</span>
-                            <i class="fas fa-chevron-down arrow"></i>
-                        </a>
-                        <div class="collapse" id="finishedFabricMenu">
-                            <ul class="nav flex-column sub-menu">
-                                <li class="nav-item">
-                                    <a class="nav-link" href="#">
-                                        <span>إدارة الأقمشة الجاهزة</span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
-                    </li>
+                            <a class="nav-link main-header"
+                               data-bs-toggle="collapse"
+                               href="#RawFabricMenu"
+                               role="button"
+                               aria-expanded="false"
+                               data-navigate-url="/RawItems/Index">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-cut"></i>
+                                    <span>قسم الخام</span>
+                                </div>
+                                <i class="fas fa-chevron-down arrow"></i>
+                            </a>
+                            <div class="collapse" id="RawFabricMenu">
+                                <ul class="nav flex-column sub-menu">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/RawItems/Index">
+                                            <span>إدارة الخام</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
+                    <!-- Updated HTML Structure for Warp Section -->
+                    <li class="nav-item">
+                            <a class="nav-link main-header"
+                               data-bs-toggle="collapse"
+                               href="#WarpFabricMenu"
+                               role="button"
+                               aria-expanded="false"
+                               data-navigate-url="/FullWarpBeam/Index">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-cut"></i>
+                                    <span>قسم السدى</span>
+                                </div>
+                                <i class="fas fa-chevron-down arrow"></i>
+                            </a>
+                            <div class="collapse" id="WarpFabricMenu">
+                                <ul class="nav flex-column sub-menu">
+                                    <li class="nav-item">
+                                        <a class="nav-link" href="/FullWarpBeam/Index">
+                                            <span>إدارة السدى</span>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </li>
 
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="collapse" href="#financeMenu" role="button" aria-expanded="false">

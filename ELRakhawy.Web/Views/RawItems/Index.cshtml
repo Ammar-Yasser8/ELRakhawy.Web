@@ -1,0 +1,188 @@
+﻿@using ELRakhawy.EL.Models
+@model IEnumerable<RawItem>
+
+@{
+    ViewData["Title"] = "الأصناف الخام";
+    Layout = "_Layout";
+}
+
+<!-- Enhanced Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-3 px-3 py-2 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home text-primary"></i>
+                <span class="ms-1">الرئيسية</span>
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <i class="fas fa-yarn text-info me-1"></i>قسم الخام
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-cogs text-secondary me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">قائمة الأصناف الخام</h5>
+                        <a asp-action="Create" class="btn btn-light btn-sm">
+                            <i class="fas fa-plus"></i> إضافة جديد
+                        </a>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (Model == null || !Model.Any())
+                    {
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-info-circle"></i> لا توجد أصناف خام. <a asp-action="Create">إضافة صنف جديد</a>.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="rawItemsTable">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>
+                                            <div class="d-flex flex-column">
+                                                <span>اسم الصنف</span>
+                                                <input type="text" class="form-control form-control-sm mt-1 column-search" placeholder="بحث..." data-column="0">
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="d-flex flex-column">
+                                                <span>اللحمة</span>
+                                                <input type="text" class="form-control form-control-sm mt-1 column-search" placeholder="بحث..." data-column="1">
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="d-flex flex-column">
+                                                <span>السدى</span>
+                                                <input type="text" class="form-control form-control-sm mt-1 column-search" placeholder="بحث..." data-column="2">
+                                            </div>
+                                        </th>
+                                        <th>
+                                            <div class="d-flex flex-column">
+                                                <span>الحالة</span>
+                                                <select class="form-control form-control-sm mt-1 column-search" data-column="3">
+                                                    <option value="">الكل</option>
+                                                    <option value="نشط">نشط</option>
+                                                    <option value="غير نشط">غير نشط</option>
+                                                </select>
+                                            </div>
+                                        </th>
+                                        <th>الإجراءات</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>@Html.DisplayFor(modelItem => item.Item)</td>
+                                            <td>@Html.DisplayFor(modelItem => item.Warp.Item)</td>
+                                            <td>@Html.DisplayFor(modelItem => item.Weft.Item)</td>
+                                            <td>
+                                                @if (item.Status)
+                                                {
+                                                    <span class="badge bg-success">نشط</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-danger">غير نشط</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="تعديل">
+                                                        <i class="fas fa-edit"></i>
+                                                    </a>
+                                                    
+                                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="حذف">
+                                                        <i class="fas fa-trash"></i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <style>
+        .column-search {
+            direction: rtl;
+            text-align: right;
+        }
+
+        .table th {
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .btn-group .btn {
+            border-radius: 4px;
+            margin: 0 2px;
+        }
+
+        /* RTL support */
+        .card-header .d-flex {
+            direction: rtl;
+        }
+
+        .alert {
+            text-align: center;
+            direction: rtl;
+        }
+    </style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable with RTL support
+            var table = $('#rawItemsTable').DataTable({
+                responsive: true,
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/ar.json'
+                },
+                dom: '<"row"<"col-sm-12 col-md-6"l><"col-sm-12 col-md-6"f>>rtip',
+                columnDefs: [
+                    {
+                        orderable: false,
+                        targets: -1,
+                        className: 'text-center'
+                    },
+                    {
+                        className: 'text-center',
+                        targets: [0, 1, 2, 3]
+                    }
+                ]
+            });
+
+            // Apply column search
+            $('.column-search').on('keyup change', function() {
+                var columnIndex = $(this).data('column');
+                table.column(columnIndex).search(this.value).draw();
+            });
+
+            // Clear search inputs
+            $('#clearSearch').on('click', function() {
+                $('.column-search').val('').trigger('change');
+            });
+        });
+    </script>
+}
