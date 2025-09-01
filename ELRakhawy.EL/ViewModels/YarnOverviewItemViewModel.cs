@@ -28,7 +28,7 @@ namespace ELRakhawy.EL.ViewModels
         public int YarnItemId { get; set; }
         public string YarnItemName { get; set; }
         public string OriginYarnName { get; set; }
-        public string ManufacturerName { get; set; }
+        public string ManufacturerNames { get; set; } // Changed from ManufacturerName
         public decimal QuantityBalance { get; set; }
         public int CountBalance { get; set; }
         public DateTime? LastTransactionDate { get; set; }

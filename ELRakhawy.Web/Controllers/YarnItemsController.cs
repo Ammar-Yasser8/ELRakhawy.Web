@@ -28,7 +28,7 @@ namespace ELRakhawy.Web.Controllers
             try
             {
                 var yarnItems = _unitOfWork.Repository<YarnItem>()
-                    .GetAll(includeEntities: "YarnTransactions,Manufacturer,OriginYarn")
+                    .GetAll(includeEntities: "YarnTransactions,Manufacturers,OriginYarn")
                     .Select(item => new YarnItemViewModel
                     {
                         Id = item.Id,
@@ -38,8 +38,8 @@ namespace ELRakhawy.Web.Controllers
                         CurrentBalance = item.YarnTransactions.Sum(t => t.Inbound - t.Outbound),
                         CurrentCountBalance = item.YarnTransactions.Sum(t =>
                             (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0)),
-                        ManufacturerName = item.Manufacturer != null ? item.Manufacturer.Name : null,
-                        ManufacturerId = item.ManufacturerId,
+                        ManufacturerNames = item.Manufacturers.Select(m => m.Name).ToList(),
+                        ManufacturerIds = item.Manufacturers.Select(m => m.Id).ToList(),
                         OriginYarnName = item.OriginYarn != null ? item.OriginYarn.Item : null,
                         OriginYarnId = item.OriginYarnId
                     })
@@ -65,7 +65,7 @@ namespace ELRakhawy.Web.Controllers
             try
             {
                 var yarnItems = _unitOfWork.Repository<YarnItem>()
-                    .GetAll(includeEntities: "YarnTransactions,Manufacturer,OriginYarn")
+                    .GetAll(includeEntities: "YarnTransactions,Manufacturers,OriginYarn")
                     .Select(item => new YarnItemViewModel
                     {
                         Id = item.Id,
@@ -75,8 +75,8 @@ namespace ELRakhawy.Web.Controllers
                         CurrentBalance = item.YarnTransactions.Sum(t => t.Inbound - t.Outbound),
                         CurrentCountBalance = item.YarnTransactions.Sum(t =>
                             (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0)),
-                        ManufacturerName = item.Manufacturer != null ? item.Manufacturer.Name : null,
-                        ManufacturerId = item.ManufacturerId,
+                        ManufacturerNames = item.Manufacturers.Select(m => m.Name).ToList(),
+                        ManufacturerIds = item.Manufacturers.Select(m => m.Id).ToList(),
                         OriginYarnName = item.OriginYarn != null ? item.OriginYarn.Item : null,
                         OriginYarnId = item.OriginYarnId
                     })
@@ -135,18 +135,21 @@ namespace ELRakhawy.Web.Controllers
                     ModelState.AddModelError("Item", "هذا الصنف موجود بالفعل");
                 }
 
-                // Validate manufacturer exists if selected
-                if (model.ManufacturerId.HasValue)
+                // Validate selected manufacturers (many-to-many)
+                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
                 {
-                    var manufacturer = _unitOfWork.Repository<Manufacturers>()
-                        .GetOne(m => m.Id == model.ManufacturerId.Value && m.Status);
-                    if (manufacturer == null)
+                    foreach (var manufacturerId in model.ManufacturerIds)
                     {
-                        ModelState.AddModelError("ManufacturerId", "الشركة المصنعة المحددة غير موجودة أو غير نشطة");
+                        var manufacturer = _unitOfWork.Repository<Manufacturers>()
+                            .GetOne(m => m.Id == manufacturerId && m.Status);
+                        if (manufacturer == null)
+                        {
+                            ModelState.AddModelError("ManufacturerIds", $"الشركة المصنعة بالرقم {manufacturerId} غير موجودة أو غير نشطة");
+                        }
                     }
                 }
 
-                // CORRECTED: Validate origin yarn exists if selected - Using YarnItem repository (self-reference)
+                // Validate origin yarn exists if selected
                 if (model.OriginYarnId.HasValue)
                 {
                     var originYarnItem = _unitOfWork.Repository<YarnItem>()
@@ -171,13 +174,20 @@ namespace ELRakhawy.Web.Controllers
                     Item = model.Item.Trim(),
                     Status = model.Status,
                     Comment = model.Comment?.Trim(),
-                    ManufacturerId = model.ManufacturerId,
                     OriginYarnId = model.OriginYarnId
                 };
 
+                // Assign manufacturers (many-to-many)
+                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
+                {
+                    yarnItem.Manufacturers = _unitOfWork.Repository<Manufacturers>()
+                        .GetAll(m => model.ManufacturerIds.Contains(m.Id) && m.Status)
+                        .ToList();
+                }
+
                 _unitOfWork.Repository<YarnItem>().Add(yarnItem);
                 _unitOfWork.Complete();
-               
+
                 _logger.LogInformation("Yarn item '{Item}' created successfully with OriginYarn {OriginYarnId} by {User} at {Time}",
                     model.Item, model.OriginYarnId, "Ammar-Yasser8", "2025-08-12 01:33:24");
 
@@ -189,7 +199,6 @@ namespace ELRakhawy.Web.Controllers
                 _logger.LogError(ex, "Error creating yarn item by {User} at {Time}: {Message}",
                     "Ammar-Yasser8", "2025-08-12 01:33:24", ex.Message);
 
-                // Add specific error message for foreign key constraint
                 if (ex.InnerException?.Message.Contains("FK_YarnItems") == true)
                 {
                     ModelState.AddModelError("OriginYarnId", "الغزل المكون المحدد غير صحيح أو غير موجود في قاعدة البيانات");
@@ -204,14 +213,13 @@ namespace ELRakhawy.Web.Controllers
                 return View(model);
             }
         }
-
         // GET: YarnItems/Edit/5
         public IActionResult Edit(int id)
         {
             try
             {
                 var yarnItem = _unitOfWork.Repository<YarnItem>()
-                    .GetOne(y => y.Id == id, includeEntities: "Manufacturer,OriginYarn,YarnTransactions,DerivedYarns");
+                    .GetOne(y => y.Id == id, includeEntities: "Manufacturers,OriginYarn,YarnTransactions,DerivedYarns");
 
                 if (yarnItem == null)
                 {
@@ -227,10 +235,9 @@ namespace ELRakhawy.Web.Controllers
                     Item = yarnItem.Item,
                     Status = yarnItem.Status,
                     Comment = yarnItem.Comment,
-                    ManufacturerId = yarnItem.ManufacturerId,
-                    ManufacturerName = yarnItem.Manufacturer?.Name,
+                    ManufacturerNames = yarnItem.Manufacturers.Select(m => m.Name).ToList(),
+                    ManufacturerIds = yarnItem.Manufacturers.Select(m => m.Id).ToList(),
                     OriginYarnId = yarnItem.OriginYarnId,
-                    // FIXED: Safe null handling for OriginYarn.Item
                     OriginYarnName = yarnItem.OriginYarn?.Item,
                     CurrentBalance = yarnItem.YarnTransactions.Sum(t => t.Inbound - t.Outbound),
                     CurrentCountBalance = yarnItem.YarnTransactions.Sum(t =>
@@ -270,7 +277,7 @@ namespace ELRakhawy.Web.Controllers
                 }
 
                 var yarnItem = _unitOfWork.Repository<YarnItem>()
-                    .GetOne(y => y.Id == id, includeEntities: "OriginYarn,DerivedYarns");
+                    .GetOne(y => y.Id == id, includeEntities: "Manufacturers,OriginYarn,DerivedYarns");
 
                 if (yarnItem == null)
                 {
@@ -291,16 +298,19 @@ namespace ELRakhawy.Web.Controllers
                         model.Item, "Ammar-Yasser8", "2025-08-12 14:22:41");
                 }
 
-                // Enhanced validation: Validate manufacturer exists if selected
-                if (model.ManufacturerId.HasValue)
+                // Enhanced validation: Validate all selected manufacturers (many-to-many)
+                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
                 {
-                    var manufacturer = _unitOfWork.Repository<Manufacturers>()
-                        .GetOne(m => m.Id == model.ManufacturerId.Value && m.Status);
-                    if (manufacturer == null)
+                    foreach (var manufacturerId in model.ManufacturerIds)
                     {
-                        ModelState.AddModelError("ManufacturerId", "الشركة المصنعة المحددة غير موجودة أو غير نشطة");
-                        _logger.LogWarning("Invalid manufacturer ID {ManufacturerId} for yarn item {Id} by {User} at {Time}",
-                            model.ManufacturerId.Value, id, "Ammar-Yasser8", "2025-08-12 14:22:41");
+                        var manufacturer = _unitOfWork.Repository<Manufacturers>()
+                            .GetOne(m => m.Id == manufacturerId && m.Status);
+                        if (manufacturer == null)
+                        {
+                            ModelState.AddModelError("ManufacturerIds", $"الشركة المصنعة بالرقم {manufacturerId} غير موجودة أو غير نشطة");
+                            _logger.LogWarning("Invalid manufacturer ID {ManufacturerId} for yarn item {Id} by {User} at {Time}",
+                                manufacturerId, id, "Ammar-Yasser8", "2025-08-12 14:22:41");
+                        }
                     }
                 }
 
@@ -343,7 +353,7 @@ namespace ELRakhawy.Web.Controllers
                 {
                     Item = yarnItem.Item,
                     OriginYarnId = yarnItem.OriginYarnId,
-                    ManufacturerId = yarnItem.ManufacturerId,
+                    ManufacturerIds = yarnItem.Manufacturers.Select(m => m.Id).ToList(),
                     Status = yarnItem.Status
                 };
 
@@ -351,17 +361,29 @@ namespace ELRakhawy.Web.Controllers
                 yarnItem.Item = model.Item.Trim();
                 yarnItem.Status = model.Status;
                 yarnItem.Comment = model.Comment?.Trim();
-                yarnItem.ManufacturerId = model.ManufacturerId;
                 yarnItem.OriginYarnId = model.OriginYarnId;
+
+                // Update manufacturers (many-to-many)
+                yarnItem.Manufacturers.Clear();
+                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
+                {
+                    var selectedManufacturers = _unitOfWork.Repository<Manufacturers>()
+                        .GetAll(m => model.ManufacturerIds.Contains(m.Id) && m.Status)
+                        .ToList();
+                    foreach (var manufacturer in selectedManufacturers)
+                    {
+                        yarnItem.Manufacturers.Add(manufacturer);
+                    }
+                }
 
                 _unitOfWork.Repository<YarnItem>().Update(yarnItem);
                 _unitOfWork.Complete();
 
-                _logger.LogInformation("Yarn item '{Item}' (ID: {Id}) updated successfully by {User} at {Time}. Changes: Name: {NameChanged}, Origin: {OriginOld}→{OriginNew}, Manufacturer: {ManufacturerOld}→{ManufacturerNew}, Status: {StatusOld}→{StatusNew}",
+                _logger.LogInformation("Yarn item '{Item}' (ID: {Id}) updated successfully by {User} at {Time}. Changes: Name: {NameChanged}, Origin: {OriginOld}→{OriginNew}, Manufacturers: {ManufacturersOld}→{ManufacturersNew}, Status: {StatusOld}→{StatusNew}",
                     model.Item, id, "Ammar-Yasser8", "2025-08-12 14:22:41",
                     originalValues.Item != model.Item,
                     originalValues.OriginYarnId, model.OriginYarnId,
-                    originalValues.ManufacturerId, model.ManufacturerId,
+                    string.Join(",", originalValues.ManufacturerIds), string.Join(",", model.ManufacturerIds ?? new List<int>()),
                     originalValues.Status, model.Status);
 
                 TempData["Success"] = $"تم تحديث الصنف '{model.Item}' بنجاح";
@@ -372,7 +394,6 @@ namespace ELRakhawy.Web.Controllers
                 _logger.LogError(ex, "Error updating yarn item {Id} by {User} at {Time}",
                     id, "Ammar-Yasser8", "2025-08-12 14:22:41");
 
-                // Add specific error message for foreign key constraint
                 if (ex.InnerException?.Message.Contains("FK_YarnItems") == true)
                 {
                     ModelState.AddModelError("OriginYarnId", "الغزل المكون المحدد غير صحيح أو غير موجود في قاعدة البيانات");
@@ -385,71 +406,6 @@ namespace ELRakhawy.Web.Controllers
                 model.Manufacturers = GetManufacturersSelectList();
                 model.OriginYarns = GetOriginYarnsSelectList(id);
                 return View(model);
-            }
-        }
-
-        // API: GET /api/YarnItems/{id}/details
-        [HttpGet]
-        [Route("api/YarnItems/{id}/details")]
-        public IActionResult GetDetails(int id)
-        {
-            try
-            {
-                var yarnItem = _unitOfWork.Repository<YarnItem>()
-                    .GetOne(y => y.Id == id, includeEntities: "Manufacturer,OriginYarn,YarnTransactions,DerivedYarns");
-
-                if (yarnItem == null)
-                {
-                    _logger.LogWarning("Yarn item with ID {Id} not found for details by {User} at {Time}",
-                        id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                    return NotFound(new { message = "الصنف غير موجود" });
-                }
-
-                // Calculate enhanced details
-                var inboundTotal = yarnItem.YarnTransactions.Where(t => t.Inbound > 0).Sum(t => t.Inbound);
-                var outboundTotal = yarnItem.YarnTransactions.Where(t => t.Outbound > 0).Sum(t => t.Outbound);
-                var currentBalance = inboundTotal - outboundTotal;
-                var currentCountBalance = yarnItem.YarnTransactions.Sum(t =>
-                    (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0));
-
-                var result = new
-                {
-                    id = yarnItem.Id,
-                    item = yarnItem.Item,
-                    manufacturerName = yarnItem.Manufacturer?.Name ?? "غير محدد",
-                    // FIXED: Safe null handling for OriginYarn.Item
-                    originYarnName = yarnItem.OriginYarn?.Item ?? "غير محدد",
-                    status = yarnItem.Status ? "نشط" : "غير نشط",
-                    statusBadge = yarnItem.Status ? "bg-success" : "bg-secondary",
-                    comment = yarnItem.Comment ?? "لا يوجد بيان",
-                    currentBalance = currentBalance,
-                    currentCountBalance = currentCountBalance,
-                    inboundTotal = inboundTotal,
-                    outboundTotal = outboundTotal,
-                    transactionCount = yarnItem.YarnTransactions.Count(),
-                    lastTransaction = yarnItem.YarnTransactions.Any() ?
-                        yarnItem.YarnTransactions.OrderByDescending(t => t.Date).First().Date.ToString("yyyy-MM-dd") :
-                        "لا توجد معاملات",
-                    // ENHANCED: Add hierarchy information
-                    hierarchyLevel = yarnItem.GetHierarchyLevel(),
-                    hierarchyPath = yarnItem.GetHierarchyPath(),
-                    derivedYarnsCount = yarnItem.DerivedYarns.Count(),
-                    derivedYarnsNames = yarnItem.DerivedYarns.Take(5).Select(d => d.Item).ToList(),
-                    canBeDeleted = yarnItem.CanBeDeleted(),
-                    createdAt = "2025-08-12 14:22:41",
-                    createdBy = "Ammar-Yasser8"
-                };
-
-                _logger.LogInformation("Details retrieved for yarn item '{Item}' (ID: {Id}) by {User} at {Time}. Hierarchy Level: {Level}",
-                    yarnItem.Item, id, "Ammar-Yasser8", "2025-08-12 14:22:41", yarnItem.GetHierarchyLevel());
-
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving details for yarn item {Id} by {User} at {Time}",
-                    id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                return StatusCode(500, new { message = "حدث خطأ أثناء تحميل التفاصيل" });
             }
         }
 

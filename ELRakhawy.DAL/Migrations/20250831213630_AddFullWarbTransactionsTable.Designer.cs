@@ -4,6 +4,7 @@ using Elrakhawy.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ELRakhawy.DAL.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250831213630_AddFullWarbTransactionsTable")]
+    partial class AddFullWarbTransactionsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -104,7 +107,7 @@ namespace ELRakhawy.DAL.Migrations
                     b.ToTable("FullWarpBeams");
                 });
 
-            modelBuilder.Entity("ELRakhawy.EL.Models.FullWarpBeamTransaction", b =>
+            modelBuilder.Entity("ELRakhawy.EL.Models.FullWarpBeamTransation", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -113,10 +116,8 @@ namespace ELRakhawy.DAL.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("Comment")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("CountBalance")
-                        .HasColumnType("int");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("Date")
                         .HasColumnType("datetime2");
@@ -125,11 +126,11 @@ namespace ELRakhawy.DAL.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("FullWarpBeamItemId")
+                    b.Property<int>("FullWarpBeamId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Inbound")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("Inbound")
+                        .HasColumnType("float");
 
                     b.Property<string>("InternalId")
                         .HasMaxLength(50)
@@ -138,13 +139,14 @@ namespace ELRakhawy.DAL.Migrations
                     b.Property<int>("Length")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("Outbound")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("QuantityBalance")
-                        .HasColumnType("decimal(18,2)");
+                    b.Property<double>("Outbound")
+                        .HasColumnType("float");
 
                     b.Property<int>("StakeholderId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StakeholderTypeId")
+                        .IsRequired()
                         .HasColumnType("int");
 
                     b.Property<string>("TransactionId")
@@ -154,9 +156,11 @@ namespace ELRakhawy.DAL.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("FullWarpBeamItemId");
+                    b.HasIndex("FullWarpBeamId");
 
                     b.HasIndex("StakeholderId");
+
+                    b.HasIndex("StakeholderTypeId");
 
                     b.ToTable("FullWarpBeamTransations");
                 });
@@ -376,6 +380,9 @@ namespace ELRakhawy.DAL.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("ManufacturerId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("OriginYarnId")
                         .HasColumnType("int");
 
@@ -383,6 +390,8 @@ namespace ELRakhawy.DAL.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManufacturerId");
 
                     b.HasIndex("OriginYarnId");
 
@@ -461,21 +470,6 @@ namespace ELRakhawy.DAL.Migrations
                     b.ToTable("YarnTransactions");
                 });
 
-            modelBuilder.Entity("ManufacturersYarnItem", b =>
-                {
-                    b.Property<int>("ManufacturersId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("YarnItemsId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ManufacturersId", "YarnItemsId");
-
-                    b.HasIndex("YarnItemsId");
-
-                    b.ToTable("YarnItemManufacturers", (string)null);
-                });
-
             modelBuilder.Entity("ELRakhawy.EL.Models.FullWarpBeam", b =>
                 {
                     b.HasOne("ELRakhawy.EL.Models.YarnItem", "OriginYarn")
@@ -485,11 +479,11 @@ namespace ELRakhawy.DAL.Migrations
                     b.Navigation("OriginYarn");
                 });
 
-            modelBuilder.Entity("ELRakhawy.EL.Models.FullWarpBeamTransaction", b =>
+            modelBuilder.Entity("ELRakhawy.EL.Models.FullWarpBeamTransation", b =>
                 {
-                    b.HasOne("ELRakhawy.EL.Models.FullWarpBeam", "FullWarpBeamItem")
+                    b.HasOne("ELRakhawy.EL.Models.FullWarpBeam", "FullWarpBeam")
                         .WithMany()
-                        .HasForeignKey("FullWarpBeamItemId")
+                        .HasForeignKey("FullWarpBeamId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -499,9 +493,17 @@ namespace ELRakhawy.DAL.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("FullWarpBeamItem");
+                    b.HasOne("ELRakhawy.EL.Models.StakeholderType", "StakeholderType")
+                        .WithMany()
+                        .HasForeignKey("StakeholderTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FullWarpBeam");
 
                     b.Navigation("Stakeholder");
+
+                    b.Navigation("StakeholderType");
                 });
 
             modelBuilder.Entity("ELRakhawy.EL.Models.PackagingStyleForms", b =>
@@ -593,11 +595,17 @@ namespace ELRakhawy.DAL.Migrations
 
             modelBuilder.Entity("ELRakhawy.EL.Models.YarnItem", b =>
                 {
+                    b.HasOne("ELRakhawy.EL.Models.Manufacturers", "Manufacturer")
+                        .WithMany("YarnItems")
+                        .HasForeignKey("ManufacturerId");
+
                     b.HasOne("ELRakhawy.EL.Models.YarnItem", "OriginYarn")
                         .WithMany("DerivedYarns")
                         .HasForeignKey("OriginYarnId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK_YarnItems_OriginYarn");
+
+                    b.Navigation("Manufacturer");
 
                     b.Navigation("OriginYarn");
                 });
@@ -641,21 +649,6 @@ namespace ELRakhawy.DAL.Migrations
                     b.Navigation("YarnItem");
                 });
 
-            modelBuilder.Entity("ManufacturersYarnItem", b =>
-                {
-                    b.HasOne("ELRakhawy.EL.Models.Manufacturers", null)
-                        .WithMany()
-                        .HasForeignKey("ManufacturersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ELRakhawy.EL.Models.YarnItem", null)
-                        .WithMany()
-                        .HasForeignKey("YarnItemsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("ELRakhawy.EL.Models.FinancialTransactionType", b =>
                 {
                     b.Navigation("StakeholderTypes");
@@ -666,6 +659,11 @@ namespace ELRakhawy.DAL.Migrations
                     b.Navigation("PackagingStyleForms");
 
                     b.Navigation("StakeholderTypeForms");
+                });
+
+            modelBuilder.Entity("ELRakhawy.EL.Models.Manufacturers", b =>
+                {
+                    b.Navigation("YarnItems");
                 });
 
             modelBuilder.Entity("ELRakhawy.EL.Models.PackagingStyles", b =>

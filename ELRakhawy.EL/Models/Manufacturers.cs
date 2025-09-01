@@ -18,6 +18,7 @@ namespace ELRakhawy.EL.Models
 
         [Display(Name = "الوصف")]
         [MaxLength(500)]
+
         public string? Description { get; set; }
 
         [Display(Name = "الحالة")]

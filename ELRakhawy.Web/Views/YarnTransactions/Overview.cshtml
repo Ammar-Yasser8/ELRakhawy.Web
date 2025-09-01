@@ -157,7 +157,7 @@
                                 {
                                     <tr class="yarn-item-row" data-yarn-id="@item.YarnItemId"
                                         data-available="@item.IsAvailable.ToString().ToLower()"
-                                        data-search-text="@($"{item.YarnItemName} {item.OriginYarnName} {item.ManufacturerName}".ToLower())">
+                                        data-search-text="@($"{item.YarnItemName} {item.OriginYarnName} {item.ManufacturerNames}".ToLower())">
                                         <td>
                                             <div class="d-flex align-items-center">
                                                 <div class="me-2">
@@ -174,7 +174,7 @@
                                             </div>
                                         </td>
                                         <td>@(item.OriginYarnName ?? "غير محدد")</td>
-                                        <td>@(item.ManufacturerName ?? "غير محدد")</td>
+                                        <td>@(item.ManufacturerNames ?? "غير محدد")</td>
                                         <td>
                                             <span class="@(item.QuantityBalance > 0 ? "text-success" : "text-danger") fw-bold">
                                                 @item.QuantityBalance.ToString("N3")
@@ -221,11 +221,11 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                <button class="btn btn-outline-info"
+                                                @* <button class="btn btn-outline-info"
                                                         onclick="viewItemDetails(@item.YarnItemId, '@item.YarnItemName')"
                                                         title="عرض التفاصيل">
                                                     <i class="fas fa-eye"></i>
-                                                </button>
+                                                </button> *@
                                                 <a href="@Url.Action("Search", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
                                                    class="btn btn-outline-primary" title="البحث في المعاملات">
                                                     <i class="fas fa-search"></i>
@@ -375,6 +375,11 @@
             const availableOnly = $('#availableOnlyFilter').is(':checked');
             window.location.href = '@Url.Action("Overview", "YarnTransactions")?availableOnly=' + availableOnly;
         }
+          // Global variables
+        let currentYarnItemId = null;
+        let currentPage = 1;
+        let pageSize = 10;
+        let loadingTimeout = null;
 
         function viewItemDetails(yarnItemId, yarnItemName) {
             currentYarnItemId = yarnItemId;
@@ -387,13 +392,46 @@
         }
 
         function loadItemDetails() {
+            // Clear any existing timeout
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+            }
+
             $('#modalBody').html(`
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
                         <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <h6 class="text-muted">جاري تحميل تفاصيل الصنف...</h6>
+                    <div class="progress mt-3" style="height: 6px;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
                     </div>
                 </div>
             `);
+
+            // Simulate progress bar
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 30;
+                if (progress > 90) progress = 90;
+                $('.progress-bar').css('width', progress + '%');
+            }, 200);
+
+            // Set a timeout to show extended loading message
+            loadingTimeout = setTimeout(() => {
+                $('#modalBody').html(`
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-warning mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <h6 class="text-warning">يتم تحميل البيانات...</h6>
+                        <p class="text-muted small">قد يستغرق هذا بضع ثوانٍ إضافية بسبب حجم البيانات</p>
+                        <div class="progress mt-3" style="height: 6px;">
+                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 95%"></div>
+                        </div>
+                    </div>
+                `);
+            }, 5000);
 
             $.ajax({
                 url: '@Url.Action("ItemDetails", "YarnTransactions")',
@@ -403,200 +441,318 @@
                     page: currentPage,
                     pageSize: pageSize
                 },
+                timeout: 30000, // Increased to 30 seconds
+                cache: false, // Disable caching
+                beforeSend: function() {
+                    // Show loading state
+                    console.log(`Loading details for yarn item ${currentYarnItemId}, page ${currentPage}`);
+                },
                 success: function(response) {
-                    if (response.success) {
-                        renderItemDetails(response);
-                    } else {
-                        showError(response.message || 'حدث خطأ أثناء تحميل البيانات');
-                    }
+                    clearInterval(progressInterval);
+                    clearTimeout(loadingTimeout);
+                    $('.progress-bar').css('width', '100%');
+
+                    setTimeout(() => {
+                        if (response && response.success) {
+                            renderItemDetails(response);
+                        } else {
+                            showError(response?.message || 'حدث خطأ أثناء تحميل البيانات');
+                        }
+                    }, 300);
                 },
                 error: function(xhr, status, error) {
-                    console.error('Error loading item details:', error);
-                    showError('حدث خطأ أثناء تحميل البيانات');
+                    clearInterval(progressInterval);
+                    clearTimeout(loadingTimeout);
+
+                    console.error('Error loading item details:', {
+                        status: status,
+                        error: error,
+                        responseText: xhr.responseText,
+                        statusCode: xhr.status
+                    });
+
+                    let errorMessage = 'حدث خطأ أثناء تحميل البيانات';
+
+                    if (status === 'timeout') {
+                        errorMessage = 'انتهت مهلة الاتصال. البيانات قد تكون كبيرة الحجم، يرجى المحاولة مرة أخرى.';
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'لم يتم العثور على البيانات المطلوبة.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'حدث خطأ في الخادم. يرجى المحاولة لاحقاً أو الاتصال بالدعم الفني.';
+                    } else if (xhr.status === 0) {
+                        errorMessage = 'فشل في الاتصال بالخادم. يرجى التحقق من الاتصال بالإنترنت.';
+                    }
+
+                    showError(errorMessage);
+                },
+                complete: function() {
+                    clearInterval(progressInterval);
+                    clearTimeout(loadingTimeout);
                 }
             });
         }
 
         function renderItemDetails(data) {
-            const yarnItem = data.yarnItem;
-            const transactions = data.transactions;
-            const pagination = data.pagination;
+            try {
+                const yarnItem = data.yarnItem;
+                const transactions = data.transactions || [];
+                const pagination = data.pagination;
+                const currentTime = "2025-09-01 12:32:28";
 
-            let html = `
-                <!-- Item Summary -->
-                <div class="row mb-4">
-                    <div class="col-12">
-                        <div class="card border-info">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0">
-                                    <i class="fas fa-info me-2"></i>
-                                    معلومات الصنف
-                                </h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p><strong>اسم الصنف:</strong> ${yarnItem.name}</p>
-                                        <p><strong>الغزل الأصلي:</strong> ${yarnItem.originYarn || 'غير محدد'}</p>
-                                        <p><strong>الشركة المصنعة:</strong> ${yarnItem.manufacturer || 'غير محدد'}</p>
+                let html = `
+                    <!-- Item Summary -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-primary shadow-sm">
+                                <div class="card-header bg-primary text-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-info me-2"></i>
+                                            معلومات الصنف
+                                        </h6>
+                                        <small class="opacity-75">
+                                            <i class="fas fa-clock me-1"></i>
+                                            ${currentTime}
+                                        </small>
                                     </div>
-                                    <div class="col-md-6">
-                                        <div class="row text-center">
-                                            <div class="col-6">
-                                                <div class="border-end">
-                                                    <h5 class="text-${yarnItem.quantityBalance >= 0 ? 'success' : 'danger'}">${yarnItem.quantityBalance.toFixed(3)}</h5>
-                                                    <small class="text-muted">رصيد الكمية</small>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">اسم الصنف:</label>
+                                                <span class="ms-2">${yarnItem.Name || 'غير محدد'}</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">الغزل الأصلي:</label>
+                                                <span class="ms-2 text-muted">${yarnItem.OriginYarn || 'غير محدد'}</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">الشركة المصنعة:</label>
+                                                <span class="ms-2 text-muted">${yarnItem.Manufacturer || 'غير محدد'}</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="row text-center">
+                                                <div class="col-6">
+                                                    <div class="border-end pe-3">
+                                                        <h4 class="mb-1 ${(yarnItem.QuantityBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                            ${(yarnItem.QuantityBalance || 0).toFixed(3)}
+                                                        </h4>
+                                                        <small class="text-muted">رصيد الكمية (كجم)</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h4 class="mb-1 ${(yarnItem.CountBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                        ${yarnItem.CountBalance || 0}
+                                                    </h4>
+                                                    <small class="text-muted">رصيد العدد</small>
                                                 </div>
                                             </div>
-                                            <div class="col-6">
-                                                <h5 class="text-${yarnItem.countBalance >= 0 ? 'success' : 'danger'}">${yarnItem.countBalance}</h5>
-                                                <small class="text-muted">رصيد العدد</small>
+                                        </div>
+                                    </div>
+
+                                    <hr class="my-3">
+
+                                    <div class="row text-center">
+                                        <div class="col-md-2 col-6 mb-2">
+                                            <div class="bg-success bg-opacity-10 p-3 rounded">
+                                                <h6 class="text-success mb-1">${(yarnItem.TotalInbound || 0).toFixed(3)}</h6>
+                                                <small class="text-muted">إجمالي الوارد</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-6 mb-2">
+                                            <div class="bg-danger bg-opacity-10 p-3 rounded">
+                                                <h6 class="text-danger mb-1">${(yarnItem.TotalOutbound || 0).toFixed(3)}</h6>
+                                                <small class="text-muted">إجمالي الصادر</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-6 mb-2">
+                                            <div class="bg-info bg-opacity-10 p-3 rounded">
+                                                <h6 class="text-info mb-1">${yarnItem.TotalTransactions || 0}</h6>
+                                                <small class="text-muted">إجمالي المعاملات</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-2 col-6 mb-2">
+                                            <div class="bg-warning bg-opacity-10 p-3 rounded">
+                                                <h6 class="text-warning mb-1">${((yarnItem.TotalInbound || 0) - (yarnItem.TotalOutbound || 0)).toFixed(3)}</h6>
+                                                <small class="text-muted">الصافي</small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 col-12 mb-2">
+                                            <div class="p-3">
+                                                <span class="badge ${yarnItem.IsAvailable ? 'bg-success' : 'bg-danger'} fs-6 px-3 py-2">
+                                                    <i class="fas fa-${yarnItem.IsAvailable ? 'check-circle' : 'times-circle'} me-1"></i>
+                                                    ${yarnItem.IsAvailable ? 'متاح في المخزون' : 'غير متاح'}
+                                                </span>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-
-                                <div class="row mt-3 text-center">
-                                    <div class="col-md-3">
-                                        <h6 class="text-success">${yarnItem.totalInbound.toFixed(3)}</h6>
-                                        <small class="text-muted">إجمالي الوارد</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <h6 class="text-danger">${yarnItem.totalOutbound.toFixed(3)}</h6>
-                                        <small class="text-muted">إجمالي الصادر</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <h6 class="text-info">${yarnItem.totalTransactions}</h6>
-                                        <small class="text-muted">إجمالي المعاملات</small>
-                                    </div>
-                                    <div class="col-md-3">
-                                        <span class="badge ${yarnItem.isAvailable ? 'bg-success' : 'bg-danger'} fs-6">
-                                            ${yarnItem.isAvailable ? 'متاح' : 'غير متاح'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            if (transactions.length > 0) {
-                html += `
-                    <!-- Recent Transactions -->
-                    <div class="row">
-                        <div class="col-12">
-                            <h6 class="mb-3">
-                                <i class="fas fa-history me-2"></i>
-                                المعاملات الأخيرة
-                                <small class="text-muted">(الصفحة ${pagination.currentPage} من ${pagination.totalPages})</small>
-                            </h6>
-
-                            <div class="table-responsive">
-                                <table class="table table-sm table-striped">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>رقم المعاملة</th>
-                                            <th>التاريخ</th>
-                                            <th>النوع</th>
-                                            <th>الكمية</th>
-                                            <th>العدد</th>
-                                            <th>التاجر</th>
-                                            <th>رصيد الكمية</th>
-                                            <th>ملاحظات</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                `;
-
-                transactions.forEach(function(transaction) {
-                    html += `
-                        <tr>
-                            <td>
-                                <span class="fw-bold">${transaction.TransactionId}</span>
-                                ${transaction.InternalId ? `<br><small class="text-muted">داخلي: ${transaction.InternalId}</small>` : ''}
-                            </td>
-                            <td>${new Date(transaction.Date).toLocaleDateString('ar-EG')}</td>
-                            <td>
-                                <span class="badge ${transaction.IsInbound ? 'bg-success' : 'bg-danger'}">
-                                    ${transaction.IsInbound ? 'وارد' : 'صادر'}
-                                </span>
-                            </td>
-                            <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'}">${transaction.Quantity.toFixed(3)}</td>
-                            <td>${transaction.Count}</td>
-                            <td>
-                                <div>
-                                    <small class="text-muted">${transaction.StakeholderTypeName}</small><br>
-                                    ${transaction.StakeholderName}
-                                </div>
-                            </td>
-                            <td class="fw-bold">${transaction.QuantityBalance.toFixed(3)}</td>
-                            <td>${transaction.Comment || ''}</td>
-                        </tr>
-                    `;
-                });
-
-                html += `
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
                 `;
 
-                // Add pagination if needed
-                if (pagination.totalPages > 1) {
+                if (transactions.length > 0) {
                     html += `
-                        <div class="row mt-3">
+                        <!-- Recent Transactions -->
+                        <div class="row">
                             <div class="col-12">
-                                <nav aria-label="تنقل المعاملات">
-                                    <ul class="pagination pagination-sm justify-content-center">
+                                <div class="card border-info shadow-sm">
+                                    <div class="card-header bg-info text-white">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="mb-0">
+                                                <i class="fas fa-history me-2"></i>
+                                                المعاملات الأخيرة
+                                            </h6>
+                                            <small class="opacity-75">
+                                                الصفحة ${pagination.CurrentPage} من ${pagination.TotalPages}
+                                            </small>
+                                        </div>
+                                    </div>
+                                    <div class="card-body p-0">
+                                        <div class="table-responsive">
+                                            <table class="table table-hover table-sm mb-0">
+                                                <thead class="table-dark">
+                                                    <tr>
+                                                        <th>رقم المعاملة</th>
+                                                        <th>التاريخ</th>
+                                                        <th>النوع</th>
+                                                        <th>الكمية</th>
+                                                        <th>العدد</th>
+                                                        <th>التاجر</th>
+                                                        <th>رصيد الكمية</th>
+                                                        <th>ملاحظات</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
                     `;
 
-                    if (pagination.hasPreviousPage) {
-                        html += `<li class="page-item">
-                            <a class="page-link" href="#" onclick="loadPage(${pagination.currentPage - 1})">السابق</a>
-                        </li>`;
-                    }
-
-                    for (let i = Math.max(1, pagination.currentPage - 2);
-                         i <= Math.min(pagination.totalPages, pagination.currentPage + 2);
-                         i++) {
-                        html += `<li class="page-item ${i === pagination.currentPage ? 'active' : ''}">
-                            <a class="page-link" href="#" onclick="loadPage(${i})">${i}</a>
-                        </li>`;
-                    }
-
-                    if (pagination.hasNextPage) {
-                        html += `<li class="page-item">
-                            <a class="page-link" href="#" onclick="loadPage(${pagination.currentPage + 1})">التالي</a>
-                        </li>`;
-                    }
+                    transactions.forEach(function(transaction) {
+                        const transactionDate = new Date(transaction.Date);
+                        html += `
+                            <tr>
+                                <td>
+                                    <div class="fw-bold text-primary small">${transaction.TransactionId || ''}</div>
+                                    ${transaction.InternalId ? `<small class="text-muted d-block">داخلي: ${transaction.InternalId}</small>` : ''}
+                                </td>
+                                <td>
+                                    <div class="fw-bold small">${transactionDate.toLocaleDateString('ar-EG')}</div>
+                                    <small class="text-muted">${transactionDate.toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'})}</small>
+                                </td>
+                                <td>
+                                    <span class="badge rounded-pill ${transaction.IsInbound ? 'bg-success' : 'bg-danger'} small">
+                                        ${transaction.IsInbound ? 'وارد' : 'صادر'}
+                                    </span>
+                                </td>
+                                <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'} fw-bold small">
+                                    ${(transaction.Quantity || 0).toFixed(3)}
+                                </td>
+                                <td class="fw-bold small">${transaction.Count || 0}</td>
+                                <td>
+                                    <div class="small text-muted">${transaction.StakeholderTypeName || ''}</div>
+                                    <div class="fw-bold small">${transaction.StakeholderName || ''}</div>
+                                </td>
+                                <td class="fw-bold text-primary small">${(transaction.QuantityBalance || 0).toFixed(3)}</td>
+                                <td class="small">
+                                    ${transaction.Comment ?
+                                        `<span class="text-muted" title="${transaction.Comment}">
+                                            ${transaction.Comment.length > 15 ? transaction.Comment.substring(0, 15) + '...' : transaction.Comment}
+                                        </span>` :
+                                        '<span class="text-muted">-</span>'
+                                    }
+                                </td>
+                            </tr>
+                        `;
+                    });
 
                     html += `
-                                    </ul>
-                                </nav>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Add pagination if needed
+                    if (pagination.TotalPages > 1) {
+                        html += `
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <nav aria-label="تنقل المعاملات">
+                                        <ul class="pagination pagination-sm justify-content-center mb-0">
+                        `;
+
+                        if (pagination.HasPreviousPage) {
+                            html += `<li class="page-item">
+                                <a class="page-link" href="#" onclick="loadPage(${pagination.CurrentPage - 1}); return false;">
+                                    <i class="fas fa-chevron-right me-1"></i>السابق
+                                </a>
+                            </li>`;
+                        }
+
+                        // Show page numbers (simplified for performance)
+                        const startPage = Math.max(1, pagination.CurrentPage - 1);
+                        const endPage = Math.min(pagination.TotalPages, pagination.CurrentPage + 1);
+
+                        for (let i = startPage; i <= endPage; i++) {
+                            html += `<li class="page-item ${i === pagination.CurrentPage ? 'active' : ''}">
+                                <a class="page-link" href="#" onclick="loadPage(${i}); return false;">${i}</a>
+                            </li>`;
+                        }
+
+                        if (pagination.HasNextPage) {
+                            html += `<li class="page-item">
+                                <a class="page-link" href="#" onclick="loadPage(${pagination.CurrentPage + 1}); return false;">
+                                    التالي<i class="fas fa-chevron-left ms-1"></i>
+                                </a>
+                            </li>`;
+                        }
+
+                        html += `
+                                        </ul>
+                                    </nav>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    html += `
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info text-center py-4">
+                                    <i class="fas fa-info-circle fa-2x mb-3 text-info"></i>
+                                    <h6 class="mb-2">لا توجد معاملات</h6>
+                                    <p class="mb-0 text-muted small">لم يتم تسجيل أي معاملات لهذا الصنف حتى الآن.</p>
+                                </div>
                             </div>
                         </div>
                     `;
                 }
-            } else {
-                html += `
-                    <div class="alert alert-info text-center">
-                        <i class="fas fa-info-circle fa-2x mb-3"></i>
-                        <h6>لا توجد معاملات</h6>
-                        <p>لم يتم تسجيل أي معاملات لهذا الصنف حتى الآن.</p>
-                    </div>
-                `;
-            }
 
-            $('#modalBody').html(html);
+                $('#modalBody').html(html);
 
-            // Update "See More" button
-            if (pagination.totalTransactions > 10) {
-                $('#seeMoreBtn').show();
-            } else {
-                $('#seeMoreBtn').hide();
+                // Update "See More" button visibility
+                if (pagination.TotalTransactions > pageSize) {
+                    $('#seeMoreBtn').show().off('click').on('click', function() {
+                        seeMoreTransactions();
+                    });
+                } else {
+                    $('#seeMoreBtn').hide();
+                }
+
+                // Initialize tooltips
+                $('[title]').tooltip({
+                    placement: 'top',
+                    trigger: 'hover'
+                });
+
+            } catch (error) {
+                console.error('Error rendering item details:', error);
+                showError('حدث خطأ أثناء عرض البيانات');
             }
         }
 
@@ -607,9 +763,38 @@
 
         function seeMoreTransactions() {
             $('#itemDetailsModal').modal('hide');
-            window.location.href = `@Url.Action("Search", "YarnTransactions")?YarnItemId=${currentYarnItemId}`;
+
+            const searchUrl = `@Url.Action("Search", "YarnTransactions")?YarnItemId=${currentYarnItemId}&FromDate=${new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0]}&ToDate=${new Date().toISOString().split('T')[0]}`;
+
+            window.location.href = searchUrl;
         }
 
+        function showError(message) {
+            $('#modalBody').html(`
+                <div class="alert alert-danger text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3 text-danger"></i>
+                    <h5 class="mb-2">حدث خطأ</h5>
+                    <p class="mb-3">${message}</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="loadItemDetails()">
+                            <i class="fas fa-redo me-1"></i>إعادة المحاولة
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>إغلاق
+                        </button>
+                    </div>
+                </div>
+            `);
+        }
+
+        // Clean up on modal close
+        $('#itemDetailsModal').on('hidden.bs.modal', function () {
+            if (loadingTimeout) {
+                clearTimeout(loadingTimeout);
+            }
+            currentYarnItemId = null;
+            currentPage = 1;
+        });
         // Export functions
         function exportToExcel() {
             showLoadingOverlay();

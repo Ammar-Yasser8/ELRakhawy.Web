@@ -24,11 +24,8 @@ namespace ELRakhawy.EL.Models
         [InverseProperty("OriginYarn")]
         public virtual ICollection<YarnItem> DerivedYarns { get; set; } = new List<YarnItem>(); // الأصناف المشتقة (أبناء)
 
-        [Display(Name = "الشركة المصنعة")]
-        public int? ManufacturerId { get; set; }
+        public virtual ICollection<Manufacturers> Manufacturers { get; set; } = new List<Manufacturers>();
 
-        [ForeignKey("ManufacturerId")]
-        public virtual Manufacturers Manufacturer { get; set; }
 
         [Required(ErrorMessage = "الحالة مطلوبة")]
         [Display(Name = "الحالة")]

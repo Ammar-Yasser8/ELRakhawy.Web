@@ -30,15 +30,15 @@ namespace ELRakhawy.EL.ViewModels
         [Display(Name = "رصيد العدد الحالي")]
         public int CurrentCountBalance { get; set; }
 
-        [Display(Name = "الشركة المصنعة")]
-        public string? ManufacturerName { get; set; }
+        // Updated for many-to-many
+        [Display(Name = "الشركات المصنعة")]
+        public List<string> ManufacturerNames { get; set; } = new List<string>();
+
+        [Display(Name = "الشركات المصنعة")]
+        public List<int> ManufacturerIds { get; set; } = new List<int>();
 
         [Display(Name = "الغزل المكون")]
         public string? OriginYarnName { get; set; }
-
-        // Dropdown properties
-        [Display(Name = "الشركة المصنعة")]
-        public int? ManufacturerId { get; set; }
 
         [Display(Name = "الغزل المكون")]
         public int? OriginYarnId { get; set; }

@@ -4,6 +4,7 @@ using Elrakhawy.DAL.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ELRakhawy.DAL.Migrations
 {
     [DbContext(typeof(AppDBContext))]
-    partial class AppDBContextModelSnapshot : ModelSnapshot
+    [Migration("20250831223510_Edittables")]
+    partial class Edittables
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -376,6 +379,9 @@ namespace ELRakhawy.DAL.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("ManufacturerId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("OriginYarnId")
                         .HasColumnType("int");
 
@@ -383,6 +389,8 @@ namespace ELRakhawy.DAL.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ManufacturerId");
 
                     b.HasIndex("OriginYarnId");
 
@@ -459,21 +467,6 @@ namespace ELRakhawy.DAL.Migrations
                     b.HasIndex("YarnItemId");
 
                     b.ToTable("YarnTransactions");
-                });
-
-            modelBuilder.Entity("ManufacturersYarnItem", b =>
-                {
-                    b.Property<int>("ManufacturersId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("YarnItemsId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ManufacturersId", "YarnItemsId");
-
-                    b.HasIndex("YarnItemsId");
-
-                    b.ToTable("YarnItemManufacturers", (string)null);
                 });
 
             modelBuilder.Entity("ELRakhawy.EL.Models.FullWarpBeam", b =>
@@ -593,11 +586,17 @@ namespace ELRakhawy.DAL.Migrations
 
             modelBuilder.Entity("ELRakhawy.EL.Models.YarnItem", b =>
                 {
+                    b.HasOne("ELRakhawy.EL.Models.Manufacturers", "Manufacturer")
+                        .WithMany("YarnItems")
+                        .HasForeignKey("ManufacturerId");
+
                     b.HasOne("ELRakhawy.EL.Models.YarnItem", "OriginYarn")
                         .WithMany("DerivedYarns")
                         .HasForeignKey("OriginYarnId")
                         .OnDelete(DeleteBehavior.NoAction)
                         .HasConstraintName("FK_YarnItems_OriginYarn");
+
+                    b.Navigation("Manufacturer");
 
                     b.Navigation("OriginYarn");
                 });
@@ -641,21 +640,6 @@ namespace ELRakhawy.DAL.Migrations
                     b.Navigation("YarnItem");
                 });
 
-            modelBuilder.Entity("ManufacturersYarnItem", b =>
-                {
-                    b.HasOne("ELRakhawy.EL.Models.Manufacturers", null)
-                        .WithMany()
-                        .HasForeignKey("ManufacturersId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ELRakhawy.EL.Models.YarnItem", null)
-                        .WithMany()
-                        .HasForeignKey("YarnItemsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("ELRakhawy.EL.Models.FinancialTransactionType", b =>
                 {
                     b.Navigation("StakeholderTypes");
@@ -666,6 +650,11 @@ namespace ELRakhawy.DAL.Migrations
                     b.Navigation("PackagingStyleForms");
 
                     b.Navigation("StakeholderTypeForms");
+                });
+
+            modelBuilder.Entity("ELRakhawy.EL.Models.Manufacturers", b =>
+                {
+                    b.Navigation("YarnItems");
                 });
 
             modelBuilder.Entity("ELRakhawy.EL.Models.PackagingStyles", b =>

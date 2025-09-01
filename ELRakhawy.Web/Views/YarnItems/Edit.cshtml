@@ -114,13 +114,13 @@
                         <div class="row g-3">
                             <!-- Manufacturer -->
                             <div class="col-md-6">
-                                <label asp-for="ManufacturerId" class="form-label fw-semibold">
+                                <label asp-for="ManufacturerIds" class="form-label fw-semibold">
                                     <i class="fas fa-industry text-success me-1"></i>الشركة المصنعة
                                 </label>
-                                <select asp-for="ManufacturerId" asp-items="Model.Manufacturers"
+                                <select asp-for="ManufacturerIds" asp-items="Model.Manufacturers"
                                         class="form-select form-select-lg" id="manufacturerSelect">
                                 </select>
-                                <span asp-validation-for="ManufacturerId" class="text-danger"></span>
+                                <span asp-validation-for="ManufacturerIds" class="text-danger"></span>
                                 <div class="form-text">
                                     <i class="fas fa-info me-1"></i>اختياري - يمكن تركه فارغاً
                                 </div>
@@ -457,7 +457,12 @@
                                 <i class="fas fa-industry fa-2x"></i>
                             </div>
                             <h6 class="text-warning mb-1">
-                                @(Model.ManufacturerName ?? "غير محدد")
+                               
+                                @(
+                                    Model.ManufacturerNames != null && Model.ManufacturerNames.Any()
+                                        ? string.Join(", ", Model.ManufacturerNames)
+                                        : "غير محدد"
+                                )
                             </h6>
                             <small class="text-muted">الشركة المصنعة</small>
                         </div>

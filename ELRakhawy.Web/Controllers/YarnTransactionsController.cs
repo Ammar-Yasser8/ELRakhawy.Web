@@ -168,332 +168,23 @@ namespace ELRakhawy.Web.Controllers
                     ToDate = DateTime.Today,
                     AvailableItems = GetActiveYarnItems(),
                     StakeholderTypes = GetStakeholderTypes(),
+                    YarnStakeholders = GetYarnStakeholders(), // New method for yarn-related stakeholders
                     Results = new List<YarnTransactionViewModel>()
                 };
 
                 _logger.LogInformation("Yarn transaction search form loaded by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-08-12 02:13:55");
+                    "Ammar-Yasser8", "2025-09-01 12:04:03");
 
                 return View(viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading yarn transaction search form by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-08-12 02:13:55");
+                    "Ammar-Yasser8", "2025-09-01 12:04:03");
                 TempData["Error"] = "حدث خطأ أثناء تحميل صفحة البحث";
                 return RedirectToAction("Index", "YarnItems");
             }
         }
-
-        // GET: YarnTransactions/Overview
-        public IActionResult Overview(bool availableOnly = false)
-        {
-            try
-            {
-                var currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                var currentUser = "Ammar-Yasser8";
-
-                _logger.LogInformation("Yarn overview page loaded by {User} at {Time} - Available only: {AvailableOnly}",
-                    currentUser, currentTime, availableOnly);
-
-                // Get all active yarn items with their transactions
-                var yarnItems = _unitOfWork.Repository<YarnItem>()
-                    .GetAll(includeEntities: "OriginYarn,Manufacturer")
-                    .Where(y => y.Status)
-                    .ToList();
-
-                var overviewItems = new List<YarnOverviewItemViewModel>();
-
-                foreach (var yarnItem in yarnItems)
-                {
-                    // Get all transactions for this yarn item
-                    var transactions = _unitOfWork.Repository<YarnTransaction>()
-                        .GetAll(t => t.YarnItemId == yarnItem.Id)
-                        .ToList();
-
-                    // Calculate balances
-                    var quantityBalance = transactions.Sum(t => t.Inbound - t.Outbound);
-                    var countBalance = transactions.Sum(t =>
-                        (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0));
-
-                    // Get latest transaction date
-                    var lastTransactionDate = transactions.Any() ?
-                        transactions.Max(t => t.Date) : (DateTime?)null;
-
-                    // Get transaction counts
-                    var totalTransactions = transactions.Count;
-                    var inboundTransactions = transactions.Count(t => t.Inbound > 0);
-                    var outboundTransactions = transactions.Count(t => t.Outbound > 0);
-
-                    var overviewItem = new YarnOverviewItemViewModel
-                    {
-                        YarnItemId = yarnItem.Id,
-                        YarnItemName = yarnItem.Item,
-                        OriginYarnName = yarnItem.OriginYarn?.Item,
-                        ManufacturerName = yarnItem.Manufacturer?.Name,
-                        QuantityBalance = quantityBalance,
-                        CountBalance = countBalance,
-                        LastTransactionDate = lastTransactionDate,
-                        TotalTransactions = totalTransactions,
-                        InboundTransactions = inboundTransactions,
-                        OutboundTransactions = outboundTransactions,
-                        IsAvailable = quantityBalance > 0,
-                        Status = yarnItem.Status
-                    };
-
-                    overviewItems.Add(overviewItem);
-                }
-
-                // Apply available filter if requested
-                if (availableOnly)
-                {
-                    overviewItems = overviewItems.Where(item => item.IsAvailable).ToList();
-                }
-
-                // Order by quantity balance descending, then by yarn item name
-                overviewItems = overviewItems
-                    .OrderByDescending(item => item.QuantityBalance)
-                    .ThenBy(item => item.YarnItemName)
-                    .ToList();
-
-                var viewModel = new YarnOverviewViewModel
-                {
-                    OverviewItems = overviewItems,
-                    AvailableOnly = availableOnly,
-                    TotalItems = overviewItems.Count,
-                    AvailableItems = overviewItems.Count(item => item.IsAvailable),
-                    TotalQuantityBalance = overviewItems.Sum(item => item.QuantityBalance),
-                    TotalCountBalance = overviewItems.Sum(item => item.CountBalance),
-                    LastUpdated = DateTime.Now
-                };
-
-                _logger.LogInformation("Yarn overview completed by {User} at {Time} - Found {Count} items, Available: {Available}",
-                    currentUser, currentTime, viewModel.TotalItems, viewModel.AvailableItems);
-
-                return View(viewModel);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading yarn overview by {User} at {Time}",
-                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                TempData["Error"] = "حدث خطأ أثناء تحميل نظرة عامة على الغزل";
-                return RedirectToAction("Index", "YarnItems");
-            }
-        }
-
-        // GET: YarnTransactions/ItemDetails/{id}
-        public IActionResult ItemDetails(int id, int page = 1, int pageSize = 10)
-        {
-            try
-            {
-                var currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
-                var currentUser = "Ammar-Yasser8";
-
-                _logger.LogInformation("Yarn item details requested for item {ItemId} by {User} at {Time}",
-                    id, currentUser, currentTime);
-
-                // Get yarn item details
-                var yarnItem = _unitOfWork.Repository<YarnItem>()
-                    .GetAll(includeEntities: "OriginYarn,Manufacturer")
-                    .FirstOrDefault(y => y.Id == id && y.Status);
-
-                if (yarnItem == null)
-                {
-                    return Json(new { success = false, message = "لم يتم العثور على الصنف المطلوب" });
-                }
-
-                // Get transactions with pagination
-                var allTransactions = _unitOfWork.Repository<YarnTransaction>()
-                    .GetAll(includeEntities: "StakeholderType,Stakeholder,PackagingStyle")
-                    .Where(t => t.YarnItemId == id)
-                    .OrderByDescending(t => t.Date)
-                    .ThenByDescending(t => t.Id)
-                    .ToList();
-
-                var totalTransactions = allTransactions.Count;
-                var transactions = allTransactions
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .Select(t => new
-                    {
-                        transactionId = t.TransactionId,
-                        internalId = t.InternalId,
-                        externalId = t.ExternalId,
-                        quantity = t.Inbound > 0 ? t.Inbound : (t.Outbound > 0 ? t.Outbound : 0),
-                        isInbound = t.Inbound > 0,
-                        count = t.Count,
-                        stakeholderTypeName = t.StakeholderType?.Type ?? "غير محدد",
-                        stakeholderName = t.Stakeholder?.Name ?? "غير محدد",
-                        packagingStyleName = t.PackagingStyle?.StyleName ?? "غير محدد",
-                        quantityBalance = t.QuantityBalance,
-                        date = t.Date,
-                        comment = t.Comment
-                    })
-                    .ToList();
-
-                // Calculate summary statistics
-                var quantityBalance = allTransactions.Sum(t => t.Inbound - t.Outbound);
-                var countBalance = allTransactions.Sum(t =>
-                    (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0));
-                var totalInbound = allTransactions.Sum(t => t.Inbound);
-                var totalOutbound = allTransactions.Sum(t => t.Outbound);
-
-                var result = new
-                {
-                    success = true,
-                    yarnItem = new
-                    {
-                        id = yarnItem.Id,
-                        name = yarnItem.Item,
-                        originYarn = yarnItem.OriginYarn?.Item,
-                        manufacturer = yarnItem.Manufacturer?.Name,
-                        quantityBalance = quantityBalance,
-                        countBalance = countBalance,
-                        totalInbound = totalInbound,
-                        totalOutbound = totalOutbound,
-                        totalTransactions = totalTransactions,
-                        isAvailable = quantityBalance > 0
-                    },
-                    transactions = transactions,
-                    pagination = new
-                    {
-                        currentPage = page,
-                        pageSize = pageSize,
-                        totalPages = (int)Math.Ceiling((double)totalTransactions / pageSize),
-                        totalTransactions = totalTransactions,
-                        hasNextPage = page * pageSize < totalTransactions,
-                        hasPreviousPage = page > 1
-                    }
-                };
-
-                return Json(result);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting yarn item details for item {ItemId} by {User} at {Time}",
-                    id, "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                return Json(new { success = false, message = "حدث خطأ أثناء تحميل تفاصيل الصنف" });
-            }
-        }
-
-        // POST: YarnTransactions/ShareWhatsApp
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult ShareWhatsApp(bool availableOnly = false)
-        {
-            try
-            {
-                var overviewData = GetOverviewData(availableOnly);
-                var message = GenerateWhatsAppMessage(overviewData);
-
-                return Json(new { success = true, message = message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error generating WhatsApp message by {User} at {Time}",
-                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
-                return Json(new { success = false, message = "حدث خطأ أثناء إنشاء رسالة واتساب" });
-            }
-        }
-
-        // Helper method to get overview data
-        private List<YarnOverviewItemViewModel> GetOverviewData(bool availableOnly)
-        {
-            var yarnItems = _unitOfWork.Repository<YarnItem>()
-                .GetAll(includeEntities: "OriginYarn,Manufacturer")
-                .Where(y => y.Status)
-                .ToList();
-
-            var overviewItems = new List<YarnOverviewItemViewModel>();
-
-            foreach (var yarnItem in yarnItems)
-            {
-                var transactions = _unitOfWork.Repository<YarnTransaction>()
-                    .GetAll(t => t.YarnItemId == yarnItem.Id)
-                    .ToList();
-
-                var quantityBalance = transactions.Sum(t => t.Inbound - t.Outbound);
-                var countBalance = transactions.Sum(t =>
-                    (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0));
-
-                var overviewItem = new YarnOverviewItemViewModel
-                {
-                    YarnItemId = yarnItem.Id,
-                    YarnItemName = yarnItem.Item,
-                    OriginYarnName = yarnItem.OriginYarn?.Item,
-                    ManufacturerName = yarnItem.Manufacturer?.Name,
-                    QuantityBalance = quantityBalance,
-                    CountBalance = countBalance,
-                    IsAvailable = quantityBalance > 0,
-                    TotalTransactions = transactions.Count,
-                    LastTransactionDate = transactions.Any() ? transactions.Max(t => t.Date) : (DateTime?)null
-                };
-
-                if (!availableOnly || overviewItem.IsAvailable)
-                {
-                    overviewItems.Add(overviewItem);
-                }
-            }
-
-            return overviewItems.OrderByDescending(item => item.QuantityBalance)
-                               .ThenBy(item => item.YarnItemName)
-                               .ToList();
-        }
-
- 
-        private byte[] GenerateExcelOverview(List<YarnOverviewItemViewModel> data)
-        {
-            using (var package = new ExcelPackage())
-            {
-                var worksheet = package.Workbook.Worksheets.Add("Yarn Overview");
-
-                // Add headers
-                worksheet.Cells[1, 1].Value = "صنف الغزل";
-                worksheet.Cells[1, 2].Value = "الغزل الأصلي";
-                // Add more headers...
-
-                // Add data
-                for (int i = 0; i < data.Count; i++)
-                {
-                    worksheet.Cells[i + 2, 1].Value = data[i].YarnItemName;
-                    worksheet.Cells[i + 2, 2].Value = data[i].OriginYarnName;
-                    // Add more data...
-                }
-
-                return package.GetAsByteArray();
-            }
-        }
-
-        private string GenerateWhatsAppMessage(List<YarnOverviewItemViewModel> data)
-        {
-            var message = new StringBuilder();
-            message.AppendLine("📊 *نظرة عامة على أرصدة الغزل*");
-            message.AppendLine($"📅 تاريخ التقرير: {DateTime.Now:dd/MM/yyyy HH:mm}");
-            message.AppendLine("━━━━━━━━━━━━━━━━━━━━");
-
-            var availableItems = data.Where(item => item.IsAvailable).ToList();
-            message.AppendLine($"📈 إجمالي الأصناف: {data.Count}");
-            message.AppendLine($"✅ الأصناف المتاحة: {availableItems.Count}");
-            message.AppendLine($"📦 إجمالي الكمية: {data.Sum(item => item.QuantityBalance):N2}");
-            message.AppendLine();
-
-            if (availableItems.Any())
-            {
-                message.AppendLine("*الأصناف المتاحة:*");
-                foreach (var item in availableItems.Take(10))
-                {
-                    message.AppendLine($"• {item.YarnItemName}: {item.QuantityBalance:N2}");
-                }
-
-                if (availableItems.Count > 10)
-                {
-                    message.AppendLine($"... و {availableItems.Count - 10} صنف آخر");
-                }
-            }
-
-            return message.ToString();
-        }
-
 
         // POST: YarnTransactions/Search 
         [HttpPost]
@@ -501,7 +192,7 @@ namespace ELRakhawy.Web.Controllers
         {
             try
             {
-                var currentTime = "2025-08-12 11:37:18";
+                var currentTime = "2025-09-01 12:04:03";
                 var currentUser = "Ammar-Yasser8";
 
                 _logger.LogInformation("Enhanced yarn transaction search initiated by {User} at {Time} with criteria: {@SearchCriteria}",
@@ -516,11 +207,15 @@ namespace ELRakhawy.Web.Controllers
                         model.StakeholderId
                     });
 
+                // Get yarn-related stakeholder IDs first
+                var yarnStakeholderIds = GetYarnStakeholderIds();
+
                 var query = _unitOfWork.Repository<YarnTransaction>()
-                    .GetAll(includeEntities: "YarnItem,StakeholderType,Stakeholder,PackagingStyle,YarnItem.OriginYarn,YarnItem.Manufacturer")
+                    .GetAll(includeEntities: "YarnItem,StakeholderType,Stakeholder,PackagingStyle,YarnItem.OriginYarn,YarnItem.Manufacturers")
+                    .Where(t => yarnStakeholderIds.Contains(t.StakeholderId)) // Filter by yarn stakeholders only
                     .AsEnumerable();
 
-                // Apply enhanced filters
+                // Apply date filters
                 if (model.FromDate.HasValue)
                 {
                     query = query.Where(t => t.Date.Date >= model.FromDate.Value.Date);
@@ -548,7 +243,7 @@ namespace ELRakhawy.Web.Controllers
                 if (model.StakeholderId.HasValue)
                 {
                     query = query.Where(t => t.StakeholderId == model.StakeholderId.Value);
-                    _logger.LogDebug("Applied StakeholderId filter: {StakeholderId}", model.StakeholderId.Value);
+                    _logger.LogDebug("Applied specific StakeholderId filter: {StakeholderId}", model.StakeholderId.Value);
                 }
 
                 if (!string.IsNullOrEmpty(model.TransactionId))
@@ -605,17 +300,22 @@ namespace ELRakhawy.Web.Controllers
                 // Reload dropdown data
                 model.AvailableItems = GetActiveYarnItems();
                 model.StakeholderTypes = GetStakeholderTypes();
+                model.YarnStakeholders = GetYarnStakeholders();
 
                 // Set search performed flag
                 ViewBag.SearchPerformed = true;
 
-                _logger.LogInformation("Enhanced yarn transaction search completed by {User} at {Time} - Found {Count} results, TotalInbound: {TotalInbound}, TotalOutbound: {TotalOutbound}, NetBalance: {NetBalance}",
+                _logger.LogInformation("Enhanced yarn transaction search completed by {User} at {Time} - Found {Count} yarn-related results, TotalInbound: {TotalInbound}, TotalOutbound: {TotalOutbound}, NetBalance: {NetBalance}",
                     currentUser, currentTime, results.Count, model.TotalInbound, model.TotalOutbound, model.NetBalance);
 
                 // Add success message if results found
                 if (results.Any())
                 {
-                    TempData["Success"] = $"تم العثور على {results.Count} معاملة مطابقة لمعايير البحث";
+                    TempData["Success"] = $"تم العثور على {results.Count} معاملة غزل مطابقة لمعايير البحث";
+                }
+                else
+                {
+                    TempData["Info"] = "لم يتم العثور على معاملات غزل مطابقة لمعايير البحث المحددة";
                 }
 
                 return View(model);
@@ -623,7 +323,7 @@ namespace ELRakhawy.Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in enhanced yarn transaction search by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-08-12 11:37:18");
+                    "Ammar-Yasser8", "2025-09-01 12:04:03");
 
                 TempData["Error"] = "حدث خطأ أثناء البحث في معاملات الغزل";
 
@@ -631,12 +331,420 @@ namespace ELRakhawy.Web.Controllers
                 model.Results = new List<YarnTransactionViewModel>();
                 model.AvailableItems = GetActiveYarnItems();
                 model.StakeholderTypes = GetStakeholderTypes();
+                model.YarnStakeholders = GetYarnStakeholders();
                 ViewBag.SearchPerformed = true;
 
                 return View(model);
             }
         }
 
+        // Helper method to get yarn stakeholder IDs based on form relationship
+        private List<int> GetYarnStakeholderIds()
+        {
+            try
+            {
+                // Find all form styles that contain "غزل" in FormName
+                var yarnFormIds = _unitOfWork.Repository<FormStyle>()
+                    .GetAll()
+                    .Where(f => f.FormName.Contains("غزل"))
+                    .Select(f => f.Id)
+                    .ToList();
+
+                if (!yarnFormIds.Any())
+                {
+                    _logger.LogWarning("No yarn forms found containing 'غزل' at {Time} by {User}",
+                        "2025-09-01 12:04:03", "Ammar-Yasser8");
+                    return new List<int>();
+                }
+
+                // Find stakeholder type IDs allowed for yarn forms
+                var allowedTypeIds = _unitOfWork.Repository<StakeholderType>()
+                    .GetAll(includeEntities: "StakeholderTypeForms")
+                    .Where(st => st.StakeholderTypeForms.Any(f => yarnFormIds.Contains(f.FormId)))
+                    .Select(st => st.Id)
+                    .ToList();
+
+                if (!allowedTypeIds.Any())
+                {
+                    _logger.LogWarning("No stakeholder types found for yarn forms at {Time} by {User}",
+                        "2025-09-01 12:04:03", "Ammar-Yasser8");
+                    return new List<int>();
+                }
+
+                // Get stakeholder IDs that have the allowed types and are active
+                var stakeholderIds = _unitOfWork.Repository<StakeholdersInfo>()
+                    .GetAll(includeEntities: "StakeholderInfoTypes")
+                    .Where(s => s.Status &&
+                               s.StakeholderInfoTypes.Any(st => allowedTypeIds.Contains(st.StakeholderTypeId)))
+                    .Select(s => s.Id)
+                    .ToList();
+
+                _logger.LogInformation("Found {Count} yarn-related stakeholders at {Time} by {User}",
+                    stakeholderIds.Count, "2025-09-01 12:04:03", "Ammar-Yasser8");
+
+                return stakeholderIds;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting yarn stakeholder IDs by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-09-01 12:04:03");
+                return new List<int>();
+            }
+        }
+
+        // Helper method to get yarn stakeholders for dropdown
+        private SelectList GetYarnStakeholders()
+        {
+            try
+            {
+                var yarnStakeholderIds = GetYarnStakeholderIds();
+
+                var yarnStakeholders = _unitOfWork.Repository<StakeholdersInfo>()
+                    .GetAll()
+                    .Where(s => yarnStakeholderIds.Contains(s.Id))
+                    .OrderBy(s => s.Name)
+                    .Select(s => new {
+                        Value = s.Id,
+                        Text = s.Name
+                    })
+                    .ToList();
+
+                return new SelectList(yarnStakeholders, "Value", "Text");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting yarn stakeholders dropdown by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-09-01 12:04:03");
+                return new SelectList(new List<object>(), "Value", "Text");
+            }
+        }
+
+        // GET: YarnTransactions/Overview
+        public IActionResult Overview(bool availableOnly = false)
+        {
+            try
+            {
+                var currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+                var currentUser = "Ammar-Yasser8";
+
+                _logger.LogInformation("Yarn overview page loaded by {User} at {Time} - Available only: {AvailableOnly}",
+                    currentUser, currentTime, availableOnly);
+
+                // Get all active yarn items with their transactions and manufacturers
+                var yarnItems = _unitOfWork.Repository<YarnItem>()
+                    .GetAll(includeEntities: "OriginYarn,Manufacturers")
+                    .Where(y => y.Status)
+                    .ToList();
+
+                var overviewItems = new List<YarnOverviewItemViewModel>();
+
+                foreach (var yarnItem in yarnItems)
+                {
+                    // Get all transactions for this yarn item
+                    var transactions = _unitOfWork.Repository<YarnTransaction>()
+                        .GetAll(t => t.YarnItemId == yarnItem.Id)
+                        .ToList();
+
+                    // Calculate balances
+                    var quantityBalance = transactions.Sum(t => t.Inbound - t.Outbound);
+                    var countBalance = transactions.Sum(t =>
+                        (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0));
+
+                    // Get latest transaction date
+                    var lastTransactionDate = transactions.Any() ?
+                        transactions.Max(t => t.Date) : (DateTime?)null;
+
+                    // Get transaction counts
+                    var totalTransactions = transactions.Count;
+                    var inboundTransactions = transactions.Count(t => t.Inbound > 0);
+                    var outboundTransactions = transactions.Count(t => t.Outbound > 0);
+
+                    // Get all manufacturer names
+                    var manufacturerNames = yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any()
+                        ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
+                        : null;
+
+                    var overviewItem = new YarnOverviewItemViewModel
+                    {
+                        YarnItemId = yarnItem.Id,
+                        YarnItemName = yarnItem.Item,
+                        OriginYarnName = yarnItem.OriginYarn?.Item,
+                        ManufacturerNames = manufacturerNames, // updated field
+                        QuantityBalance = quantityBalance,
+                        CountBalance = countBalance,
+                        LastTransactionDate = lastTransactionDate,
+                        TotalTransactions = totalTransactions,
+                        InboundTransactions = inboundTransactions,
+                        OutboundTransactions = outboundTransactions,
+                        IsAvailable = quantityBalance > 0,
+                        Status = yarnItem.Status
+                    };
+
+                    overviewItems.Add(overviewItem);
+                }
+
+                // Apply available filter if requested
+                if (availableOnly)
+                {
+                    overviewItems = overviewItems.Where(item => item.IsAvailable).ToList();
+                }
+
+                // Order by quantity balance descending, then by yarn item name
+                overviewItems = overviewItems
+                    .OrderByDescending(item => item.QuantityBalance)
+                    .ThenBy(item => item.YarnItemName)
+                    .ToList();
+
+                var viewModel = new YarnOverviewViewModel
+                {
+                    OverviewItems = overviewItems,
+                    AvailableOnly = availableOnly,
+                    TotalItems = overviewItems.Count,
+                    AvailableItems = overviewItems.Count(item => item.IsAvailable),
+                    TotalQuantityBalance = overviewItems.Sum(item => item.QuantityBalance),
+                    TotalCountBalance = overviewItems.Sum(item => item.CountBalance),
+                    LastUpdated = DateTime.Now
+                };
+
+                _logger.LogInformation("Yarn overview completed by {User} at {Time} - Found {Count} items, Available: {Available}",
+                    currentUser, currentTime, viewModel.TotalItems, viewModel.AvailableItems);
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading yarn overview by {User} at {Time}",
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                TempData["Error"] = "حدث خطأ أثناء تحميل نظرة عامة على الغزل";
+                return RedirectToAction("Index", "YarnItems");
+            }
+        }
+        // GET: YarnTransactions/ItemDetails/{id}
+        public IActionResult ItemDetails(int id, int page = 1, int pageSize = 10)
+        {
+            try
+            {
+                var currentTime = "2025-09-01 12:25:35";
+                var currentUser = "Ammar-Yasser8";
+
+                _logger.LogInformation("Yarn item details requested for item {ItemId} by {User} at {Time}",
+                    id, currentUser, currentTime);
+
+                // Get yarn item details with proper includes
+                var yarnItem = _unitOfWork.Repository<YarnItem>()
+                    .GetAll(includeEntities: "OriginYarn,Manufacturers")
+                    .FirstOrDefault(y => y.Id == id && y.Status);
+
+                if (yarnItem == null)
+                {
+                    _logger.LogWarning("Yarn item {ItemId} not found by {User} at {Time}",
+                        id, currentUser, currentTime);
+                    return Json(new { success = false, message = "لم يتم العثور على الصنف المطلوب" });
+                }
+
+                // Get transactions with pagination
+                var allTransactions = _unitOfWork.Repository<YarnTransaction>()
+                    .GetAll(includeEntities: "StakeholderType,Stakeholder,PackagingStyle")
+                    .Where(t => t.YarnItemId == id)
+                    .OrderByDescending(t => t.Date)
+                    .ThenByDescending(t => t.Id)
+                    .ToList();
+
+                var totalTransactions = allTransactions.Count;
+                var transactions = allTransactions
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(t => new
+                    {
+                        TransactionId = t.TransactionId,
+                        InternalId = t.InternalId,
+                        ExternalId = t.ExternalId,
+                        Quantity = t.Inbound > 0 ? t.Inbound : (t.Outbound > 0 ? t.Outbound : 0),
+                        IsInbound = t.Inbound > 0,
+                        Count = t.Count,
+                        StakeholderTypeName = t.StakeholderType?.Type ?? "غير محدد",
+                        StakeholderName = t.Stakeholder?.Name ?? "غير محدد",
+                        PackagingStyleName = t.PackagingStyle?.StyleName ?? "غير محدد",
+                        QuantityBalance = t.QuantityBalance,
+                        CountBalance = t.CountBalance,
+                        Date = t.Date,
+                        Comment = t.Comment ?? ""
+                    })
+                    .ToList();
+
+                // Calculate summary statistics
+                var quantityBalance = allTransactions.LastOrDefault()?.QuantityBalance ?? 0;
+                var countBalance = allTransactions.LastOrDefault()?.CountBalance ?? 0;
+                var totalInbound = allTransactions.Sum(t => t.Inbound);
+                var totalOutbound = allTransactions.Sum(t => t.Outbound);
+
+                var result = new
+                {
+                    success = true,
+                    yarnItem = new
+                    {
+                        Id = yarnItem.Id,
+                        Name = yarnItem.Item,
+                        OriginYarn = yarnItem.OriginYarn?.Item ?? "غير محدد",
+                        Manufacturer = (yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any())
+                            ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
+                            : "غير محدد",
+                        QuantityBalance = quantityBalance,
+                        CountBalance = countBalance,
+                        TotalInbound = totalInbound,
+                        TotalOutbound = totalOutbound,
+                        TotalTransactions = totalTransactions,
+                        IsAvailable = quantityBalance > 0
+                    },
+                    transactions = transactions,
+                    pagination = new
+                    {
+                        CurrentPage = page,
+                        PageSize = pageSize,
+                        TotalPages = (int)Math.Ceiling((double)totalTransactions / pageSize),
+                        TotalTransactions = totalTransactions,
+                        HasNextPage = page * pageSize < totalTransactions,
+                        HasPreviousPage = page > 1
+                    }
+                };
+
+                _logger.LogInformation("Yarn item details loaded successfully for item {ItemId} by {User} at {Time} - {TotalTransactions} transactions found",
+                    id, currentUser, currentTime, totalTransactions);
+
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting yarn item details for item {ItemId} by {User} at {Time}",
+                    id, "Ammar-Yasser8", "2025-09-01 12:25:35");
+                return Json(new
+                {
+                    success = false,
+                    message = "حدث خطأ أثناء تحميل تفاصيل الصنف. يرجى المحاولة مرة أخرى."
+                });
+            }
+        }
+
+        // POST: YarnTransactions/ShareWhatsApp
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ShareWhatsApp(bool availableOnly = false)
+        {
+            try
+            {
+                var overviewData = GetOverviewData(availableOnly);
+                var message = GenerateWhatsAppMessage(overviewData);
+
+                return Json(new { success = true, message = message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating WhatsApp message by {User} at {Time}",
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                return Json(new { success = false, message = "حدث خطأ أثناء إنشاء رسالة واتساب" });
+            }
+        }
+
+        // Helper method to get overview data
+        private List<YarnOverviewItemViewModel> GetOverviewData(bool availableOnly)
+        {
+            var yarnItems = _unitOfWork.Repository<YarnItem>()
+                .GetAll(includeEntities: "OriginYarn,Manufacturers")
+                .Where(y => y.Status)
+                .ToList();
+
+            var overviewItems = new List<YarnOverviewItemViewModel>();
+
+            foreach (var yarnItem in yarnItems)
+            {
+                var transactions = _unitOfWork.Repository<YarnTransaction>()
+                    .GetAll(t => t.YarnItemId == yarnItem.Id)
+                    .ToList();
+
+                var quantityBalance = transactions.Sum(t => t.Inbound - t.Outbound);
+                var countBalance = transactions.Sum(t =>
+                    (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0));
+
+                var overviewItem = new YarnOverviewItemViewModel
+                {
+                    YarnItemId = yarnItem.Id,
+                    YarnItemName = yarnItem.Item,
+                    OriginYarnName = yarnItem.OriginYarn?.Item,
+                    ManufacturerNames = yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any()
+                        ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
+                        : null,
+                    QuantityBalance = quantityBalance,
+                    CountBalance = countBalance,
+                    IsAvailable = quantityBalance > 0,
+                    TotalTransactions = transactions.Count,
+                    LastTransactionDate = transactions.Any() ? transactions.Max(t => t.Date) : (DateTime?)null
+                };
+
+                if (!availableOnly || overviewItem.IsAvailable)
+                {
+                    overviewItems.Add(overviewItem);
+                }
+            }
+
+            return overviewItems.OrderByDescending(item => item.QuantityBalance)
+                               .ThenBy(item => item.YarnItemName)
+                               .ToList();
+        }
+        private byte[] GenerateExcelOverview(List<YarnOverviewItemViewModel> data)
+        {
+            using (var package = new ExcelPackage())
+            {
+                var worksheet = package.Workbook.Worksheets.Add("Yarn Overview");
+
+                // Add headers
+                worksheet.Cells[1, 1].Value = "صنف الغزل";
+                worksheet.Cells[1, 2].Value = "الغزل الأصلي";
+                // Add more headers...
+
+                // Add data
+                for (int i = 0; i < data.Count; i++)
+                {
+                    worksheet.Cells[i + 2, 1].Value = data[i].YarnItemName;
+                    worksheet.Cells[i + 2, 2].Value = data[i].OriginYarnName;
+                    // Add more data...
+                }
+
+                return package.GetAsByteArray();
+            }
+        }
+
+        private string GenerateWhatsAppMessage(List<YarnOverviewItemViewModel> data)
+        {
+            var message = new StringBuilder();
+            message.AppendLine("📊 *نظرة عامة على أرصدة الغزل*");
+            message.AppendLine($"📅 تاريخ التقرير: {DateTime.Now:dd/MM/yyyy HH:mm}");
+            message.AppendLine("━━━━━━━━━━━━━━━━━━━━");
+
+            var availableItems = data.Where(item => item.IsAvailable).ToList();
+            message.AppendLine($"📈 إجمالي الأصناف: {data.Count}");
+            message.AppendLine($"✅ الأصناف المتاحة: {availableItems.Count}");
+            message.AppendLine($"📦 إجمالي الكمية: {data.Sum(item => item.QuantityBalance):N2}");
+            message.AppendLine();
+
+            if (availableItems.Any())
+            {
+                message.AppendLine("*الأصناف المتاحة:*");
+                foreach (var item in availableItems.Take(10))
+                {
+                    message.AppendLine($"• {item.YarnItemName}: {item.QuantityBalance:N2}");
+                }
+
+                if (availableItems.Count > 10)
+                {
+                    message.AppendLine($"... و {availableItems.Count - 10} صنف آخر");
+                }
+            }
+
+            return message.ToString();
+        }
+
+
+       
         // API: GET /api/YarnTransactions/{id}/details
         [HttpGet]
         [Route("api/YarnTransactions/{id}/details")]
@@ -661,8 +769,12 @@ namespace ELRakhawy.Web.Controllers
                     externalId = transaction.ExternalId ?? "غير محدد",
                     yarnItem = transaction.YarnItem.Item,
                     originYarn = transaction.YarnItem.OriginYarn?.Item ?? "غير محدد",
-                    manufacturer = transaction.YarnItem.Manufacturer?.Name ?? "غير محدد",
-                    type = transaction.Inbound > 0 ? "وارد" : "صادر",
+                    // Replace this line:
+
+                    // With this corrected code:
+                    manufacturer = (transaction.YarnItem.Manufacturers != null && transaction.YarnItem.Manufacturers.Any())
+                        ? string.Join("، ", transaction.YarnItem.Manufacturers.Select(m => m.Name))
+                        : "غير محدد",
                     quantity = transaction.Inbound > 0 ? transaction.Inbound : transaction.Outbound,
                     count = transaction.Count,
                     stakeholderType = transaction.StakeholderType.Type,
@@ -1001,8 +1113,11 @@ namespace ELRakhawy.Web.Controllers
                     yarnItemId = yarnItem.Id,
                     yarnItem = yarnItem.Item ?? "غير محدد",
                     originYarn = yarnItem.OriginYarn?.Item ?? "غير محدد",
-                    manufacturer = yarnItem.Manufacturer?.Name ?? "غير محدد",
-                    quantityBalance = Math.Round(quantityBalance, 3),
+                    // Replace this line:
+                    // With this corrected code:
+                    manufacturer = (yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any())
+                        ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
+                        : "غير محدد",
                     countBalance = countBalance,
                     transactionCount = transactions.Count(),
                     lastTransactionDate = transactions.Any() ?

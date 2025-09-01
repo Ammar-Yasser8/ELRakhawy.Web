@@ -79,6 +79,7 @@ namespace ELRakhawy.EL.ViewModels
 
         [Display(Name = "رصيد العدد الحالي")]
         public int CurrentCountBalance { get; set; }
+
     }
     public class YarnTransactionSearchViewModel
     {
@@ -106,6 +107,7 @@ namespace ELRakhawy.EL.ViewModels
         public List<SelectListItem> AvailableItems { get; set; } = new();
         public List<SelectListItem> StakeholderTypes { get; set; } = new();
         public List<SelectListItem> Stakeholders { get; set; } = new();
+        public SelectList YarnStakeholders { get; set; }
 
         public List<YarnTransactionViewModel> Results { get; set; } = new();
 

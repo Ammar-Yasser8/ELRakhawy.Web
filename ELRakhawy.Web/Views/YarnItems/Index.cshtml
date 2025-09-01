@@ -11,7 +11,7 @@
     var totalBalance = Model.Sum(x => x.CurrentBalance);
     var lowStockItems = Model.Count(x => x.CurrentBalance <= 10 && x.CurrentBalance > 0);
     var zeroStockItems = Model.Count(x => x.CurrentBalance <= 0);
-    var withManufacturer = Model.Count(x => !string.IsNullOrEmpty(x.ManufacturerName));
+    var withManufacturer = Model.Count(x => x.ManufacturerNames != null && x.ManufacturerNames.Any());
     var withOriginYarn = Model.Count(x => !string.IsNullOrEmpty(x.OriginYarnName));
 }
 
@@ -213,9 +213,9 @@
                         <div class="card m-3 mobile-item-card border-start-primary"
                              data-status="@(item.Status ? "active" : "inactive")"
                              data-balance="@item.CurrentBalance"
-                             data-manufacturer="@(!string.IsNullOrEmpty(item.ManufacturerName) ? "yes" : "no")"
+                             data-manufacturer="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "yes" : "no")"
                              data-origin="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "yes" : "no")"
-                             data-search-content="@item.Item @(item.ManufacturerName ?? "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")">
+                             data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")">
                             <div class="card-body">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
                                     <div class="flex-grow-1">
@@ -234,7 +234,7 @@
                                     <div class="col-6">
                                         <div class="info-item">
                                             <small class="text-muted d-block">الشركة المصنعة</small>
-                                            <span class="fw-bold">@(item.ManufacturerName ?? "غير محدد")</span>
+                                            <span class="fw-bold">@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? string.Join(", ", item.ManufacturerNames) : "غير محدد")</span>
                                         </div>
                                     </div>
                                     <div class="col-6">
@@ -273,7 +273,7 @@
                                     <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-sm btn-outline-primary">
                                         <i class="fas fa-edit"></i> تعديل
                                     </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger delete-item"
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-item"
                                             data-id="@item.Id" data-name="@item.Item">
                                         <i class="fas fa-trash"></i> حذف
                                     </button>
@@ -403,9 +403,9 @@
                             {
                                 <tr data-status="@(item.Status ? "active" : "inactive")"
                                     data-balance="@item.CurrentBalance"
-                                    data-manufacturer="@(!string.IsNullOrEmpty(item.ManufacturerName) ? "yes" : "no")"
+                                    data-manufacturer="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "yes" : "no")"
                                     data-origin="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "yes" : "no")"
-                                    data-search-content="@item.Item @(item.ManufacturerName ?? "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
+                                    data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
                                     class="table-row-hover">
                                     <td>
                                         <div class="d-flex align-items-center">
@@ -419,14 +419,14 @@
                                         </div>
                                     </td>
                                     <td>
-                                        @if (!string.IsNullOrEmpty(item.ManufacturerName))
+                                        @if (item.ManufacturerNames != null && item.ManufacturerNames.Any())
                                         {
                                             <div class="d-flex align-items-center">
                                                 <div class="manufacturer-icon bg-success bg-opacity-10 rounded-circle me-2">
                                                     <i class="fas fa-industry text-success"></i>
                                                 </div>
                                                 <div>
-                                                    <div class="fw-bold text-success">@item.ManufacturerName</div>
+                                                    <div class="fw-bold text-success">@string.Join(", ", item.ManufacturerNames)</div>
                                                     <small class="text-muted">شركة مصنعة</small>
                                                 </div>
                                             </div>
@@ -816,16 +816,68 @@
                 }, 1500);
             });
 
-            // Delete functionality
-            $('.delete-item').click(function() {
-                const itemName = $(this).data('name');
-                const itemId = $(this).data('id');
+                    // Delete functionality
+        $('.delete-item').click(function() {
+            const itemName = $(this).data('name');
+            const itemId = $(this).data('id');
 
-                if (confirm(`هل أنت متأكد من حذف الصنف "${itemName}"؟`)) {
-                    // Implement delete logic here
-                    console.log('Delete item:', itemId, itemName);
-                }
-            });
+            if (confirm(`هل أنت متأكد من حذف الصنف "${itemName}"؟`)) {
+                // Show loading state
+                const $button = $(this);
+                $button.prop('disabled', true)
+                       .html('<span class="spinner-border spinner-border-sm"></span>');
+
+                // Call delete API endpoint
+                $.ajax({
+                    url: `/api/YarnItems/${itemId}`,
+                    type: 'DELETE',
+                    success: function() {
+                        // Remove the row/card from UI
+                        const $row = $button.closest('tr');
+                        const $card = $button.closest('.mobile-item-card');
+
+                        $row.fadeOut(300, function() { $row.remove(); });
+                        $card.fadeOut(300, function() { $card.remove(); });
+
+                        // Show success message
+                        showAlert('success', `تم حذف الصنف "${itemName}" بنجاح`);
+
+                        // Update counts
+                        updateVisibleCount();
+                    },
+                    error: function(xhr) {
+                        // Show error message
+                        showAlert('danger', `فشل حذف الصنف "${itemName}". ${xhr.responseText || 'حدث خطأ ما'}`);
+
+                        // Reset button state
+                        $button.prop('disabled', false)
+                               .html('<i class="fas fa-trash"></i>');
+                    }
+                });
+            }
+        });
+
+        // Helper function to show alerts
+        function showAlert(type, message) {
+            const alertHtml = `
+                <div class="alert alert-${type} alert-dismissible fade show mb-4 shadow-sm border-0">
+                    <div class="d-flex align-items-center">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-3 fa-lg"></i>
+                        <div>
+                            <strong>${type === 'success' ? 'نجح!' : 'خطأ!'}</strong>
+                            <span class="ms-2">${message}</span>
+                        </div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>`;
+
+            $('.col-xl-9').prepend(alertHtml);
+
+            // Auto-hide alert after 5 seconds
+            setTimeout(() => {
+                $('.alert').fadeOut(350, function() { $(this).remove(); });
+            }, 5000);
+        }
 
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();

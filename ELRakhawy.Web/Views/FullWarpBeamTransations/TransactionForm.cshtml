@@ -1,0 +1,942 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FullWarpBeamTransactionViewModel
+@{
+    ViewData["Title"] = Model.IsInbound ? "اضافة وارد خيوط السداة الكاملة" : "اضافة صادر خيوط السداة الكاملة";
+    var currentTime = "2025-08-31 02:19:03";
+    var currentUser = "Ammar-Yasser8";
+    var formName = Model.IsInbound ? "اضافة وارد خيوط السداة الكاملة" : "اضافة صادر خيوط السداة الكاملة";
+}
+
+<script>
+    // Add this at the top of your script section
+    window.yarnFormConfig = {
+        formName: '@Html.Raw(formName)',
+        isInbound: @Json.Serialize(Model.IsInbound),
+        currentTime: '@currentTime',
+        currentUser: '@currentUser',
+        formType: 'yarn'
+    };
+</script>
+
+
+<div class="container-fluid mt-4 full-warp-beam-form-container">
+    <!-- Header Card -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body @(Model.IsInbound ? "bg-success" : "bg-warning") text-white rounded">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="mb-1">
+                        <i class="fas @(Model.IsInbound ? "fa-arrow-down" : "fa-arrow-up") me-2"></i>
+                        @ViewData["Title"]
+                    </h4>
+                    <p class="mb-0 opacity-75">
+                        @(Model.IsInbound ? "تسجيل كمية خيوط السداة الكاملة واردة للمخزن" : "تسجيل كمية خيوط السداة الكاملة صادرة من المخزن")
+                    </p>
+                </div>
+                <div class="col-auto">
+                    <div class="text-end">
+                        <small class="d-block" id="headerDate">@currentTime.Split(' ')[0]</small>
+                        <small class="d-block" id="headerUser">@currentUser</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["Success"] != null || TempData["Error"] != null)
+    {
+        <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4">
+            <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+            @(TempData["Success"] ?? TempData["Error"])
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Main Form Card -->
+    <div class="card shadow-sm">
+        <div class="card-header @(Model.IsInbound ? "bg-success" : "bg-warning") text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-form me-2"></i>تفاصيل المعاملة
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="fullWarpBeamTransactionForm" action="~/FullWarpBeamTransations/SaveTransaction" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="IsInbound" name="IsInbound" value="@Model.IsInbound.ToString().ToLower()" />
+                <input type="hidden" id="FullWarpBeamItemName" name="FullWarpBeamItemName" />
+                <input type="hidden" id="StakeholderName" name="StakeholderName" />
+                <input type="hidden" id="StakeholderTypeName" name="StakeholderTypeName" />
+
+                <div class="alert alert-danger" style="display:none;" id="validationSummary">
+                    <ul id="validationList"></ul>
+                </div>
+
+                <div class="row">
+                    <!-- Reference Numbers Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-hashtag me-2"></i>أرقام المرجعية
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="InternalId" class="form-label">
+                                    <i class="fas fa-file-alt text-info me-1"></i>رقم الإذن الداخلي
+                                </label>
+                                <input type="text" id="InternalId" name="InternalId" value="@Model.InternalId" 
+                                       class="form-control" placeholder="أدخل رقم الإذن الداخلي" />
+                                <span class="text-danger" data-valmsg-for="InternalId"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ExternalId" class="form-label">
+                                    <i class="fas fa-external-link-alt text-warning me-1"></i>رقم الإذن الخارجي
+                                </label>
+                                <input type="text" id="ExternalId" name="ExternalId" value="@Model.ExternalId" 
+                                       class="form-control" placeholder="أدخل رقم الإذن الخارجي" />
+                                <span class="text-danger" data-valmsg-for="ExternalId"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Full Warp Beam Item Selection Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-industry me-2"></i>تفاصيل خيوط السداة الكاملة
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="FullWarpBeamItemId" class="form-label required">
+                                    <i class="fas fa-cogs text-primary me-1"></i>صنف خيوط السداة الكاملة
+                                </label>
+                                <select id="FullWarpBeamItemId" name="FullWarpBeamItemId" class="form-select">
+                                    <option value="">-- اختر صنف خيوط السداة الكاملة --</option>
+                                    @foreach (var item in Model.AvailableItems)
+                                    {
+                                        <option value="@item.Value" @@(Model.FullWarpBeamItemId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                                    }
+                                </select>
+                                <span class="text-danger" data-valmsg-for="FullWarpBeamItemId"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-info-circle text-info me-1"></i>الرصيد الحالي
+                                </label>
+                                <div id="currentBalanceDisplay" class="form-control bg-light">
+                                    <small class="text-muted">اختر الصنف أولاً</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quantity and Length Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-calculator me-2"></i>الكميات والأطوال
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="QuantityBalance" class="form-label required">
+                                    <i class="fas fa-weight text-success me-1"></i>الكمية
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" id="QuantityBalance" name="QuantityBalance" value="@Model.QuantityBalance"
+                                           class="form-control" placeholder="0.000" />
+                                    <span class="input-group-text">كجم</span>
+                                </div>
+                                <span class="text-danger" data-valmsg-for="Quantity"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="Count" class="form-label required">
+                                    <i class="fas fa-sort-numeric-up text-info me-1"></i>الطول
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" id="Length" name="Count" value="@Model.Length"
+                                           class="form-control" placeholder="0" />
+                                    <span class="input-group-text">طول</span>
+                                </div>
+                                <span class="text-danger" data-valmsg-for="Length"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <<div class="col-12 mb-4">
+    <h6 class="text-primary border-bottom pb-2">
+        <i class="fas fa-users me-2"></i>بيانات الجهة
+    </h6>
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="StakeholderId" class="form-label required">
+                <i class="fas fa-building text-success me-1"></i>الجهة
+            </label>
+            <select id="StakeholderId" name="StakeholderId" class="form-select">
+                <option value="">-- اختر الجهة --</option>
+                @foreach (var stakeholder in Model.Stakeholders)
+                {
+                    <option value="@stakeholder.Value" @@(Model.StakeholderId?.ToString() == stakeholder.Value ? "selected" : "")>@stakeholder.Text</option>
+                }
+            </select>
+            <span class="text-danger" data-valmsg-for="StakeholderId"></span>
+        </div>
+    </div>
+</div>
+
+
+                    <!-- Date and Comment Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-calendar-comment me-2"></i>التاريخ والبيان
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="Date" class="form-label required">
+                                    <i class="fas fa-calendar-alt text-warning me-1"></i>تاريخ المعاملة
+                                </label>
+                                <input type="text" id="Date" name="Date"
+                                       value="@(Model.Date.ToString("yyyy-MM-dd"))" class="form-control" placeholder="yyyy-MM-dd" />
+                                <span class="text-danger" data-valmsg-for="Date"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="Comment" class="form-label">
+                                    <i class="fas fa-sticky-note text-secondary me-1"></i>بيان المعاملة
+                                </label>
+                                <textarea id="Comment" name="Comment" class="form-control" rows="3" 
+                                          placeholder="أدخل أي ملاحظات أو تفاصيل إضافية عن المعاملة (اختياري)">@Model.Comment</textarea>
+                                <span class="text-danger" data-valmsg-for="Comment"></span>
+                                <div class="form-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb me-1"></i>يمكنك إضافة تفاصيل عن جودة خيوط السداة، المصدر، أو أي ملاحظات مهمة
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="@Url.Action("Index", "FullWarpBeam")" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="button" class="btn btn-info" id="previewBtn">
+                                <i class="fas fa-eye me-1"></i>معاينة
+                            </button>
+                            <button type="submit" class="btn @(Model.IsInbound ? "btn-success" : "btn-warning") text-white" id="saveBtn">
+                                <i class="fas fa-save me-1"></i>
+                                حفظ @(Model.IsInbound ? "الوارد" : "الصادر")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Balance Information Card -->
+    <div class="card mt-4 border-info" id="balanceInfoCard" style="display: none;">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>معلومات الرصيد التفصيلية
+            </h6>
+        </div>
+        <div class="card-body" id="balanceInfo">
+            <!-- Will be populated dynamically -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Constants
+            const CURRENT_TIME = '2025-08-31 02:19:03';
+            const CURRENT_USER = 'Ammar-Yasser8';
+            const IS_INBOUND = @Json.Serialize(Model.IsInbound);
+            const FORM_NAME = '@Html.Raw(formName)';
+
+            // Debug info
+            console.log('Initializing full warp beam transaction form:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER,
+                isInbound: IS_INBOUND,
+                formType: 'fullWarpBeam'
+            });
+
+            // Initialize select2 for all dropdowns
+            $('.form-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                language: {
+                    noResults: function () {
+                        return "لا توجد نتائج";
+                    },
+                    searching: function () {
+                        return "جاري البحث...";
+                    }
+                }
+            });
+
+            // Convert header date to Arabic digits
+            (function() {
+                var headerDateText = $('#headerDate').text();
+                if (headerDateText) {
+                    $('#headerDate').text(toArabicDigits(headerDateText));
+                }
+            })();
+
+            // Normalize existing values in all text inputs and textareas to Arabic digits
+            $('#fullWarpBeamTransactionForm').find("input[type='text'], textarea").each(function() {
+                var v = $(this).val();
+                if (v) $(this).val(toArabicDigits(v.toString()));
+            });
+
+            // Initialize Arabic date picker (Flatpickr) on #Date
+            if (window.flatpickr) {
+                flatpickr.localize(flatpickr.l10ns.ar);
+                flatpickr('#Date', {
+                    dateFormat: 'Y-m-d',
+                    locale: 'ar',
+                    allowInput: true,
+                    disableMobile: false,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        $('#Date').val(toArabicDigits($('#Date').val()));
+                    },
+                    onChange: function(selectedDates, dateStr, instance) {
+                        $('#Date').val(toArabicDigits(dateStr));
+                        validateDateImmediate();
+                    },
+                    onValueUpdate: function(selectedDates, dateStr) {
+                        $('#Date').val(toArabicDigits(dateStr));
+                        validateDateImmediate();
+                    }
+                });
+            }
+
+            // Handle full warp beam item selection change
+            $('#FullWarpBeamItemId').on('change', function () {
+                var selectedItemId = $(this).val();
+                var selectedText = $(this).find('option:selected').text();
+
+                console.log('Full Warp Beam Item Change:', {
+                    time: CURRENT_TIME,
+                    itemId: selectedItemId,
+                    selectedText: selectedText
+                });
+
+                // Update hidden field
+                $('#FullWarpBeamItemName').val(selectedText);
+
+                if (!selectedItemId) {
+                    $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
+                    $('#balanceInfoCard').fadeOut();
+                    $('#balanceAfterTransaction').html('<small class="text-muted">سيتم الحساب تلقائياً</small>');
+                    return;
+                }
+
+                // Fetch full warp beam item balance
+                fetchFullWarpBeamItemBalance(parseInt(selectedItemId));
+            });
+             // Load stakeholders list directly by form (no explicit type selection)
+            (function() {
+                var $stakeholderSelect = $('#StakeholderId');
+                resetStakeholderDropdown($stakeholderSelect);
+                fetchStakeholdersByForm(FORM_NAME, $stakeholderSelect);
+            })();
+
+            // Handle stakeholder change: set hidden StakeholderTypeId and names
+            $('#StakeholderId').on('change', function () {
+                var $opt = $(this).find('option:selected');
+                var selectedText = $opt.text();
+                $('#StakeholderName').val(selectedText);
+                var typeId = $opt.data('type-id');
+                if (typeId) {
+                    $('#StakeholderTypeId').val(typeId);
+                }
+            });
+            // Handle stakeholder type change
+            $('#StakeholderTypeId').on('change', function () {
+                var typeId = $(this).val();
+                var selectedText = $(this).find('option:selected').text();
+                $('#StakeholderTypeName').val(selectedText);
+
+                var $stakeholderSelect = $('#StakeholderId');
+                resetStakeholderDropdown($stakeholderSelect);
+
+                if (!typeId) {
+                    return;
+                }
+
+                fetchStakeholdersByType(typeId, $stakeholderSelect);
+            });
+
+            // Handle stakeholder change
+            $('#StakeholderId').on('change', function () {
+                var selectedText = $(this).find('option:selected').text();
+                $('#StakeholderName').val(selectedText);
+            });
+
+            // Handle quantity and length changes for balance calculation
+            $('#Quantity, #Length').on('input', function() {
+                updateBalanceCalculation();
+            });
+
+            // Function to fetch full warp beam item balance
+            function fetchFullWarpBeamItemBalance(fullWarpBeamItemId) {
+                $.ajax({
+                    url: '/FullWarpBeamTransactions/GetFullWarpBeamItemBalance',
+                    type: 'GET',
+                    data: { fullWarpBeamItemId: fullWarpBeamItemId },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
+                    },
+                    success: function(response) {
+                        if (response && response.success) {
+                            var quantityBalance = response.quantityBalance || 0;
+                            var lengthBalance = response.lengthBalance || 0;
+                            
+                            // Format balances using Arabic digits
+                            var quantityBalanceAr = toArabicDigits(quantityBalance.toFixed(3).toString());
+                            var lengthBalanceAr = toArabicDigits(lengthBalance.toString());
+
+                            $('#currentBalanceDisplay').html(`
+                                <div class="d-flex justify-content-between">
+                                    <span><strong>${quantityBalanceAr}</strong> كجم</span>
+                                    <span><strong>${lengthBalanceAr}</strong> متر</span>
+                                </div>
+                            `);
+
+                            // Show detailed balance info
+                            showBalanceInfo(response);
+
+                            // Update balance calculation
+                            updateBalanceCalculation();
+
+                            console.log('Balance loaded:', {
+                                fullWarpBeamItem: response.fullWarpBeamItem,
+                                quantityBalance: quantityBalance,
+                                lengthBalance: lengthBalance,
+                                time: CURRENT_TIME
+                            });
+                        } else {
+                            $('#currentBalanceDisplay').html('<small class="text-danger">٠</small>');
+                            showAlert('error', response.error || 'فشل في تحميل رصيد الصنف');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching full warp beam balance:', {
+                            status: status,
+                            error: error,
+                            time: CURRENT_TIME
+                        });
+                        $('#currentBalanceDisplay').html('<small class="text-danger">0.0</small>');
+                        showAlert('error', 'حدث خطأ أثناء تحميل رصيد الصنف');
+                    }
+                });
+            }
+
+            // Function to show balance information
+            function showBalanceInfo(data) {
+                var qBalAr = toArabicDigits(data.quantityBalance.toFixed(3).toString());
+                var lBalAr = toArabicDigits((data.lengthBalance || 0).toString());
+                var tCountAr = toArabicDigits((data.transactionCount || 0).toString());
+                var lastDateAr = toArabicDigits((data.lastTransactionDate || '').toString());
+                
+                var infoHtml = `
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="text-center border-end">
+                                <h5 class="text-primary mb-0">${qBalAr}</h5>
+                                <small class="text-muted">رصيد الكمية (كجم)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center border-end">
+                                <h5 class="text-success mb-0">${lBalAr}</h5>
+                                <small class="text-muted">رصيد الطول (متر)</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center border-end">
+                                <h5 class="text-info mb-0">${tCountAr}</h5>
+                                <small class="text-muted">عدد المعاملات</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="text-center">
+                                <h5 class="text-warning mb-0">${lastDateAr}</h5>
+                                <small class="text-muted">آخر معاملة</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>الصنف:</strong> ${data.fullWarpBeamItem}</p>
+                            <p class="mb-0"><strong>نوع الخيط:</strong> ${data.warpType}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p class="mb-1"><strong>الشركة المصنعة:</strong> ${data.manufacturer}</p>
+                            <p class="mb-0"><strong>النمرة:</strong> ${data.yarnCount}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="alert alert-info mb-0 py-2">
+                                <small><i class="fas fa-info-circle me-1"></i>رصيد مُحدث حتى ${toArabicDigits(CURRENT_TIME.split(' ')[0])}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                $('#balanceInfo').html(infoHtml);
+                $('#balanceInfoCard').fadeIn();
+            }
+
+            // Function to reset stakeholder dropdown
+            function resetStakeholderDropdown($select) {
+                $select
+                    .empty()
+                    .append('<option value="">-- اختر نوع الجهة أولاً --</option>')
+                    .prop('disabled', true)
+                    .select2('destroy')
+                    .select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        language: {
+                            noResults: function () {
+                                return "لا توجد نتائج";
+                            }
+                        }
+                    });
+            }
+
+          // Function to fetch stakeholders by form name
+            function fetchStakeholdersByForm(formName, $select) {
+                $.ajax({
+                    url: '/FullWarpBeamTransations/GetStakeholdersByForm',
+                    type: 'GET',
+                    data: { formName: formName },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .append('<option value="" disabled>جاري التحميل...</option>')
+                            .prop('disabled', true);
+                    },
+                    success: function(response) {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .prop('disabled', false);
+
+                        var stakeholders = (response && response.data) || [];
+                        if (response && response.success && stakeholders.length > 0) {
+                            stakeholders.forEach(function(item) {
+                                var opt = new Option(item.name, item.id);
+                                if (item.typeId) {
+                                    $(opt).attr('data-type-id', item.typeId);
+                                }
+                                $select.append(opt);
+                            });
+                            toastr.success('تم تحميل الجهات بنجاح');
+                        } else {
+                            toastr.warning('لا توجد جهات متاحة للنموذج المحدد');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error fetching stakeholders:', {
+                            status: status,
+                            error: error,
+                            time: CURRENT_TIME
+                        });
+                        toastr.error('حدث خطأ أثناء تحميل بيانات الجهات');
+                    },
+                    complete: function() {
+                        $select.select2('destroy').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            language: {
+                                noResults: function () {
+                                    return "لا توجد نتائج";
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+                // Call fetchStakeholders on page load
+                fetchStakeholders();
+
+                // Handle stakeholder change
+                $('#StakeholderId').on('change', function () {
+                    var selectedText = $(this).find('option:selected').text();
+                    $('#StakeholderName').val(selectedText);
+                });
+
+            // Function to update balance calculation
+            function updateBalanceCalculation() {
+                var currentQuantityText = $('#currentBalanceDisplay').text();
+                var currentLengthText = $('#currentBalanceDisplay').text();
+                
+                // Extract current balances
+                var quantityMatch = toLatinDigits(currentQuantityText).match(/(\d+\.?\d*)\s*كجم/);
+                var lengthMatch = toLatinDigits(currentLengthText).match(/(\d+)\s*متر/);
+                
+                if (quantityMatch && lengthMatch) {
+                    var currentQuantityBalance = parseFloat(quantityMatch[1]);
+                    var currentLengthBalance = parseInt(lengthMatch[1]);
+                    
+                    var inputQuantity = parseFloat(toLatinDigits($('#Quantity').val())) || 0;
+                    var inputLength = parseInt(toLatinDigits($('#Length').val())) || 0;
+                    
+                    var newQuantityBalance, newLengthBalance;
+                    
+                    if (IS_INBOUND) {
+                        newQuantityBalance = currentQuantityBalance + inputQuantity;
+                        newLengthBalance = currentLengthBalance + inputLength;
+                    } else {
+                        newQuantityBalance = currentQuantityBalance - inputQuantity;
+                        newLengthBalance = currentLengthBalance - inputLength;
+                    }
+                    
+                    var newQuantityAr = toArabicDigits(newQuantityBalance.toFixed(3));
+                    var newLengthAr = toArabicDigits(newLengthBalance.toString());
+                    
+                    var balanceClass = '';
+                    if (!IS_INBOUND) {
+                        balanceClass = (newQuantityBalance < 0 || newLengthBalance < 0) ? 'text-danger' : 'text-success';
+                    } else {
+                        balanceClass = 'text-success';
+                    }
+                    
+                    $('#balanceAfterTransaction').html(`
+                        <div class="d-flex justify-content-between ${balanceClass}">
+                            <span><strong>${newQuantityAr}</strong> كجم</span>
+                            <span><strong>${newLengthAr}</strong> متر</span>
+                        </div>
+                    `);
+                }
+            }
+
+            // Form submission handler
+            $('#fullWarpBeamTransactionForm').on('submit', function(e) {
+                // Normalize fields to Latin for processing
+                var qtyLatin = toLatinDigits($('#Quantity').val() || '');
+                var lengthLatin = toLatinDigits($('#Length').val() || '');
+                var dateLatin = toLatinDigits($('#Date').val() || '');
+                
+                $('#Quantity').val(qtyLatin);
+                $('#Length').val(lengthLatin);
+                $('#Date').val(dateLatin);
+
+                var validation = validateForm();
+                
+                if (!validation.isValid) {
+                    e.preventDefault();
+                    showValidationErrors(validation.errors);
+                    return false;
+                }
+
+                // Check balance for outbound transactions
+                if (!IS_INBOUND) {
+                    var quantity = parseFloat(toLatinDigits($('#Quantity').val())) || 0;
+                    var length = parseInt(toLatinDigits($('#Length').val())) || 0;
+                    
+                    var currentBalanceText = $('#currentBalanceDisplay').text();
+                    var quantityMatch = toLatinDigits(currentBalanceText).match(/(\d+\.?\d*)\s*كجم/);
+                    var lengthMatch = toLatinDigits(currentBalanceText).match(/(\d+)\s*متر/);
+                    
+                    if (quantityMatch && lengthMatch) {
+                        var currentQuantityBalance = parseFloat(quantityMatch[1]);
+                        var currentLengthBalance = parseInt(lengthMatch[1]);
+                        
+                        var errors = [];
+                        if (quantity > currentQuantityBalance) {
+                            errors.push(`الكمية المطلوبة (${toArabicDigits(quantity.toFixed(3))} كجم) أكبر من الرصيد المتاح (${toArabicDigits(currentQuantityBalance.toFixed(3))} كجم)`);
+                        }
+                        if (length > currentLengthBalance) {
+                            errors.push(`الطول المطلوب (${toArabicDigits(length.toString())} متر) أكبر من الرصيد المتاح (${toArabicDigits(currentLengthBalance.toString())} متر)`);
+                        }
+                        
+                        if (errors.length > 0) {
+                            e.preventDefault();
+                            Swal.fire({
+                                title: 'تحذير',
+                                html: errors.join('<br>'),
+                                icon: 'warning',
+                                confirmButtonText: 'موافق'
+                            });
+                            return false;
+                        }
+                    }
+                }
+
+                // Show loading state
+                $('#saveBtn').prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+            });
+
+            // Preview functionality
+            $('#previewBtn').click(function() {
+                var data = {
+                    fullWarpBeamItem: $('#FullWarpBeamItemId option:selected').text(),
+                    quantity: $('#Quantity').val(),
+                    length: $('#Length').val(),
+                    stakeholderType: $('#StakeholderTypeId option:selected').text(),
+                    stakeholder: $('#StakeholderId option:selected').text(),
+                    date: $('#Date').val(),
+                    comment: $('#Comment').val() || 'لا يوجد بيان',
+                    type: IS_INBOUND ? 'وارد' : 'صادر',
+                    internalId: $('#InternalId').val() || 'غير محدد',
+                    externalId: $('#ExternalId').val() || 'غير محدد'
+                };
+
+                var preview = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>النوع:</strong> <span class="badge ${IS_INBOUND ? 'bg-success' : 'bg-warning'}">${data.type}</span></p>
+                            <p><strong>الصنف:</strong> ${data.fullWarpBeamItem}</p>
+                            <p><strong>الكمية:</strong> ${toArabicDigits((data.quantity || '').toString())} كجم</p>
+                            <p><strong>الطول:</strong> ${toArabicDigits((data.length || '').toString())} متر</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>نوع الجهة:</strong> ${data.stakeholderType}</p>
+                            <p><strong>الجهة:</strong> ${data.stakeholder}</p>
+                            <p><strong>التاريخ:</strong> ${toArabicDigits((data.date || '').toString())}</p>
+                            <p><strong>رقم الإذن الداخلي:</strong> ${data.internalId}</p>
+                        </div>
+                        <div class="col-12">
+                            <p><strong>رقم الإذن الخارجي:</strong> ${data.externalId}</p>
+                            <p><strong>البيان:</strong> ${data.comment}</p>
+                        </div>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'معاينة معاملة خيوط السداة الكاملة',
+                    html: preview,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ الآن',
+                    cancelButtonText: 'تراجع',
+                    confirmButtonColor: IS_INBOUND ? '#198754' : '#ffc107',
+                    width: '800px'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#fullWarpBeamTransactionForm').submit();
+                    }
+                });
+            });
+
+            // Load initial item balance if selected
+            var initialItemId = $('#FullWarpBeamItemId').val();
+            if (initialItemId) {
+                fetchFullWarpBeamItemBalance(parseInt(initialItemId));
+            }
+
+            console.log('Full Warp Beam transaction form initialized successfully');
+        });
+
+        // Form validation function
+        function validateForm() {
+            var isValid = true;
+            var errors = [];
+
+            // Validate full warp beam item
+            if (!$('#FullWarpBeamItemId').val()) {
+                errors.push('يجب اختيار صنف خيوط السداة الكاملة');
+                isValid = false;
+            }
+
+            // Validate quantity
+            var quantity = parseFloat(toLatinDigits($('#Quantity').val()));
+            if (!quantity || quantity <= 0) {
+                errors.push('يجب إدخال كمية صحيحة أكبر من الصفر');
+                isValid = false;
+            }
+
+            // Validate length
+            var length = parseInt(toLatinDigits($('#Length').val()));
+            if (isNaN(length) || length < 0) {
+                errors.push('يجب إدخال طول صحيح (صفر أو أكبر)');
+                isValid = false;
+            }
+
+            // Validate stakeholder type
+            if (!$('#StakeholderTypeId').val()) {
+                errors.push('يجب اختيار نوع الجهة');
+                isValid = false;
+            }
+
+            // Validate stakeholder
+            if (!$('#StakeholderId').val()) {
+                errors.push('يجب اختيار الجهة');
+                isValid = false;
+            }
+
+            // Validate date
+            if (!$('#Date').val()) {
+                errors.push('يجب تحديد تاريخ المعاملة');
+                isValid = false;
+            }
+
+            return { isValid: isValid, errors: errors };
+        }
+
+        // Show validation errors
+        function showValidationErrors(errors) {
+            var errorHtml = errors.map(error => `<li>${error}</li>`).join('');
+            $('#validationList').html(errorHtml);
+            $('#validationSummary').show();
+            $('html, body').animate({ scrollTop: 0 }, 500);
+        }
+
+        // Show alert function
+        function showAlert(type, message) {
+            const alertTypes = {
+                'success': { id: 'successAlert', class: 'alert-success', icon: 'fa-check-circle' },
+                'error': { id: 'errorAlert', class: 'alert-danger', icon: 'fa-exclamation-circle' },
+                'warning': { id: 'errorAlert', class: 'alert-warning', icon: 'fa-exclamation-triangle' }
+            };
+
+            const alertConfig = alertTypes[type] || alertTypes['error'];
+            
+            $(`#${alertConfig.id} span`).text(message);
+            $(`#${alertConfig.id}`).removeClass('alert-success alert-danger alert-warning')
+                                   .addClass(alertConfig.class)
+                                   .show();
+
+            setTimeout(() => {
+                $(`#${alertConfig.id}`).fadeOut();
+            }, 5000);
+        }
+
+        // Hide alert function
+        function hideAlert(alertId) {
+            $(`#${alertId}`).fadeOut();
+        }
+
+        // Function to convert to Arabic digits
+        function toArabicDigits(str) {
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        // Function to convert to Latin digits
+        function toLatinDigits(str) {
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        // Function to detect Arabic character
+        function isArabicChar(c) {
+            return /[\u0600-\u06FF]/.test(c);
+        }
+
+        // Function to detect English character
+        function isEnglishChar(c) {
+            return /[a-zA-Z]/.test(c);
+        }
+
+        // Function to get last letter type
+        function getLastLetter(str) {
+            for (let i = str.length - 1; i >= 0; i--) {
+                let char = str[i];
+                if (isArabicChar(char)) {
+                    return 'arabic';
+                } else if (isEnglishChar(char)) {
+                    return 'english';
+                }
+            }
+            return 'arabic'; // default is Arabic
+        }
+
+        // Validate date immediately
+        function validateDateImmediate() {
+            var $date = $('#Date');
+            var $msg = $("span[data-valmsg-for='Date']");
+            var valueAr = ($date.val() || '').trim();
+            var value = toLatinDigits(valueAr);
+
+            // Basic format check
+            var match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) {
+                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd');
+                $date.addClass('is-invalid');
+                return false;
+            }
+
+            var year = parseInt(match[1], 10);
+            var month = parseInt(match[2], 10);
+            var day = parseInt(match[3], 10);
+
+            if (month < 1 || month > 12) {
+                $msg.text('الشهر غير صحيح (1-12)');
+                $date.addClass('is-invalid');
+                return false;
+            }
+
+            var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            var maxDay = daysInMonth[month - 1];
+
+            if (day < 1 || day > maxDay) {
+                $msg.text('اليوم غير صحيح لهذا الشهر');
+                $date.addClass('is-invalid');
+                return false;
+            }
+
+            $msg.text('');
+            $date.removeClass('is-invalid');
+            return true;
+        }
+
+        function isLeapYear(y) {
+            return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+        }
+
+        // Auto-convert all text inputs and textareas to Arabic digits
+        $(document).on("input", "#fullWarpBeamTransactionForm input[type='text'], #fullWarpBeamTransactionForm textarea", function() {
+            let input = this;
+            let val = input.value;
+            if (val.length > 0) {
+                let newVal = toArabicDigits(val);
+                if (newVal !== val) {
+                    let cursorPos = input.selectionStart;
+                    input.value = newVal;
+                    input.setSelectionRange(cursorPos, cursorPos);
+                }
+            }
+        });
+
+        // Validate date on input/blur/change
+        $(document).on('input blur change', '#Date', function() {
+            validateDateImmediate();
+        });
+
+        // Auto-convert numeric fields to Latin digits for processing
+        $(document).on("input", "#fullWarpBeamTransactionForm input[type='number']", function() {
+            let input = this;
+            let val = input.value;
+
+            if (val.length > 0) {
+                let newVal = toLatinDigits(val);
+                
+                if (newVal !== val) {
+                    let cursorPos = input.selectionStart;
+                    input.value = newVal;
+                    input.setSelectionRange(cursorPos, cursorPos);
+                }
+            }
+        });
+    </script>
+}

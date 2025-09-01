@@ -4,47 +4,294 @@
 @{
     ViewData["Title"] = "البحث في معاملات الغزل";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentTime = "2025-09-01 12:10:10";
+    var currentUser = "Ammar-Yasser8";
 }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-search me-2"></i>
-                        البحث في معاملات الغزل
-                    </h4>
-                </div>
-                <div class="card-body">
-                    @using (Html.BeginForm("Search", "YarnTransactions", FormMethod.Post, new { @class = "needs-validation", novalidate = "novalidate" }))
-                    {
-                        @Html.AntiForgeryToken()
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/@@ttskch/select2-bootstrap4-theme/dist/select2-bootstrap4.min.css" rel="stylesheet" />
+    <style>
+        :root {
+            --primary-color: #4e73df;
+            --success-color: #1cc88a;
+            --info-color: #36b9cc;
+            --warning-color: #f6c23e;
+            --danger-color: #e74a3b;
+            --light-color: #f8f9fc;
+            --transition: all 0.3s ease;
+        }
 
-                        <!-- Search Filters -->
-                        <div class="row g-3 mb-4">
+        .search-container {
+            background: var(--light-color);
+            min-height: 100vh;
+            padding: 1.5rem 0;
+        }
+
+        .session-info {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        }
+
+        .search-card {
+            border: none;
+            border-radius: 1rem;
+            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+            overflow: hidden;
+        }
+
+        .search-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+            color: white;
+            padding: 1.5rem;
+        }
+
+        .filter-section {
+            background: white;
+            border-radius: 1rem;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .form-control, .form-select {
+            border-radius: 0.5rem;
+            border: 1px solid #d1d3e2;
+            transition: var(--transition);
+        }
+
+            .form-control:focus, .form-select:focus {
+                border-color: var(--primary-color);
+                box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+            }
+
+        .btn {
+            border-radius: 0.5rem;
+            transition: var(--transition);
+        }
+
+            .btn:hover {
+                transform: translateY(-1px);
+            }
+
+        .stats-card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            transition: var(--transition);
+        }
+
+            .stats-card:hover {
+                transform: translateY(-2px);
+            }
+
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .results-table {
+            background: white;
+            border-radius: 1rem;
+            overflow: hidden;
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
+
+        .table th {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        .table td {
+            border-color: #e3e6f0;
+            vertical-align: middle;
+        }
+
+        .select2-container--bootstrap4 .select2-selection {
+            border-radius: 0.5rem;
+            border: 1px solid #d1d3e2;
+        }
+
+        .select2-container--bootstrap4 .select2-selection--single {
+            height: calc(2.25rem + 2px);
+        }
+
+        .toast {
+            border-radius: 0.75rem;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 9999;
+        }
+
+        .loading-spinner {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+        }
+
+        @@media (max-width: 768px) {
+            .search-container
+
+        {
+            padding: 1rem 0;
+        }
+
+        .session-info {
+            text-align: center;
+        }
+
+        .filter-section {
+            padding: 1rem;
+        }
+
+        .table {
+            font-size: 0.875rem;
+        }
+
+        .stat-item {
+            margin-bottom: 1rem;
+        }
+
+        }
+
+        @@media print {
+            .no-print
+
+        {
+            display: none !important;
+        }
+
+        .search-card {
+            box-shadow: none;
+        }
+
+        }</style>
+
+<div class="search-container">
+    <div class="container-fluid">
+        <!-- Breadcrumb -->
+        <nav class="mb-3 no-print" aria-label="breadcrumb">
+            <ol class="breadcrumb bg-white p-3 rounded-3 shadow-sm">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                        <i class="fas fa-home me-1"></i>الرئيسية
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "YarnItems")" class="text-decoration-none">
+                        <i class="fas fa-boxes me-1"></i>الأصناف
+                    </a>
+                </li>
+                <li class="breadcrumb-item active">
+                    <i class="fas fa-search me-1"></i>@ViewData["Title"]
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Session Info -->
+        <div class="session-info no-print">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-user-circle fa-2x me-3"></i>
+                        <div>
+                            <h6 class="mb-1">@currentUser</h6>
+                            <small class="opacity-75">
+                                <i class="fas fa-clock me-1"></i>
+                                <span id="currentTime">@currentTime</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 text-md-end mt-2 mt-md-0">
+                    <div class="d-flex align-items-center justify-content-md-end">
+                        <i class="fas fa-database me-2"></i>
+                        <span>نظام إدارة معاملات الغزل</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Search Card -->
+        <div class="card search-card">
+            <div class="search-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="mb-0">
+                            <i class="fas fa-search me-2"></i>
+                            البحث في معاملات الغزل
+                        </h4>
+                        <p class="mb-0 mt-1 opacity-75">
+                            البحث في المعاملات المرتبطة بالشركات المتخصصة في الغزل
+                        </p>
+                    </div>
+                    <div class="col-auto no-print">
+                        <button type="button" class="btn btn-light btn-sm" onclick="resetForm()">
+                            <i class="fas fa-refresh me-1"></i>تحديث
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                @using (Html.BeginForm("Search", "YarnTransactions", FormMethod.Post, new { @class = "needs-validation", @id = "searchForm", novalidate = "novalidate" }))
+                {
+                    @Html.AntiForgeryToken()
+
+                    <div class="filter-section">
+                        <div class="row g-3">
                             <!-- Date Range -->
                             <div class="col-md-6 col-lg-3">
-                                <label for="FromDate" class="form-label">من تاريخ</label>
+                                <label for="FromDate" class="form-label">
+                                    <i class="fas fa-calendar-alt text-primary me-1"></i>من تاريخ
+                                </label>
                                 @Html.TextBoxFor(m => m.FromDate, new {
                                 @class = "form-control",
                                                         @type = "date",
                                                         @id = "FromDate"
                                                         })
+                            <div class="invalid-feedback">يرجى اختيار تاريخ البداية</div>
                         </div>
 
                         <div class="col-md-6 col-lg-3">
-                            <label for="ToDate" class="form-label">إلى تاريخ</label>
+                            <label for="ToDate" class="form-label">
+                                <i class="fas fa-calendar-alt text-primary me-1"></i>إلى تاريخ
+                            </label>
                             @Html.TextBoxFor(m => m.ToDate, new {
                                                         @class = "form-control",
                                                         @type = "date",
                                                         @id = "ToDate"
                                                         })
+                            <div class="invalid-feedback">يرجى اختيار تاريخ النهاية</div>
                         </div>
 
                         <!-- Transaction ID -->
                         <div class="col-md-6 col-lg-3">
-                            <label for="TransactionId" class="form-label">رقم المعاملة</label>
+                            <label for="TransactionId" class="form-label">
+                                <i class="fas fa-hashtag text-primary me-1"></i>رقم المعاملة
+                            </label>
                             @Html.TextBoxFor(m => m.TransactionId, new {
                                                         @class = "form-control",
                                                         @placeholder = "أدخل رقم المعاملة",
@@ -54,7 +301,9 @@
 
                         <!-- Transaction Type -->
                         <div class="col-md-6 col-lg-3">
-                            <label for="TransactionType" class="form-label">نوع المعاملة</label>
+                            <label for="TransactionType" class="form-label">
+                                <i class="fas fa-exchange-alt text-primary me-1"></i>نوع المعاملة
+                            </label>
                             @Html.DropDownListFor(m => m.TransactionType, new List<SelectListItem>
                                                         {
                                 new SelectListItem { Text = "جميع الأنواع", Value = "" },
@@ -65,87 +314,103 @@
 
                         <!-- Yarn Item -->
                         <div class="col-md-6 col-lg-4">
-                            <label for="YarnItemId" class="form-label">صنف الغزل</label>
+                            <label for="YarnItemId" class="form-label">
+                                <i class="fas fa-box text-primary me-1"></i>صنف الغزل
+                            </label>
                             @Html.DropDownListFor(m => m.YarnItemId,
                                                         new SelectList(Model.AvailableItems, "Value", "Text"),
                                                         "اختر صنف الغزل",
-                                                        new { @class = "form-select", @id = "YarnItemId" })
+                                                        new { @class = "form-select select2-yarn", @id = "YarnItemId" })
                         </div>
 
                         <!-- Stakeholder Type -->
                         <div class="col-md-6 col-lg-4">
-                            <label for="StakeholderTypeId" class="form-label">نوع التاجر</label>
+                            <label for="StakeholderTypeId" class="form-label">
+                                <i class="fas fa-users text-primary me-1"></i>نوع التاجر
+                            </label>
                             @Html.DropDownListFor(m => m.StakeholderTypeId,
                                                         new SelectList(Model.StakeholderTypes, "Value", "Text"),
                                                         "اختر نوع التاجر",
-                                                        new { @class = "form-select", @id = "StakeholderTypeId" })
+                                                        new { @class = "form-select select2-type", @id = "StakeholderTypeId" })
                         </div>
 
-                        <!-- Stakeholder -->
+                        <!-- Yarn Stakeholder -->
                         <div class="col-md-6 col-lg-4">
-                            <label for="StakeholderId" class="form-label">التاجر</label>
+                            <label for="StakeholderId" class="form-label">
+                                <i class="fas fa-user-tie text-primary me-1"></i>تاجر الغزل
+                            </label>
                             @Html.DropDownListFor(m => m.StakeholderId,
-                                                        new List<SelectListItem> { new SelectListItem { Text = "اختر التاجر", Value = "" } },
-                                                        new { @class = "form-select", @id = "StakeholderId", @disabled = "disabled" })
+                                                        new SelectList(Model.YarnStakeholders, "Value", "Text"),
+                                                        "اختر تاجر الغزل",
+                                                        new { @class = "form-select select2-stakeholder", @id = "StakeholderId" })
                         </div>
                     </div>
 
                     <!-- Action Buttons -->
-                    <div class="row mb-4">
+                    <div class="row mt-4">
                         <div class="col-12">
-                            <button type="submit" class="btn btn-primary me-2">
-                                <i class="fas fa-search me-1"></i>
-                                بحث
-                            </button>
-                            <button type="button" class="btn btn-secondary me-2" id="clearFilters">
-                                <i class="fas fa-times me-1"></i>
-                                مسح الفلاتر
-                            </button>
-                            <a href="@Url.Action("Index", "YarnItems")" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-right me-1"></i>
-                                العودة للقائمة
-                            </a>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search me-1"></i>بحث
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="clearFilters">
+                                    <i class="fas fa-times me-1"></i>مسح الفلاتر
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="quickSearch('today')">
+                                    <i class="fas fa-calendar-day me-1"></i>اليوم
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="quickSearch('week')">
+                                    <i class="fas fa-calendar-week me-1"></i>هذا الأسبوع
+                                </button>
+                                <button type="button" class="btn btn-info" onclick="quickSearch('month')">
+                                    <i class="fas fa-calendar-alt me-1"></i>هذا الشهر
+                                </button>
+                                <a href="@Url.Action("Index", "YarnItems")" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
+                                </a>
+                            </div>
                         </div>
                     </div>
-                                        }
+                </div>
+                                }
 
-                    <!-- Search Results -->
-                    @if (ViewBag.SearchPerformed == true)
-                    {
-                        <div class="row mb-3">
-                            <div class="col-12">
-                                <div class="card border-info">
-                                    <div class="card-header bg-info text-white">
-                                        <h5 class="mb-0">
-                                            <i class="fas fa-chart-bar me-2"></i>
-                                            إحصائيات البحث
-                                        </h5>
+                <!-- Search Results -->
+                @if (ViewBag.SearchPerformed == true)
+                {
+                    <!-- Statistics Cards -->
+                    <div class="container-fluid p-3">
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stats-card p-3">
+                                    <div class="stat-item">
+                                        <div class="stat-value text-primary">@Model.TotalTransactions</div>
+                                        <div class="text-muted small">إجمالي المعاملات</div>
                                     </div>
-                                    <div class="card-body">
-                                        <div class="row text-center">
-                                            <div class="col-md-3 col-sm-6">
-                                                <div class="border-end">
-                                                    <h4 class="text-primary">@Model.TotalTransactions</h4>
-                                                    <small class="text-muted">إجمالي المعاملات</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 col-sm-6">
-                                                <div class="border-end">
-                                                    <h4 class="text-success">@Model.TotalInbound.ToString("N2")</h4>
-                                                    <small class="text-muted">إجمالي الوارد</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 col-sm-6">
-                                                <div class="border-end">
-                                                    <h4 class="text-danger">@Model.TotalOutbound.ToString("N2")</h4>
-                                                    <small class="text-muted">إجمالي الصادر</small>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-3 col-sm-6">
-                                                <h4 class="@(Model.NetBalance >= 0 ? "text-success" : "text-danger")">@Model.NetBalance.ToString("N2")</h4>
-                                                <small class="text-muted">الرصيد الصافي</small>
-                                            </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stats-card p-3">
+                                    <div class="stat-item">
+                                        <div class="stat-value text-success">@Model.TotalInbound.ToString("N2")</div>
+                                        <div class="text-muted small">إجمالي الوارد (كجم)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stats-card p-3">
+                                    <div class="stat-item">
+                                        <div class="stat-value text-danger">@Model.TotalOutbound.ToString("N2")</div>
+                                        <div class="text-muted small">إجمالي الصادر (كجم)</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="stats-card p-3">
+                                    <div class="stat-item">
+                                        <div class="stat-value @(Model.NetBalance >= 0 ? "text-success" : "text-danger")">
+                                            @Model.NetBalance.ToString("N2")
                                         </div>
+                                        <div class="text-muted small">الرصيد الصافي (كجم)</div>
                                     </div>
                                 </div>
                             </div>
@@ -153,201 +418,332 @@
 
                         @if (Model.Results != null && Model.Results.Any())
                         {
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead class="table-dark">
-                                        <tr>
-                                            <th>رقم المعاملة</th>
-                                            <th>التاريخ</th>
-                                            <th>صنف الغزل</th>
-                                            <th>الغزل الأصلي</th>
-                                            <th>نوع المعاملة</th>
-                                            <th>الكمية</th>
-                                            <th>العدد</th>
-                                            <th>نوع التاجر</th>
-                                            <th>التاجر</th>
-                                            <th>رصيد الكمية</th>
-                                            <th>رصيد العدد</th>
-                                            <th>ملاحظات</th>
-                                          
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach (var item in Model.Results)
-                                        {
+                            <!-- Results Table -->
+                            <div class="results-table">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover mb-0" id="resultsTable">
+                                        <thead>
                                             <tr>
-                                                <td>
-                                                    <span class="fw-bold">@item.TransactionId</span>
-                                                    @if (!string.IsNullOrEmpty(item.InternalId))
-                                                    {
-                                                        <br>
-                                        
-                                                        <small class="text-muted">داخلي: @item.InternalId</small>
-                                                    }
-                                                    @if (!string.IsNullOrEmpty(item.ExternalId))
-                                                    {
-                                                        <br>
-                                        
-                                                        <small class="text-muted">خارجي: @item.ExternalId</small>
-                                                    }
-                                                </td>
-                                                <td>@item.Date.ToString("dd/MM/yyyy")</td>
-                                                <td>@item.YarnItemName</td>
-                                                <td>@(item.OriginYarnName ?? "غير محدد")</td>
-                                                <td>
-                                                    @if (item.IsInbound)
-                                                    {
-                                                        <span class="badge bg-success">وارد</span>
-                                                    }
-                                                    else
-                                                    {
-                                                        <span class="badge bg-danger">صادر</span>
-                                                    }
-                                                </td>
-                                                <td class="@(item.IsInbound ? "text-success" : "text-danger")">
-                                                    @item.Quantity.ToString("N2")
-                                                </td>
-                                                <td>@item.Count</td>
-                                                <td>@item.StakeholderTypeName</td>
-                                                <td>@item.StakeholderName</td>
-                                                <td>@item.QuantityBalance.ToString("N2")</td>
-                                                <td>@item.CountBalance</td>
-                                                <td>
-                                                    @if (!string.IsNullOrEmpty(item.Comment))
-                                                    {
-                                                        <span title="@item.Comment">
-                                                            @(item.Comment.Length > 30 ? item.Comment.Substring(0, 30) + "..." : item.Comment)
-                                                        </span>
-                                                    }
-                                                </td>
-                                              
+                                                <th>رقم المعاملة</th>
+                                                <th>التاريخ</th>
+                                                <th>صنف الغزل</th>
+                                                <th>الغزل الأصلي</th>
+                                                <th>نوع المعاملة</th>
+                                                <th>الكمية (كجم)</th>
+                                                <th>العدد</th>
+                                                <th>نوع التاجر</th>
+                                                <th>تاجر الغزل</th>
+                                                <th>رصيد الكمية</th>
+                                                <th>رصيد العدد</th>
+                                                <th>ملاحظات</th>
                                             </tr>
-                                        }
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </thead>
+                                        <tbody>
+                                            @foreach (var item in Model.Results)
+                                            {
+                                                <tr>
+                                                    <td>
+                                                        <div class="fw-bold">@item.TransactionId</div>
+                                                        @if (!string.IsNullOrEmpty(item.InternalId))
+                                                        {
+                                                            <small class="text-muted d-block">داخلي: @item.InternalId</small>
+                                                        }
+                                                        @if (!string.IsNullOrEmpty(item.ExternalId))
+                                                        {
+                                                            <small class="text-muted d-block">خارجي: @item.ExternalId</small>
+                                                        }
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold">@item.Date.ToString("dd/MM/yyyy")</span>
+                                                        <small class="text-muted d-block">@item.Date.ToString("HH:mm")</small>
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold text-primary">@item.YarnItemName</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="text-muted">@(item.OriginYarnName ?? "غير محدد")</span>
+                                                    </td>
+                                                    <td>
+                                                        @if (item.IsInbound)
+                                                        {
+                                                            <span class="badge bg-success rounded-pill">
+                                                                <i class="fas fa-arrow-down me-1"></i>وارد
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-danger rounded-pill">
+                                                                <i class="fas fa-arrow-up me-1"></i>صادر
+                                                            </span>
+                                                        }
+                                                    </td>
+                                                    <td class="@(item.IsInbound ? "text-success" : "text-danger") fw-bold">
+                                                        @item.Quantity.ToString("N2")
+                                                    </td>
+                                                    <td class="fw-bold">@item.Count</td>
+                                                    <td>
+                                                        <span class="badge bg-info rounded-pill">@item.StakeholderTypeName</span>
+                                                    </td>
+                                                    <td>
+                                                        <span class="fw-bold">@item.StakeholderName</span>
+                                                    </td>
+                                                    <td class="fw-bold">@item.QuantityBalance.ToString("N2")</td>
+                                                    <td class="fw-bold">@item.CountBalance</td>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(item.Comment))
+                                                        {
+                                                            <span class="text-muted" title="@item.Comment">
+                                                                @(item.Comment.Length > 30 ? item.Comment.Substring(0, 30) + "..." : item.Comment)
+                                                            </span>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="text-muted">-</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
 
-                            <!-- Export Options -->
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <div class="d-flex justify-content-end gap-2">
-                                        <button type="button" class="btn btn-success btn-sm" onclick="exportToExcel()">
-                                            <i class="fas fa-file-excel me-1"></i>
-                                            تصدير إلى Excel
-                                        </button>
-                                        <button type="button" class="btn btn-info btn-sm" onclick="printResults()">
-                                            <i class="fas fa-print me-1"></i>
-                                            طباعة
-                                        </button>
+                                <!-- Export Options -->
+                                <div class="p-3 border-top no-print">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="text-muted">
+                                            <i class="fas fa-info-circle me-1"></i>
+                                            عرض @Model.Results.Count() من إجمالي @Model.TotalTransactions معاملة
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <button type="button" class="btn btn-success btn-sm" onclick="exportToExcel()">
+                                                <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                                            </button>
+                                            <button type="button" class="btn btn-info btn-sm" onclick="printResults()">
+                                                <i class="fas fa-print me-1"></i>طباعة
+                                            </button>
+                                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard()">
+                                                <i class="fas fa-copy me-1"></i>نسخ
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         }
                         else
                         {
-                            <div class="alert alert-warning" role="alert">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                لم يتم العثور على معاملات تطابق معايير البحث المحددة.
+                            <div class="alert alert-warning rounded-3" role="alert">
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
+                                    <div>
+                                        <h6 class="alert-heading mb-1">لم يتم العثور على نتائج</h6>
+                                        <p class="mb-0">لم يتم العثور على معاملات غزل تطابق معايير البحث المحددة. يرجى تعديل المعايير والمحاولة مرة أخرى.</p>
+                                    </div>
+                                </div>
                             </div>
                         }
-                    }
-                </div>
+                    </div>
+                }
             </div>
         </div>
     </div>
 </div>
 
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="spinner-border text-light" role="status">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        <div class="mt-2 text-center">جاري تحميل البيانات...</div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            // Handle stakeholder type change
+            const CURRENT_USER = '@currentUser';
+            const CURRENT_TIME = '@currentTime';
+
+            // Initialize Select2
+            $('.select2-yarn, .select2-type, .select2-stakeholder').select2({
+                theme: 'bootstrap4',
+                dir: 'rtl',
+                language: 'ar',
+                width: '100%'
+            });
+
+            // Real-time clock update
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
+                $('#currentTime').text(timeString);
+            }
+            setInterval(updateClock, 1000);
+
+            // Form submission with loading
+            $('#searchForm').on('submit', function() {
+                showLoading();
+                showToast('info', 'جاري البحث', 'يتم الآن البحث في معاملات الغزل...');
+            });
+
+            // Stakeholder type change handler
             $('#StakeholderTypeId').change(function() {
                 var typeId = $(this).val();
                 var stakeholderSelect = $('#StakeholderId');
 
                 if (typeId) {
-                    // Show loading state
-                    stakeholderSelect.prop('disabled', true)
-                                   .empty()
-                                   .append('<option value="">جاري التحميل...</option>');
+                    stakeholderSelect.prop('disabled', true).empty().append('<option value="">جاري التحميل...</option>');
 
-                    // Fetch stakeholders for selected type
                     $.ajax({
-                        url: '@Url.Action("GetStakeholdersByType", "YarnTransactions")',
+                        url: '@Url.Action("GetStakeholdersByForm", "YarnTransactions")',
                         type: 'GET',
-                        data: { typeId: typeId },
+                        data: { formName: 'غزل' }, // Always filter by yarn forms
                         success: function(response) {
-                            stakeholderSelect.empty().append('<option value="">اختر التاجر</option>');
+                            stakeholderSelect.empty().append('<option value="">اختر تاجر الغزل</option>');
 
                             if (response.success && response.data && response.data.length > 0) {
                                 $.each(response.data, function(index, item) {
                                     stakeholderSelect.append('<option value="' + item.id + '">' + item.name + '</option>');
                                 });
                                 stakeholderSelect.prop('disabled', false);
+                                showToast('success', 'تم التحديث', 'تم تحميل تجار الغزل بنجاح');
                             } else {
-                                stakeholderSelect.append('<option value="">لا توجد تجار لهذا النوع</option>');
-                                console.warn('No stakeholders found:', response.error || 'Unknown error');
+                                stakeholderSelect.append('<option value="">لا توجد تجار غزل لهذا النوع</option>');
+                                showToast('warning', 'تنبيه', 'لا توجد تجار غزل متاحين لهذا النوع');
                             }
                         },
-                        error: function(xhr, status, error) {
-                            console.error('Error fetching stakeholders:', error);
-                            stakeholderSelect.empty()
-                                           .append('<option value="">خطأ في تحميل التجار</option>')
-                                           .prop('disabled', false);
+                        error: function() {
+                            stakeholderSelect.empty().append('<option value="">خطأ في تحميل التجار</option>');
+                            showToast('error', 'خطأ', 'حدث خطأ أثناء تحميل تجار الغزل');
                         }
                     });
                 } else {
-                    // Reset stakeholder dropdown
-                    stakeholderSelect.empty()
-                                   .append('<option value="">اختر التاجر</option>')
-                                   .prop('disabled', true);
+                    stakeholderSelect.empty().append('<option value="">اختر تاجر الغزل</option>').prop('disabled', true);
                 }
             });
 
-            // Clear filters button
+            // Clear filters
             $('#clearFilters').click(function() {
-                $('form')[0].reset();
-                $('#StakeholderId').empty()
-                                  .append('<option value="">اختر التاجر</option>')
-                                  .prop('disabled', true);
-
-                // Set default dates
-                var today = new Date();
-                var thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(today.getDate() - 30);
-
-                $('#FromDate').val(thirtyDaysAgo.toISOString().split('T')[0]);
-                $('#ToDate').val(today.toISOString().split('T')[0]);
+                resetForm();
+                showToast('info', 'تم المسح', 'تم مسح جميع المرشحات');
             });
 
             // Date validation
             $('#FromDate, #ToDate').change(function() {
-                var fromDate = $('#FromDate').val();
-                var toDate = $('#ToDate').val();
-
-                if (fromDate && toDate && fromDate > toDate) {
-                    alert('تاريخ البداية يجب أن يكون أقل من تاريخ النهاية');
-                    $(this).focus();
-                }
+                validateDates();
             });
 
             // Initialize tooltips
             $('[title]').tooltip();
+
+            // Auto-refresh every 5 minutes if no search results
+            if (!@(ViewBag.SearchPerformed == true ? "true" : "false")) {
+                setInterval(function() {
+                    updateClock();
+                }, 300000); // 5 minutes
+            }
         });
 
-        // Export functions
+        // Utility functions
+        function showLoading() {
+            $('#loadingOverlay').fadeIn();
+        }
+
+        function hideLoading() {
+            $('#loadingOverlay').fadeOut();
+        }
+
+        function showToast(type, title, message) {
+            const iconMap = {
+                success: 'check-circle',
+                error: 'exclamation-circle',
+                warning: 'exclamation-triangle',
+                info: 'info-circle'
+            };
+
+            const toast = `
+                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="toast-header">
+                        <i class="fas fa-${iconMap[type]} me-2 text-${type}"></i>
+                        <strong class="me-auto">${title}</strong>
+                        <small class="text-muted">الآن</small>
+                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+                    </div>
+                    <div class="toast-body">${message}</div>
+                </div>
+            `;
+
+            $('.toast-container').append(toast);
+            const toastElement = $('.toast').last();
+            const bsToast = new bootstrap.Toast(toastElement[0]);
+            bsToast.show();
+
+            setTimeout(() => {
+                toastElement.remove();
+            }, 5000);
+        }
+
+        function resetForm() {
+            $('#searchForm')[0].reset();
+            $('.select2-yarn, .select2-type, .select2-stakeholder').val(null).trigger('change');
+
+            // Set default dates
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            $('#FromDate').val(thirtyDaysAgo.toISOString().split('T')[0]);
+            $('#ToDate').val(today.toISOString().split('T')[0]);
+        }
+
+        function validateDates() {
+            const fromDate = $('#FromDate').val();
+            const toDate = $('#ToDate').val();
+
+            if (fromDate && toDate && fromDate > toDate) {
+                showToast('error', 'خطأ في التاريخ', 'تاريخ البداية يجب أن يكون أقل من تاريخ النهاية');
+                $('#ToDate').focus();
+                return false;
+            }
+            return true;
+        }
+
+        function quickSearch(period) {
+            const today = new Date();
+            let fromDate = new Date();
+
+            switch(period) {
+                case 'today':
+                    fromDate = new Date(today);
+                    break;
+                case 'week':
+                    fromDate.setDate(today.getDate() - 7);
+                    break;
+                case 'month':
+                    fromDate.setMonth(today.getMonth() - 1);
+                    break;
+            }
+
+            $('#FromDate').val(fromDate.toISOString().split('T')[0]);
+            $('#ToDate').val(today.toISOString().split('T')[0]);
+
+            showToast('info', 'تم التحديث', `تم تعيين فترة البحث: ${period === 'today' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : 'هذا الشهر'}`);
+        }
+
         function exportToExcel() {
-            // Create a form to submit search criteria for Excel export
-            var form = $('<form>', {
+            showLoading();
+            const form = $('<form>', {
                 method: 'POST',
                 action: '@Url.Action("ExportToExcel", "YarnTransactions")'
             });
 
-            // Add anti-forgery token
             form.append($('@Html.AntiForgeryToken()'));
 
-            // Add search parameters
-            var formData = $('form').serializeArray();
+            const formData = $('#searchForm').serializeArray();
             $.each(formData, function(i, field) {
                 form.append($('<input>', {
                     type: 'hidden',
@@ -357,72 +753,34 @@
             });
 
             form.appendTo('body').submit().remove();
+            hideLoading();
+            showToast('success', 'تم التصدير', 'تم تصدير البيانات إلى Excel بنجاح');
         }
 
         function printResults() {
             window.print();
         }
 
-        // Form validation
-        (function() {
-            'use strict';
-            window.addEventListener('load', function() {
-                var forms = document.getElementsByClassName('needs-validation');
-                var validation = Array.prototype.filter.call(forms, function(form) {
-                    form.addEventListener('submit', function(event) {
-                        if (form.checkValidity() === false) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        form.classList.add('was-validated');
-                    }, false);
-                });
-            }, false);
-        })();
+        function copyToClipboard() {
+            const table = document.getElementById('resultsTable');
+            const range = document.createRange();
+            range.selectNode(table);
+            window.getSelection().removeAllRanges();
+            window.getSelection().addRange(range);
+
+            try {
+                document.execCommand('copy');
+                showToast('success', 'تم النسخ', 'تم نسخ الجدول إلى الحافظة');
+            } catch (err) {
+                showToast('error', 'خطأ', 'فشل في نسخ البيانات');
+            }
+
+            window.getSelection().removeAllRanges();
+        }
+
+        // Hide loading on page load
+        $(window).on('load', function() {
+            hideLoading();
+        });
     </script>
-
-    <style>
-        .border-end {
-            border-right: 1px solid #dee2e6 !important;
-        }
-
-        @@media (max-width: 576px) {
-            .border-end
-
-        {
-            border-right: none !important;
-            border-bottom: 1px solid #dee2e6 !important;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-        }
-
-        }
-
-        .table-responsive {
-            border-radius: 0.375rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        }
-
-        .btn-group-sm > .btn {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        @@media print {
-            .btn, .card-header, .no-print
-
-        {
-            display: none !important;
-        }
-
-        .card {
-            border: none !important;
-            box-shadow: none !important;
-        }
-
-        .table {
-            font-size: 12px;
-        }
-
-        }</style>
 }

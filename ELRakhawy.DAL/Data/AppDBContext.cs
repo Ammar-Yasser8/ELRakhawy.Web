@@ -30,6 +30,7 @@ namespace Elrakhawy.DAL.Data
         public DbSet<YarnTransaction> YarnTransactions { get; set; }
         public DbSet<FullWarpBeam> FullWarpBeams { get; set; }
         public DbSet<RawItem> RawItems { get; set; }
+        public DbSet<FullWarpBeamTransaction> FullWarpBeamTransations { get; set; }  
         //public DbSet<OriginYarn> OriginYarns { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -43,7 +44,10 @@ namespace Elrakhawy.DAL.Data
                     .OnDelete(DeleteBehavior.NoAction) // 👈 Important
                     .HasConstraintName("FK_YarnItems_OriginYarn");
             });
-
+            modelBuilder.Entity<YarnItem>()
+                .HasMany(y => y.Manufacturers)
+                .WithMany(m => m.YarnItems)
+                .UsingEntity(j => j.ToTable("YarnItemManufacturers"));
 
             // PackagingStyleForms many-to-many
             modelBuilder.Entity<PackagingStyleForms>()
