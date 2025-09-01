@@ -29,7 +29,6 @@ namespace ELRakhawy.Web.Controllers
                     IsInbound = true,
                     Date = DateTime.Now,
                     AvailableItems = GetActiveYarnItems(),
-                    StakeholderTypes = GetStakeholderTypes()
                 };
 
                 _logger.LogInformation("Inbound yarn transaction form loaded by {User} at {Time}",
@@ -56,7 +55,6 @@ namespace ELRakhawy.Web.Controllers
                     IsInbound = false,
                     Date = DateTime.Now,
                     AvailableItems = GetActiveYarnItems(),
-                    StakeholderTypes = GetStakeholderTypes()
                 };
 
                 _logger.LogInformation("Outbound yarn transaction form loaded by {User} at {Time}",

@@ -1,0 +1,198 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FullWarpBeamTransactionDetailsViewModel
+@{
+    ViewData["Title"] = $"تفاصيل المعاملة - {Model.Transaction.TransactionId}";
+    var currentTime = "2025-09-01 15:16:06";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-file-alt me-2"></i>تفاصيل المعاملة
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item">
+                        <a href="@Url.Action("Overview")">معاملات السداة الكاملة</a>
+                    </li>
+                    <li class="breadcrumb-item active">@Model.Transaction.TransactionId</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="@Url.Action("Overview")" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i>العودة للقائمة
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Transaction Details -->
+        <div class="col-lg-8">
+            <div class="card transaction-details">
+                <div class="card-header bg-@Model.Transaction.TransactionTypeClass text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-arrow-@(Model.Transaction.IsInbound ? "down" : "up") me-2"></i>
+                        معاملة @Model.Transaction.TransactionType - @Model.Transaction.TransactionId
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">معلومات المعاملة</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>رقم الإذن:</strong></td>
+                                    <td>@Model.Transaction.TransactionId</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الرقم الداخلي:</strong></td>
+                                    <td>@(Model.Transaction.InternalId ?? "غير محدد")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الرقم الخارجي:</strong></td>
+                                    <td>@(Model.Transaction.ExternalId ?? "غير محدد")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>التاريخ:</strong></td>
+                                    <td>@Model.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>النوع:</strong></td>
+                                    <td>
+                                        <span class="badge bg-@Model.Transaction.TransactionTypeClass">
+                                            @Model.Transaction.TransactionType
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">معلومات الكمية</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>الكمية:</strong></td>
+                                    <td>@Model.Transaction.Quantity.ToString("N3") كجم</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الطول:</strong></td>
+                                    <td>@Model.Transaction.Length متر</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>رصيد الكمية:</strong></td>
+                                    <td><strong>@Model.Transaction.QuantityBalance.ToString("N3") كجم</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>رصيد العدد:</strong></td>
+                                    <td><strong>@Model.Transaction.CountBalance وحدة</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الرصيد الحالي:</strong></td>
+                                    <td>
+                                        <span class="text-success">@Model.CurrentItemBalance.ToString("N3") كجم</span>
+                                        <br>
+                                        <span class="text-info">@Model.CurrentItemLengthBalance متر</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">معلومات الصنف</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>الصنف:</strong></td>
+                                    <td>@Model.Transaction.FullWarpBeamItemName</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>الغزل الأصلي:</strong></td>
+                                    <td>@Model.OriginYarnName</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-primary border-bottom pb-2">معلومات الجهة</h6>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td><strong>اسم الجهة:</strong></td>
+                                    <td>@Model.Transaction.StakeholderName</td>
+                                </tr>
+                               
+                            </table>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Transaction.Comment))
+                    {
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6 class="text-primary border-bottom pb-2">البيان</h6>
+                                <div class="alert alert-light">
+                                    @Model.Transaction.Comment
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Transactions -->
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-history me-2"></i>معاملات مرتبطة لنفس الصنف
+                    </h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.RelatedTransactions.Any())
+                    {
+                        <div class="list-group list-group-flush">
+                            @foreach (var related in Model.RelatedTransactions)
+                            {
+                                <div class="list-group-item">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">
+                                                <a href="@Url.Action("Details", new { id = related.Id })"
+                                                   class="text-decoration-none">
+                                                    @related.TransactionId
+                                                </a>
+                                            </h6>
+                                            <p class="mb-1 small">@related.StakeholderName</p>
+                                            <small class="text-muted">@related.Date.ToString("yyyy-MM-dd")</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-@related.TransactionTypeClass">
+                                                @related.Quantity.ToString("N3")
+                                            </span>
+                                            <br>
+                                            <small class="text-muted">@related.Length م</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="text-center py-3">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <p class="text-muted mb-0">لا توجد معاملات مرتبطة</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        console.log('Transaction details page loaded at @currentTime by @currentUser for transaction: @Model.Transaction.TransactionId');
+    </script>
+}

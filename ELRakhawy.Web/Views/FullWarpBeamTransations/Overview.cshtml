@@ -1,0 +1,277 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FullWarpBeamTransactionOverviewViewModel
+@{
+    ViewData["Title"] = "معاملات خيوط السداة الكاملة";
+    var currentTime = "2025-09-01 15:16:06";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-list-alt me-2"></i>معاملات خيوط السداة الكاملة
+            </h2>
+            <p class="text-muted mb-0">عرض شامل لجميع معاملات خيوط السداة الكاملة الواردة والصادرة</p>
+        </div>
+        <div class="btn-group">
+            <a href="@Url.Action("Inbound", "FullWarpBeamTransactions")" class="btn btn-success">
+                <i class="fas fa-plus me-1"></i>إضافة وارد
+            </a>
+            <a href="@Url.Action("Outbound", "FullWarpBeamTransactions")" class="btn btn-warning">
+                <i class="fas fa-minus me-1"></i>إضافة صادر
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card border-success">
+                <div class="card-body text-center">
+                    <h3 class="text-success mb-1">@Model.TotalInbound.ToString("N3")</h3>
+                    <p class="text-muted mb-0">إجمالي الوارد (كجم)</p>
+                    <small class="text-success">@Model.TotalLengthInbound متر</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-warning">
+                <div class="card-body text-center">
+                    <h3 class="text-warning mb-1">@Model.TotalOutbound.ToString("N3")</h3>
+                    <p class="text-muted mb-0">إجمالي الصادر (كجم)</p>
+                    <small class="text-warning">@Model.TotalLengthOutbound متر</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-primary">
+                <div class="card-body text-center">
+                    <h3 class="text-primary mb-1">@Model.CurrentBalance.ToString("N3")</h3>
+                    <p class="text-muted mb-0">الرصيد الحالي (كجم)</p>
+                    <small class="text-primary">@Model.CurrentLengthBalance متر</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card border-info">
+                <div class="card-body text-center">
+                    <h3 class="text-info mb-1">@Model.TotalTransactions</h3>
+                    <p class="text-muted mb-0">إجمالي المعاملات</p>
+                    <small class="text-info">معاملة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>فلاتر البحث
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Overview")">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="SelectedFullWarpBeamItemId" class="form-label">الصنف</label>
+                        <select name="SelectedFullWarpBeamItemId" class="form-select">
+                            <option value="">-- جميع الأصناف --</option>
+                            @foreach (var item in Model.FullWarpBeamItems)
+                            {
+                                <option value="@item.Value" @@(Model.SelectedFullWarpBeamItemId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="SelectedStakeholderId" class="form-label">الجهة</label>
+                        <select name="SelectedStakeholderId" class="form-select">
+                            <option value="">-- جميع الجهات --</option>
+                            @foreach (var stakeholder in Model.Stakeholders)
+                            {
+                                <option value="@stakeholder.Value" @@(Model.SelectedStakeholderId?.ToString() == stakeholder.Value ? "selected" : "")>@stakeholder.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="TransactionType" class="form-label">نوع المعاملة</label>
+                        <select name="TransactionType" class="form-select">
+                            <option value="All" @@(Model.TransactionType == "All" ? "selected" : "")>الكل</option>
+                            <option value="Inbound" @@(Model.TransactionType == "Inbound" ? "selected" : "")>وارد</option>
+                            <option value="Outbound" @@(Model.TransactionType == "Outbound" ? "selected" : "")>صادر</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="FromDate" class="form-label">من تاريخ</label>
+                        <input type="date" name="FromDate" class="form-control" 
+                               value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label for="ToDate" class="form-label">إلى تاريخ</label>
+                        <input type="date" name="ToDate" class="form-control" 
+                               value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label for="SearchQuery" class="form-label">البحث النصي</label>
+                        <input type="text" name="SearchQuery" class="form-control" 
+                               value="@Model.SearchQuery" placeholder="ابحث في رقم الإذن، الصنف، الجهة، أو البيان..." />
+                    </div>
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i>بحث
+                        </button>
+                        <a href="@Url.Action("Overview")" class="btn btn-secondary">
+                            <i class="fas fa-undo me-1"></i>إعادة تعيين
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-table me-2"></i>المعاملات (@Model.Transactions.Count)
+            </h5>
+            <button class="btn btn-sm btn-outline-primary" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>تصدير Excel
+            </button>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Transactions.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم الإذن</th>
+                                <th>التاريخ</th>
+                                <th>الصنف</th>
+                                <th>الجهة</th>
+                                <th>النوع</th>
+                                <th>الكمية</th>
+                                <th>الطول</th>
+                                <th>الرصيد</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transaction in Model.Transactions)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@transaction.TransactionId</strong>
+                                        @if (!string.IsNullOrEmpty(transaction.InternalId))
+                                        {
+                                            <br><small class="text-muted">داخلي: @transaction.InternalId</small>
+                                        }
+                                    </td>
+                                    <td>@transaction.Date.ToString("yyyy-MM-dd")</td>
+                                    <td>@transaction.FullWarpBeamItemName</td>
+                                    <td>@transaction.StakeholderName</td>
+                                    <td>
+                                        <span class="badge bg-@transaction.TransactionTypeClass">
+                                            <i class="fas fa-arrow-@(transaction.IsInbound ? "down" : "up") me-1"></i>
+                                            @transaction.TransactionType
+                                        </span>
+                                    </td>
+                                    <td>@transaction.Quantity.ToString("N3") كجم</td>
+                                    <td>@transaction.Length متر</td>
+                                    <td>
+                                        <strong>@transaction.QuantityBalance.ToString("N3")</strong> كجم
+                                        <br><small class="text-muted">@transaction.CountBalance وحدة</small>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="@Url.Action("Details", new { id = transaction.Id })" 
+                                               class="btn btn-outline-primary" title="عرض التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">لا توجد معاملات</h5>
+                    <p class="text-muted">لم يتم العثور على معاملات تطابق معايير البحث المحددة</p>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Quick Preview Modal -->
+<div class="modal fade" id="quickPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">معاينة سريعة للمعاملة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="quickPreviewContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%'
+            });
+
+            console.log('Full warp beam transactions overview initialized at @currentTime by @currentUser');
+        });
+
+        function showQuickPreview(transactionId) {
+            $('#quickPreviewModal').modal('show');
+            
+            $.ajax({
+                url: '@Url.Action("Details", "FullWarpBeamTransactions")/' + transactionId,
+                type: 'GET',
+                success: function(data) {
+                    // Extract just the content we need for quick preview
+                    var content = $(data).find('.transaction-details').html();
+                    if (!content) {
+                        content = '<p class="text-center">تفاصيل المعاملة غير متوفرة</p>';
+                    }
+                    $('#quickPreviewContent').html(content);
+                },
+                error: function() {
+                    $('#quickPreviewContent').html('<p class="text-center text-danger">حدث خطأ أثناء تحميل التفاصيل</p>');
+                }
+            });
+        }
+
+        function exportToExcel() {
+            // Create export URL with current filters
+            var params = new URLSearchParams(window.location.search);
+            params.set('export', 'excel');
+            window.location.href = '@Url.Action("Overview")?' + params.toString();
+        }
+    </script>
+}

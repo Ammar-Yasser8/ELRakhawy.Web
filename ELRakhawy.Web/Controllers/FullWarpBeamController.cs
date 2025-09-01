@@ -14,7 +14,6 @@ namespace ELRakhawy.Web.Controllers
             _unitOfWork = unitOfWork;
         }
         public IActionResult Index()
-        
         {
             var beams = _unitOfWork.Repository<FullWarpBeam>().GetAll(includeEntities: "OriginYarn") ?? new List<FullWarpBeam>();
             if (!beams.Any())
