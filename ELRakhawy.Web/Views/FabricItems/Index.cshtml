@@ -1,0 +1,340 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FabricItemIndexViewModel
+@{
+    ViewData["Title"] = "إدارة أصناف القماش";
+    var currentTime = "2025-09-02 17:23:45";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-tshirt me-2"></i>إدارة أصناف القماش
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item active">أصناف القماش</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h4 class="text-primary mb-0">@Model.TotalItems</h4>
+                    <small class="text-muted">إجمالي الأصناف</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h4 class="text-success mb-0">@Model.ActiveItemsCount</h4>
+                    <small class="text-muted">الأصناف النشطة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-secondary">
+                <div class="card-body">
+                    <h4 class="text-secondary mb-0">@Model.InactiveItemsCount</h4>
+                    <small class="text-muted">الأصناف غير النشطة</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h4 class="text-info mb-0">@Model.TotalRawItemsUsed</h4>
+                    <small class="text-muted">المواد الخام المستخدمة</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Actions -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>البحث والتصفية
+                    </h5>
+                </div>
+                <div class="col-auto">
+                    <a href="@Url.Action("Create")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>إضافة صنف جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Index")">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">البحث في الأصناف</label>
+                        <input type="text" name="searchQuery" class="form-control" value="@Model.SearchQuery" 
+                               placeholder="ابحث في اسم الصنف أو البيان..." />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">المادة الخام</label>
+                        <select name="selectedRawItemId" class="form-select">
+                            <option value="">-- كل المواد الخام --</option>
+                            @foreach (var item in Model.RawItemsFilter)
+                            {
+                                <option value="@item.Value" @@(Model.SelectedRawItemId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">الحالة</label>
+                        <select name="statusFilter" class="form-select">
+                            <option value="All" @@(Model.StatusFilter == "All" ? "selected" : "")>الكل</option>
+                            <option value="Active" @@(Model.StatusFilter == "Active" ? "selected" : "")>نشط</option>
+                            <option value="Inactive" @@(Model.StatusFilter == "Inactive" ? "selected" : "")>غير نشط</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-search me-1"></i>بحث
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>إعادة تعيين
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>قائمة أصناف القماش
+                @if (Model.HasItems)
+                {
+                    <span class="badge bg-light text-dark ms-2">@Model.TotalItems صنف</span>
+                }
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.HasItems)
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الصنف</th>
+                                <th>الخام المكون</th>
+                                <th>الحالة</th>
+                                <th>البيان</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.FabricItems)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@item.Item</strong>
+                                        <br><small class="text-muted">رقم: @item.Id</small>
+                                    </td>
+                                    <td>
+                                        @item.OriginRawName
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@item.StatusClass status-badge" data-id="@item.Id">
+                                            <i class="fas @item.StatusIcon me-1"></i>
+                                            <span class="status-text">@item.StatusText</span>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.Comment))
+                                        {
+                                            <span>@item.Comment</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">لا يوجد بيان</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="@Url.Action("Edit", new { id = item.Id })" 
+                                               class="btn btn-outline-primary" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-@(item.Status ? "warning" : "success") toggle-status-btn" 
+                                                    data-id="@item.Id" data-current-status="@item.Status.ToString().ToLower()" 
+                                                    title="@(item.Status ? "إلغاء تنشيط" : "تنشيط")">
+                                                <i class="fas @(item.Status ? "fa-eye-slash" : "fa-eye")"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-outline-danger delete-btn" 
+                                                    data-id="@item.Id" data-name="@item.Item" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer">
+                        <nav aria-label="تصفح الصفحات">
+                            <ul class="pagination justify-content-center mb-0">
+                                @if (Model.HasPreviousPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                           page = Model.CurrentPage - 1, 
+                                           searchQuery = Model.SearchQuery,
+                                           selectedRawItemId = Model.SelectedRawItemId,
+                                           statusFilter = Model.StatusFilter
+                                         })">السابق</a>
+                                    </li>
+                                }
+
+                                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                           page = i, 
+                                           searchQuery = Model.SearchQuery,
+                                           selectedRawItemId = Model.SelectedRawItemId,
+                                           statusFilter = Model.StatusFilter
+                                         })">@i</a>
+                                    </li>
+                                }
+
+                                @if (Model.HasNextPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                           page = Model.CurrentPage + 1, 
+                                           searchQuery = Model.SearchQuery,
+                                           selectedRawItemId = Model.SelectedRawItemId,
+                                           statusFilter = Model.StatusFilter
+                                         })">التالي</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                صفحة @Model.CurrentPage من @Model.TotalPages (إجمالي @Model.TotalItems صنف)
+                            </small>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-tshirt fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">لا توجد أصناف قماش</h5>
+                    <p class="text-muted">لا توجد أصناف تطابق معايير البحث المحددة</p>
+                    <a href="@Url.Action("Create")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>إضافة صنف جديد
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Fabric Items Index loaded at 2025-09-02 17:23:45 by Ammar-Yasser8');
+
+            // Toggle status functionality
+            $('.toggle-status-btn').click(function() {
+                var btn = $(this);
+                var itemId = btn.data('id');
+                var currentStatus = btn.data('current-status') === 'true';
+                var newStatusText = currentStatus ? 'غير نشط' : 'نشط';
+                
+                if (confirm(`هل تريد تغيير حالة الصنف إلى "${newStatusText}"؟`)) {
+                    $.post('@Url.Action("ToggleStatus")', { id: itemId }, function(result) {
+                        if (result.success) {
+                            var statusBadge = $(`.status-badge[data-id="${itemId}"]`);
+                            statusBadge.removeClass('bg-success bg-secondary')
+                                      .addClass('bg-' + result.statusClass);
+                            statusBadge.find('i').removeClass('fa-check-circle fa-times-circle')
+                                      .addClass(result.statusIcon);
+                            statusBadge.find('.status-text').text(result.statusText);
+                            
+                            btn.data('current-status', result.newStatus.toString().toLowerCase())
+                               .removeClass('btn-outline-warning btn-outline-success')
+                               .addClass(result.newStatus ? 'btn-outline-warning' : 'btn-outline-success')
+                               .attr('title', result.newStatus ? 'إلغاء تنشيط' : 'تنشيط');
+                            btn.find('i').removeClass('fa-eye fa-eye-slash')
+                               .addClass(result.newStatus ? 'fa-eye-slash' : 'fa-eye');
+                            
+                            showToast('success', result.message);
+                        } else {
+                            showToast('error', result.message);
+                        }
+                    }).fail(function() {
+                        showToast('error', 'حدث خطأ أثناء تحديث الحالة');
+                    });
+                }
+            });
+
+            // Delete functionality
+            $('.delete-btn').click(function() {
+                var btn = $(this);
+                var itemId = btn.data('id');
+                var itemName = btn.data('name');
+                
+                if (confirm(`هل أنت متأكد من حذف صنف القماش "${itemName}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`)) {
+                    $.post('@Url.Action("Delete")', { id: itemId }, function(result) {
+                        if (result.success) {
+                            btn.closest('tr').fadeOut(function() {
+                                $(this).remove();
+                            });
+                            showToast('success', result.message);
+                        } else {
+                            showToast('error', result.message);
+                        }
+                    }).fail(function() {
+                        showToast('error', 'حدث خطأ أثناء حذف الصنف');
+                    });
+                }
+            });
+
+            function showToast(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+                
+                var toast = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+                
+                $('body').append(toast);
+                setTimeout(function() {
+                    toast.alert('close');
+                }, 5000);
+            }
+        });
+    </script>
+}

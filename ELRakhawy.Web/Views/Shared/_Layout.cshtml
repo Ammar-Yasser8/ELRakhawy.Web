@@ -819,6 +819,51 @@
                             </div>
                     </li>
 
+                    <!-- Updated HTML Structure for Warp Section -->
+                    <li class="nav-item">
+                        <a class="nav-link main-header"
+                           data-bs-toggle="collapse"
+                           href="#WarpFabricMenu"
+                           role="button"
+                           aria-expanded="false"
+                           data-navigate-url="/FabricItems/Index">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-cut"></i>
+                                <span>قسم القماش</span>
+                            </div>
+                            <i class="fas fa-chevron-down arrow"></i>
+                        </a>
+                        <div class="collapse" id="WarpFabricMenu">
+                            <ul class="nav flex-column sub-menu">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/FabricItems/Index">
+                                        <i class="fas fa-chart-bar me-2"></i>
+                                        <span>إدارة القماس</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="@Url.Action("Inbound", "FullWarpBeamTransations")">
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        <span>إضافة وارد</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="@Url.Action("Outbound", "FullWarpBeamTransations")">
+                                        <i class="fas fa-minus-circle me-2"></i>
+                                        <span>إضافة صادر</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="@Url.Action("Overview", "FullWarpBeamTransations")">
+                                        <i class="fas fa-list-alt me-2"></i>
+                                        <span>معاملات  </span>
+                                    </a>
+                                </li>
+                            </ul>
+
+                        </div>
+                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link" data-bs-toggle="collapse" href="#financeMenu" role="button" aria-expanded="false">
                             <i class="fas fa-calculator"></i>

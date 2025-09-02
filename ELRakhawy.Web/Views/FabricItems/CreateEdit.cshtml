@@ -1,0 +1,240 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FabricItemViewModel
+@{
+    ViewData["Title"] = Model.FormTitle;
+    var currentTime = "2025-09-02 17:23:45";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas @(Model.IsEdit ? "fa-edit" : "fa-plus") me-2"></i>@Model.FormTitle
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index")">أصناف القماش</a></li>
+                    <li class="breadcrumb-item active">@(Model.IsEdit ? "تعديل" : "إضافة")</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card shadow-sm">
+        <div class="card-header @(Model.IsEdit ? "bg-warning" : "bg-primary") text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-form me-2"></i>بيانات صنف القماش
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="fabricItemForm" action="@Url.Action("Save")" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="OriginRawName" />
+
+                <div class="row">
+                    <!-- Item Name -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-tag me-2"></i>معلومات الصنف
+                        </h6>
+                        <div class="mb-3">
+                            <label asp-for="Item" class="form-label required">
+                                <i class="fas fa-tshirt text-primary me-1"></i>اسم الصنف
+                            </label>
+                            <input asp-for="Item" class="form-control" placeholder="أدخل اسم صنف القماش" />
+                            <span asp-validation-for="Item" class="text-danger"></span>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>يجب أن يكون اسم الصنف فريداً
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Origin Raw Item -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-industry me-2"></i>المادة الخام المكونة
+                        </h6>
+                        <div class="mb-3">
+                            <label asp-for="OriginRawId" class="form-label required">
+                                <i class="fas fa-boxes text-success me-1"></i>الخام المكون
+                            </label>
+                            <select asp-for="OriginRawId" class="form-select">
+                                <option value="">-- اختر المادة الخام المكونة --</option>
+                                @foreach (var item in Model.AvailableRawItems)
+                                {
+                                    <option value="@item.Value" @@(Model.OriginRawId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="OriginRawId" class="text-danger"></span>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>اختر المادة الخام التي يصنع منها هذا القماش
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Status -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-toggle-on me-2"></i>حالة الصنف
+                        </h6>
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="Status" class="form-check-input" type="checkbox" id="statusSwitch" />
+                                <label class="form-check-label" for="statusSwitch">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    <span class="status-label">@(Model.Status ? "نشط" : "غير نشط")</span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>الأصناف النشطة فقط تظهر في القوائم
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comment -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-comment me-2"></i>بيان إضافي
+                        </h6>
+                        <div class="mb-3">
+                            <label asp-for="Comment" class="form-label">
+                                <i class="fas fa-sticky-note text-secondary me-1"></i>البيان
+                            </label>
+                            <textarea asp-for="Comment" class="form-control" rows="4" 
+                                      placeholder="أدخل أي ملاحظات أو تفاصيل إضافية عن صنف القماش (اختياري)"></textarea>
+                            <span asp-validation-for="Comment" class="text-danger"></span>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>يمكنك إضافة وصف للقماش، خصائصه، أو أي معلومات مفيدة
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="button" class="btn btn-info" id="previewBtn">
+                                <i class="fas fa-eye me-1"></i>معاينة
+                            </button>
+                            <button type="submit" class="btn @(Model.IsEdit ? "btn-warning" : "btn-primary")" id="saveBtn">
+                                <i class="fas fa-save me-1"></i>
+                                @(Model.IsEdit ? "تحديث الصنف" : "حفظ الصنف")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function() {
+            console.log('Fabric Item Form loaded at 2025-09-02 17:23:45 by Ammar-Yasser8');
+            
+            // Initialize select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return "لا توجد نتائج";
+                    },
+                    searching: function() {
+                        return "جاري البحث...";
+                    }
+                }
+            });
+
+            // Handle status switch change
+            $('#statusSwitch').change(function() {
+                var isActive = $(this).is(':checked');
+                $('.status-label').text(isActive ? 'نشط' : 'غير نشط');
+            });
+
+            // Handle origin raw item change
+            $('#OriginRawId').on('change', function() {
+                var selectedText = $(this).find('option:selected').text();
+                $('#OriginRawName').val(selectedText);
+            });
+
+            // Preview functionality
+            $('#previewBtn').click(function() {
+                var data = {
+                    item: $('#Item').val() || 'غير محدد',
+                    originRaw: $('#OriginRawId option:selected').text() || 'غير محدد',
+                    status: $('#statusSwitch').is(':checked') ? 'نشط' : 'غير نشط',
+                    comment: $('#Comment').val() || 'لا يوجد بيان'
+                };
+
+                var isEdit = @Json.Serialize(Model.IsEdit);
+                var preview = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>اسم الصنف:</strong> ${data.item}</p>
+                            <p><strong>الخام المكون:</strong> ${data.originRaw}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>الحالة:</strong> <span class="badge bg-${data.status === 'نشط' ? 'success' : 'secondary'}">${data.status}</span></p>
+                        </div>
+                        <div class="col-12">
+                            <p><strong>البيان:</strong> ${data.comment}</p>
+                        </div>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: isEdit ? 'معاينة تحديث صنف القماش' : 'معاينة صنف القماش الجديد',
+                    html: preview,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: isEdit ? 'تحديث الآن' : 'حفظ الآن',
+                    cancelButtonText: 'تراجع',
+                    confirmButtonColor: isEdit ? '#ffc107' : '#0d6efd'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#fabricItemForm').submit();
+                    }
+                });
+            });
+
+            // Form submission
+            $('#fabricItemForm').submit(function() {
+                $('#saveBtn').prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+            });
+        });
+    </script>
+}
