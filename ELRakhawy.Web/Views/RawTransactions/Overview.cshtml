@@ -1,0 +1,338 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model RawTransactionOverviewViewModel
+@{
+    ViewData["Title"] = "عرض معاملات المواد الخام";
+    var currentTime = "2025-09-02 12:37:41";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-list-alt me-2"></i>عرض معاملات المواد الخام
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "RawItems")">المواد الخام</a></li>
+                    <li class="breadcrumb-item active">عرض المعاملات</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Summary Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-2">
+            <div class="card text-center border-success">
+                <div class="card-body">
+                    <h4 class="text-success mb-0">@Model.TotalInbound.ToString("N3")</h4>
+                    <small class="text-muted">إجمالي الوارد</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-warning">
+                <div class="card-body">
+                    <h4 class="text-warning mb-0">@Model.TotalOutbound.ToString("N3")</h4>
+                    <small class="text-muted">إجمالي الصادر</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-info">
+                <div class="card-body">
+                    <h4 class="text-info mb-0">@Model.CurrentBalance.ToString("N3")</h4>
+                    <small class="text-muted">الرصيد الحالي</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-secondary">
+                <div class="card-body">
+                    <h4 class="text-secondary mb-0">@Model.CurrentCountBalance</h4>
+                    <small class="text-muted">رصيد العدد</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h4 class="text-primary mb-0">@Model.TotalTransactions</h4>
+                    <small class="text-muted">إجمالي المعاملات</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card text-center border-dark">
+                <div class="card-body">
+                    <h4 class="text-dark mb-0">@Model.TotalCount</h4>
+                    <small class="text-muted">إجمالي العدد</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>تصفية المعاملات
+            </h5>
+        </div>
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Overview")">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">الصنف الخام</label>
+                        <select name="rawItemId" class="form-select">
+                            <option value="">-- كل الأصناف --</option>
+                            @foreach (var item in Model.RawItems)
+                            {
+                                <option value="@item.Value" @@(Model.SelectedRawItemId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label">الجهة</label>
+                        <select name="stakeholderId" class="form-select">
+                            <option value="">-- كل الجهات --</option>
+                            @foreach (var stakeholder in Model.Stakeholders)
+                            {
+                                <option value="@stakeholder.Value" @@(Model.SelectedStakeholderId?.ToString() == stakeholder.Value ? "selected" : "")>@stakeholder.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">من تاريخ</label>
+                        <input type="date" name="fromDate" class="form-control" value="@Model.FromDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">إلى تاريخ</label>
+                        <input type="date" name="toDate" class="form-control" value="@Model.ToDate?.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label">نوع المعاملة</label>
+                        <select name="transactionType" class="form-select">
+                            <option value="All" @@(Model.TransactionType == "All" ? "selected" : "")>الكل</option>
+                            <option value="Inbound" @@(Model.TransactionType == "Inbound" ? "selected" : "")>وارد</option>
+                            <option value="Outbound" @@(Model.TransactionType == "Outbound" ? "selected" : "")>صادر</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-8 mb-3">
+                        <label class="form-label">البحث</label>
+                        <input type="text" name="searchQuery" class="form-control" value="@Model.SearchQuery" 
+                               placeholder="البحث في رقم الإذن، البيان، أو اسم الجهة..." />
+                    </div>
+                    <div class="col-md-4 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i>بحث
+                        </button>
+                        <a href="@Url.Action("Overview")" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>إعادة تعيين
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Transactions Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-table me-2"></i>قائمة المعاملات
+            </h5>
+            <div>
+                <a href="@Url.Action("Inbound")" class="btn btn-success btn-sm">
+                    <i class="fas fa-plus me-1"></i>إضافة وارد
+                </a>
+                <a href="@Url.Action("Outbound")" class="btn btn-warning btn-sm">
+                    <i class="fas fa-plus me-1"></i>إضافة صادر
+                </a>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.Transactions.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم الإذن</th>
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>الصنف الخام</th>
+                                <th>الكمية (متر)</th>
+                                <th>الوزن (كجم)</th>
+                                <th>الصادر</th>
+                                <th>العدد</th>
+                                <th>رصيد الكمية</th>
+                                <th>رصيد العدد</th>
+                                <th>الجهة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transaction in Model.Transactions)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@transaction.TransactionId</strong>
+                                        @if (!string.IsNullOrEmpty(transaction.InternalId))
+                                        {
+                                            <br><small class="text-muted">داخلي: @transaction.InternalId</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span>@transaction.Date.ToString("yyyy-MM-dd")</span>
+                                        <br><small class="text-muted">@transaction.Date.ToString("HH:mm")</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@transaction.TransactionTypeClass">
+                                            <i class="fas @transaction.TransactionTypeIcon me-1"></i>
+                                            @transaction.TransactionType
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>@transaction.RawItemName</strong>
+                                        <br><small class="text-muted">سداء: @transaction.WarpName</small>
+                                        <br><small class="text-muted">لحمة: @transaction.WeftName</small>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (transaction.InboundMeters > 0)
+                                        {
+                                            <span class="text-success fw-bold">@transaction.InboundMeters.ToString("N3")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (transaction.InboundKg > 0)
+                                        {
+                                            <span class="text-success fw-bold">@transaction.InboundKg.ToString("N3")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (transaction.Outbound > 0)
+                                        {
+                                            <span class="text-warning fw-bold">@transaction.Outbound.ToString("N3")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="fw-bold">@transaction.Count</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-info">@transaction.QuantityBalance.ToString("N3")</span>
+                                    </td>
+                                    <td class="text-center">
+                                        <span class="badge bg-secondary">@transaction.CountBalance</span>
+                                    </td>
+                                    <td>@transaction.StakeholderName</td>
+                                    <td>
+                                        <a href="@Url.Action("Details", new { id = transaction.Id })" 
+                                           class="btn btn-sm btn-outline-primary" title="عرض التفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer">
+                        <nav aria-label="تصفح الصفحات">
+                            <ul class="pagination justify-content-center mb-0">
+                                @if (Model.HasPreviousPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Overview", new { 
+                                           page = Model.CurrentPage - 1, 
+                                           rawItemId = Model.SelectedRawItemId,
+                                           stakeholderId = Model.SelectedStakeholderId,
+                                           fromDate = Model.FromDate?.ToString("yyyy-MM-dd"),
+                                           toDate = Model.ToDate?.ToString("yyyy-MM-dd"),
+                                           transactionType = Model.TransactionType,
+                                           searchQuery = Model.SearchQuery
+                                         })">السابق</a>
+                                    </li>
+                                }
+
+                                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Overview", new { 
+                                           page = i, 
+                                           rawItemId = Model.SelectedRawItemId,
+                                           stakeholderId = Model.SelectedStakeholderId,
+                                           fromDate = Model.FromDate?.ToString("yyyy-MM-dd"),
+                                           toDate = Model.ToDate?.ToString("yyyy-MM-dd"),
+                                           transactionType = Model.TransactionType,
+                                           searchQuery = Model.SearchQuery
+                                         })">@i</a>
+                                    </li>
+                                }
+
+                                @if (Model.HasNextPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Overview", new { 
+                                           page = Model.CurrentPage + 1, 
+                                           rawItemId = Model.SelectedRawItemId,
+                                           stakeholderId = Model.SelectedStakeholderId,
+                                           fromDate = Model.FromDate?.ToString("yyyy-MM-dd"),
+                                           toDate = Model.ToDate?.ToString("yyyy-MM-dd"),
+                                           transactionType = Model.TransactionType,
+                                           searchQuery = Model.SearchQuery
+                                         })">التالي</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                صفحة @Model.CurrentPage من @Model.TotalPages (إجمالي @Model.TotalTransactions معاملة)
+                            </small>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">لا توجد معاملات</h5>
+                    <p class="text-muted">لا توجد معاملات تطابق معايير البحث المحددة</p>
+                    <a href="@Url.Action("Inbound")" class="btn btn-success me-2">
+                        <i class="fas fa-plus me-1"></i>إضافة وارد جديد
+                    </a>
+                    <a href="@Url.Action("Outbound")" class="btn btn-warning">
+                        <i class="fas fa-plus me-1"></i>إضافة صادر جديد
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>

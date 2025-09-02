@@ -1,0 +1,889 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model RawTransactionViewModel
+@{
+    ViewData["Title"] = Model.IsInbound ? "اضافة وارد خام" : "اضافة صادر خام";
+    var currentTime = "2025-09-01 23:13:35";
+    var currentUser = "Ammar-Yasser8";
+    var formName = Model.IsInbound ? "اضافة وارد خام" : "اضافة صادر خام";
+}
+
+<script>
+    window.rawTransactionFormConfig = {
+        formName: '@Html.Raw(formName)',
+        isInbound: @Json.Serialize(Model.IsInbound),
+        currentTime: '@currentTime',
+        currentUser: '@currentUser',
+        formType: 'rawTransaction'
+    };
+</script>
+
+<div class="container-fluid mt-4 raw-transaction-form-container">
+    <!-- Header Card -->
+    <div class="card mb-4 border-0 shadow-sm">
+        <div class="card-body @(Model.IsInbound ? "bg-success" : "bg-warning") text-white rounded">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h4 class="mb-1">
+                        <i class="fas @(Model.IsInbound ? "fa-arrow-down" : "fa-arrow-up") me-2"></i>
+                        @ViewData["Title"]
+                    </h4>
+                    <p class="mb-0 opacity-75">
+                        @(Model.IsInbound ? "تسجيل كمية المواد الخام الواردة للمخزن" : "تسجيل كمية المواد الخام الصادرة من المخزن")
+                    </p>
+                </div>
+                <div class="col-auto">
+                    <div class="text-end">
+                        <small class="d-block" id="headerDate">@currentTime.Split(' ')[0]</small>
+                        <small class="d-block" id="headerUser">@currentUser</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["Success"] != null || TempData["Error"] != null)
+    {
+        <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4">
+            <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+            @(TempData["Success"] ?? TempData["Error"])
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Main Form Card -->
+    <div class="card shadow-sm">
+        <div class="card-header @(Model.IsInbound ? "bg-success" : "bg-warning") text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-form me-2"></i>تفاصيل المعاملة
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="rawTransactionForm" action="@Url.Action("SaveTransaction", "RawTransactions")" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="IsInbound" name="IsInbound" value="@Model.IsInbound.ToString().ToLower()" />
+                <input type="hidden" id="RawItemName" name="RawItemName" />
+                <input type="hidden" id="StakeholderName" name="StakeholderName" />
+                <input type="hidden" id="PackagingStyleName" name="PackagingStyleName" />
+
+                <div class="alert alert-danger" style="display:none;" id="validationSummary">
+                    <ul id="validationList"></ul>
+                </div>
+
+                <div class="row">
+                    <!-- Reference Numbers Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-hashtag me-2"></i>أرقام المرجعية
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="InternalId" class="form-label">
+                                    <i class="fas fa-file-alt text-info me-1"></i>رقم الإذن الداخلي
+                                </label>
+                                <input type="text" id="InternalId" name="InternalId" value="@Model.InternalId" 
+                                       class="form-control" placeholder="أدخل رقم الإذن الداخلي" />
+                                <span class="text-danger" data-valmsg-for="InternalId"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="ExternalId" class="form-label">
+                                    <i class="fas fa-external-link-alt text-warning me-1"></i>رقم الإذن الخارجي
+                                </label>
+                                <input type="text" id="ExternalId" name="ExternalId" value="@Model.ExternalId" 
+                                       class="form-control" placeholder="أدخل رقم الإذن الخارجي" />
+                                <span class="text-danger" data-valmsg-for="ExternalId"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Raw Item Selection Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-industry me-2"></i>تفاصيل الصنف الخام
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label for="RawItemId" class="form-label required">
+                                    <i class="fas fa-boxes text-primary me-1"></i>الصنف الخام
+                                </label>
+                                <select id="RawItemId" name="RawItemId" class="form-select">
+                                    <option value="">-- اختر الصنف الخام --</option>
+                                    @foreach (var item in Model.AvailableItems)
+                                    {
+                                        <option value="@item.Value" @@(Model.RawItemId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                                    }
+                                </select>
+                                <span class="text-danger" data-valmsg-for="RawItemId"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">
+                                    <i class="fas fa-info-circle text-info me-1"></i>الرصيد الحالي
+                                </label>
+                                <div id="currentBalanceDisplay" class="form-control bg-light">
+                                    <small class="text-muted">اختر الصنف أولاً</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quantities Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-calculator me-2"></i>الكميات والأوزان
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label for="Quantity" class="form-label required">
+                                    <i class="fas fa-ruler text-success me-1"></i>الكمية (متر)
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" id="Quantity" name="Quantity" value="@Model.Quantity"
+                                           class="form-control" placeholder="0.000" />
+                                    <span class="input-group-text">متر</span>
+                                </div>
+                                <span class="text-danger" data-valmsg-for="Quantity"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="Weight" class="form-label required">
+                                    <i class="fas fa-weight text-warning me-1"></i>الوزن (كجم)
+                                </label>
+                                <div class="input-group">
+                                    <input type="text" id="Weight" name="Weight" value="@Model.Weight"
+                                           class="form-control" placeholder="0.000" />
+                                    <span class="input-group-text">كجم</span>
+                                </div>
+                                <span class="text-danger" data-valmsg-for="Weight"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label for="Count" class="form-label required">
+                                    <i class="fas fa-hashtag text-info me-1"></i>العدد
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="Count" name="Count" value="@Model.Count"
+                                           class="form-control" placeholder="0" min="0" />
+                                    <span class="input-group-text">قطعة</span>
+                                </div>
+                                <span class="text-danger" data-valmsg-for="Count"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Stakeholder Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-users me-2"></i>بيانات الجهة
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="StakeholderId" class="form-label required">
+                                    <i class="fas fa-building text-success me-1"></i>الجهة
+                                </label>
+                                <select id="StakeholderId" name="StakeholderId" class="form-select">
+                                    <option value="">-- اختر الجهة --</option>
+                                    @foreach (var stakeholder in Model.Stakeholders)
+                                    {
+                                        <option value="@stakeholder.Value" @@(Model.StakeholderId?.ToString() == stakeholder.Value ? "selected" : "")>@stakeholder.Text</option>
+                                    }
+                                </select>
+                                <span class="text-danger" data-valmsg-for="StakeholderId"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="PackagingStyleId" class="form-label required">
+                                    <i class="fas fa-box text-warning me-1"></i>نمط التعبئة
+                                </label>
+                                <select id="PackagingStyleId" name="PackagingStyleId" class="form-select">
+                                    <option value="">-- اختر نمط التعبئة --</option>
+                                    @foreach (var packaging in Model.PackagingStyles)
+                                    {
+                                        <option value="@packaging.Value" @@(Model.PackagingStyleId?.ToString() == packaging.Value ? "selected" : "")>@packaging.Text</option>
+                                    }
+                                </select>
+                                <span class="text-danger" data-valmsg-for="PackagingStyleId"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Date Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-calendar me-2"></i>التاريخ
+                        </h6>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="Date" class="form-label required">
+                                    <i class="fas fa-calendar-alt text-warning me-1"></i>تاريخ المعاملة
+                                </label>
+                                <input type="text" id="Date" name="Date"
+                                       value="@(Model.Date.ToString("yyyy-MM-dd"))" class="form-control" placeholder="yyyy-MM-dd" />
+                                <span class="text-danger" data-valmsg-for="Date"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Comment Section -->
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-comment me-2"></i>البيان والملاحظات
+                        </h6>
+                        <label for="Comment" class="form-label">
+                            <i class="fas fa-sticky-note text-secondary me-1"></i>بيان المعاملة
+                        </label>
+                        <textarea id="Comment" name="Comment" class="form-control" rows="3" 
+                                  placeholder="أدخل أي ملاحظات أو تفاصيل إضافية عن المعاملة (اختياري)">@Model.Comment</textarea>
+                        <span class="text-danger" data-valmsg-for="Comment"></span>
+                        <div class="form-text">
+                            <small class="text-muted">
+                                <i class="fas fa-lightbulb me-1"></i>يمكنك إضافة تفاصيل عن جودة المواد الخام، المصدر، أو أي ملاحظات مهمة
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="@Url.Action("Index", "RawItems")" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="button" class="btn btn-info" id="previewBtn">
+                                <i class="fas fa-eye me-1"></i>معاينة
+                            </button>
+                            <button type="submit" class="btn @(Model.IsInbound ? "btn-success" : "btn-warning") text-white" id="saveBtn">
+                                <i class="fas fa-save me-1"></i>
+                                حفظ @(Model.IsInbound ? "الوارد" : "الصادر")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Balance Information Card -->
+    <div class="card mt-4 border-info" id="balanceInfoCard" style="display: none;">
+        <div class="card-header bg-info text-white">
+            <h6 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>معلومات الرصيد
+            </h6>
+        </div>
+        <div class="card-body" id="balanceInfo">
+            <!-- Will be populated dynamically -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
+
+    <script>
+        $(document).ready(function () {
+            // Constants
+            const CURRENT_TIME = '2025-09-01 23:13:35';
+            const CURRENT_USER = 'Ammar-Yasser8';
+            const IS_INBOUND = @Json.Serialize(Model.IsInbound);
+            const FORM_NAME = '@Html.Raw(formName)';
+
+            console.log('Initializing raw transaction form:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER,
+                isInbound: IS_INBOUND,
+                formType: 'rawTransaction'
+            });
+
+            // Initialize select2 for all dropdowns
+            $('.form-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                language: {
+                    noResults: function () {
+                        return "لا توجد نتائج";
+                    },
+                    searching: function () {
+                        return "جاري البحث...";
+                    }
+                }
+            });
+
+            // Convert header date to Arabic digits
+            (function() {
+                var headerDateText = $('#headerDate').text();
+                if (headerDateText) {
+                    $('#headerDate').text(toArabicDigits(headerDateText));
+                }
+            })();
+
+            // Initialize Arabic date picker (Flatpickr) on #Date
+            if (window.flatpickr) {
+                flatpickr.localize(flatpickr.l10ns.ar);
+                flatpickr('#Date', {
+                    dateFormat: 'Y-m-d',
+                    locale: 'ar',
+                    allowInput: true,
+                    disableMobile: false,
+                    onReady: function(selectedDates, dateStr, instance) {
+                        $('#Date').val(toArabicDigits($('#Date').val()));
+                    },
+                    onChange: function(selectedDates, dateStr, instance) {
+                        $('#Date').val(toArabicDigits(dateStr));
+                        validateDateImmediate();
+                    },
+                    onValueUpdate: function(selectedDates, dateStr) {
+                        $('#Date').val(toArabicDigits(dateStr));
+                        validateDateImmediate();
+                    }
+                });
+            }
+
+            // Handle raw item selection change
+            $('#RawItemId').on('change', function () {
+                var selectedItemId = $(this).val();
+                var selectedText = $(this).find('option:selected').text();
+
+                console.log('Raw Item Change:', {
+                    time: CURRENT_TIME,
+                    itemId: selectedItemId,
+                    selectedText: selectedText
+                });
+
+                // Update hidden field
+                $('#RawItemName').val(selectedText);
+
+                if (!selectedItemId) {
+                    $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
+                    $('#balanceInfoCard').fadeOut();
+                    return;
+                }
+
+                // Fetch raw item balance
+                fetchRawItemBalance(parseInt(selectedItemId));
+            });
+
+            // Load stakeholders list directly by form
+            (function() {
+                var $stakeholderSelect = $('#StakeholderId');
+                resetStakeholderDropdown($stakeholderSelect);
+                fetchStakeholdersByForm(FORM_NAME, $stakeholderSelect);
+            })();
+
+            // Load packaging styles by form
+            (function() {
+                var $packagingSelect = $('#PackagingStyleId');
+                resetPackagingDropdown($packagingSelect);
+                fetchPackagingStylesByForm(FORM_NAME, $packagingSelect);
+            })();
+
+            // Handle stakeholder change
+            $('#StakeholderId').on('change', function () {
+                var selectedText = $(this).find('option:selected').text();
+                $('#StakeholderName').val(selectedText);
+            });
+
+            // Handle packaging style change
+            $('#PackagingStyleId').on('change', function () {
+                var selectedText = $(this).find('option:selected').text();
+                $('#PackagingStyleName').val(selectedText);
+            });
+
+            // Function to fetch raw item balance
+            function fetchRawItemBalance(rawItemId) {
+                console.log('Fetching balance for raw item ID:', rawItemId);
+                
+                $.ajax({
+                    url: '@Url.Action("GetRawItemBalance", "RawTransactions")',
+                    type: 'GET',
+                    data: { rawItemId: rawItemId },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
+                    },
+                    success: function(response) {
+                        console.log('Balance response received:', response);
+                        
+                        if (response && response.success) {
+                            var quantityBalance = response.quantityBalance || 0;
+                            var countBalance = response.countBalance || 0;
+                            
+                            // Format balances using Arabic digits
+                            var quantityBalanceAr = toArabicDigits(quantityBalance.toFixed(3).toString());
+                            var countBalanceAr = toArabicDigits(countBalance.toString());
+
+                            $('#currentBalanceDisplay').html(`
+                                <div class="d-flex justify-content-between">
+                                    <span><strong>${quantityBalanceAr}</strong> كجم/متر</span>
+                                    <span><strong>${countBalanceAr}</strong> قطعة</span>
+                                </div>
+                            `);
+
+                            // Show detailed balance info
+                            showBalanceInfo(response);
+
+                            console.log('Balance loaded successfully:', {
+                                quantityBalance: quantityBalance,
+                                countBalance: countBalance
+                            });
+                        } else {
+                            $('#currentBalanceDisplay').html('<small class="text-danger">0</small>');
+                            console.error('Balance load failed:', response);
+                            alert('فشل في تحميل رصيد الصنف: ' + (response.error || 'خطأ غير معروف'));
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error fetching balance:', {
+                            status: status,
+                            error: error,
+                            responseText: xhr.responseText,
+                            url: '@Url.Action("GetRawItemBalance", "RawTransactions")'
+                        });
+                        $('#currentBalanceDisplay').html('<small class="text-danger">خطأ في التحميل</small>');
+                        alert('حدث خطأ أثناء تحميل رصيد الصنف: ' + error);
+                    }
+                });
+            }
+
+            // Function to show balance information
+            function showBalanceInfo(data) {
+                var qBalAr = toArabicDigits(data.quantityBalance.toFixed(3).toString());
+                var cBalAr = toArabicDigits((data.countBalance || 0).toString());
+                
+                var infoHtml = `
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="text-center border-end">
+                                <h5 class="text-primary mb-0">${qBalAr}</h5>
+                                <small class="text-muted">رصيد الكمية</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center border-end">
+                                <h5 class="text-success mb-0">${cBalAr}</h5>
+                                <small class="text-muted">رصيد العدد</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-center">
+                                <h5 class="text-info mb-0">${data.rawItemName}</h5>
+                                <small class="text-muted">الصنف الخام</small>
+                            </div>
+                        </div>
+                    </div>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>السداء:</strong> ${data.warpName}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-0"><strong>اللحمة:</strong> ${data.weftName}</p>
+                        </div>
+                    </div>
+                `;
+                
+                $('#balanceInfo').html(infoHtml);
+                $('#balanceInfoCard').fadeIn();
+            }
+
+            // Function to reset stakeholder dropdown
+            function resetStakeholderDropdown($select) {
+                $select
+                    .empty()
+                    .append('<option value="">-- اختر الجهة --</option>')
+                    .prop('disabled', false)
+                    .select2('destroy')
+                    .select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        language: {
+                            noResults: function () {
+                                return "لا توجد نتائج";
+                            }
+                        }
+                    });
+            }
+
+            // Function to reset packaging dropdown
+            function resetPackagingDropdown($select) {
+                $select
+                    .empty()
+                    .append('<option value="">-- اختر نمط التعبئة --</option>')
+                    .prop('disabled', false)
+                    .select2('destroy')
+                    .select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        language: {
+                            noResults: function () {
+                                return "لا توجد نتائج";
+                            }
+                        }
+                    });
+            }
+
+            // Function to fetch stakeholders by form name
+            function fetchStakeholdersByForm(formName, $select) {
+                console.log('Fetching stakeholders for form:', formName);
+                
+                $.ajax({
+                    url: '@Url.Action("GetStakeholdersByForm", "RawTransactions")',
+                    type: 'GET',
+                    data: { formName: formName },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .append('<option value="" disabled>جاري التحميل...</option>')
+                            .prop('disabled', true);
+                    },
+                    success: function(response) {
+                        console.log('Stakeholders response received:', response);
+                        
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .prop('disabled', false);
+
+                        var stakeholders = (response && response.data) || [];
+                        if (response && response.success && stakeholders.length > 0) {
+                            stakeholders.forEach(function(item) {
+                                $select.append(new Option(item.name, item.id));
+                            });
+                            console.log(`Successfully loaded ${stakeholders.length} stakeholders`);
+                        } else {
+                            console.warn('No stakeholders found for form:', formName);
+                            $select.append('<option value="" disabled>لا توجد جهات متاحة</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error fetching stakeholders:', {
+                            status: status,
+                            error: error,
+                            responseText: xhr.responseText,
+                            url: '@Url.Action("GetStakeholdersByForm", "RawTransactions")',
+                            formName: formName
+                        });
+                        
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .append('<option value="" disabled>خطأ في تحميل الجهات</option>')
+                            .prop('disabled', false);
+                            
+                        alert('حدث خطأ أثناء تحميل بيانات الجهات: ' + error);
+                    },
+                    complete: function() {
+                        $select.select2('destroy').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            language: {
+                                noResults: function () {
+                                    return "لا توجد نتائج";
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Function to fetch packaging styles by form name
+            function fetchPackagingStylesByForm(formName, $select) {
+                console.log('Fetching packaging styles for form:', formName);
+                
+                $.ajax({
+                    url: '@Url.Action("GetPackagingStylesByForm", "RawTransactions")',
+                    type: 'GET',
+                    data: { formType: formName },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر نمط التعبئة --</option>')
+                            .append('<option value="" disabled>جاري التحميل...</option>')
+                            .prop('disabled', true);
+                    },
+                    success: function(response) {
+                        console.log('Packaging styles response received:', response);
+                        
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر نمط التعبئة --</option>')
+                            .prop('disabled', false);
+
+                        var styles = (response && response.data) || [];
+                        if (response && response.success && styles.length > 0) {
+                            styles.forEach(function(item) {
+                                $select.append(new Option(item.name, item.id));
+                            });
+                            console.log(`Successfully loaded ${styles.length} packaging styles`);
+                        } else {
+                            console.warn('No packaging styles found for form:', formName);
+                            $select.append('<option value="" disabled>لا توجد أنماط تعبئة متاحة</option>');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('AJAX Error fetching packaging styles:', {
+                            status: status,
+                            error: error,
+                            responseText: xhr.responseText,
+                            url: '@Url.Action("GetPackagingStylesByForm", "RawTransactions")',
+                            formName: formName
+                        });
+                        
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر نمط التعبئة --</option>')
+                            .append('<option value="" disabled>خطأ في تحميل أنماط التعبئة</option>')
+                            .prop('disabled', false);
+                            
+                        alert('حدث خطأ أثناء تحميل أنماط التعبئة: ' + error);
+                    },
+                    complete: function() {
+                        $select.select2('destroy').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            language: {
+                                noResults: function () {
+                                    return "لا توجد نتائج";
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Form submission handler
+            $('#rawTransactionForm').on('submit', function(e) {
+                // Convert Arabic numbers to Latin before submission
+                var qtyLatin = toLatinDigits($('#Quantity').val() || '0');
+                var weightLatin = toLatinDigits($('#Weight').val() || '0');
+                var dateLatin = toLatinDigits($('#Date').val() || '');
+                
+                console.log('Form submission - converting values:', {
+                    quantityOriginal: $('#Quantity').val(),
+                    quantityLatin: qtyLatin,
+                    weightOriginal: $('#Weight').val(),
+                    weightLatin: weightLatin
+                });
+                
+                $('#Quantity').val(qtyLatin);
+                $('#Weight').val(weightLatin);
+                $('#Date').val(dateLatin);
+
+                var validation = validateForm();
+                
+                if (!validation.isValid) {
+                    e.preventDefault();
+                    showValidationErrors(validation.errors);
+                    return false;
+                }
+
+                // Show loading state
+                $('#saveBtn').prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+            });
+
+            // Preview functionality
+            $('#previewBtn').click(function() {
+                var data = {
+                    rawItem: $('#RawItemId option:selected').text(),
+                    quantity: $('#Quantity').val(),
+                    weight: $('#Weight').val(),
+                    count: $('#Count').val(),
+                    stakeholder: $('#StakeholderId option:selected').text(),
+                    packaging: $('#PackagingStyleId option:selected').text(),
+                    date: $('#Date').val(),
+                    comment: $('#Comment').val() || 'لا يوجد بيان',
+                    type: IS_INBOUND ? 'وارد' : 'صادر',
+                    internalId: $('#InternalId').val() || 'غير محدد',
+                    externalId: $('#ExternalId').val() || 'غير محدد'
+                };
+
+                var preview = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>النوع:</strong> <span class="badge ${IS_INBOUND ? 'bg-success' : 'bg-warning'}">${data.type}</span></p>
+                            <p><strong>الصنف الخام:</strong> ${data.rawItem}</p>
+                            <p><strong>الكمية:</strong> ${toArabicDigits((data.quantity || '').toString())} متر</p>
+                            <p><strong>الوزن:</strong> ${toArabicDigits((data.weight || '').toString())} كجم</p>
+                            <p><strong>العدد:</strong> ${toArabicDigits((data.count || '').toString())} قطعة</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>الجهة:</strong> ${data.stakeholder}</p>
+                            <p><strong>التعبئة:</strong> ${data.packaging}</p>
+                            <p><strong>التاريخ:</strong> ${toArabicDigits((data.date || '').toString())}</p>
+                            <p><strong>رقم الإذن الداخلي:</strong> ${data.internalId}</p>
+                            <p><strong>رقم الإذن الخارجي:</strong> ${data.externalId}</p>
+                        </div>
+                        <div class="col-12">
+                            <p><strong>البيان:</strong> ${data.comment}</p>
+                        </div>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: 'معاينة معاملة المواد الخام',
+                    html: preview,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: 'حفظ الآن',
+                    cancelButtonText: 'تراجع',
+                    confirmButtonColor: IS_INBOUND ? '#198754' : '#ffc107'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#rawTransactionForm').submit();
+                    }
+                });
+            });
+
+            // Load initial raw item balance if selected
+            var initialItemId = $('#RawItemId').val();
+            if (initialItemId) {
+                fetchRawItemBalance(parseInt(initialItemId));
+            }
+
+            console.log('Raw transaction form initialized successfully');
+        });
+
+        // Form validation function
+        function validateForm() {
+            var isValid = true;
+            var errors = [];
+
+            // Validate raw item
+            if (!$('#RawItemId').val()) {
+                errors.push('يجب اختيار الصنف الخام');
+                isValid = false;
+            }
+
+            // Validate quantity
+            var quantity = parseFloat(toLatinDigits($('#Quantity').val() || '0'));
+            if (!quantity || quantity <= 0) {
+                errors.push('يجب إدخال كمية صحيحة أكبر من الصفر');
+                isValid = false;
+            }
+
+            // Validate weight
+            var weight = parseFloat(toLatinDigits($('#Weight').val() || '0'));
+            if (!weight || weight <= 0) {
+                errors.push('يجب إدخال وزن صحيح أكبر من الصفر');
+                isValid = false;
+            }
+
+            // Validate count
+            var count = parseInt(toLatinDigits($('#Count').val() || '0'));
+            if (isNaN(count) || count < 0) {
+                errors.push('يجب إدخال عدد صحيح (صفر أو أكبر)');
+                isValid = false;
+            }
+
+            // Validate stakeholder
+            if (!$('#StakeholderId').val()) {
+                errors.push('يجب اختيار الجهة');
+                isValid = false;
+            }
+
+            // Validate packaging
+            if (!$('#PackagingStyleId').val()) {
+                errors.push('يجب اختيار نمط التعبئة');
+                isValid = false;
+            }
+
+            // Validate date
+            if (!$('#Date').val()) {
+                errors.push('يجب تحديد تاريخ المعاملة');
+                isValid = false;
+            }
+
+            return { isValid: isValid, errors: errors };
+        }
+
+        // Show validation errors
+        function showValidationErrors(errors) {
+            var errorHtml = errors.map(error => `<li>${error}</li>`).join('');
+            $('#validationList').html(errorHtml);
+            $('#validationSummary').show();
+            $('html, body').animate({ scrollTop: 0 }, 500);
+        }
+
+        // Function to convert to Arabic digits
+        function toArabicDigits(str) {
+            if (!str) return str;
+            return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        // Function to convert to Latin digits
+        function toLatinDigits(str) {
+            if (!str) return str;
+            return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        // Validate date immediately
+        function validateDateImmediate() {
+            var $date = $('#Date');
+            var $msg = $("span[data-valmsg-for='Date']");
+            var valueAr = ($date.val() || '').trim();
+            var value = toLatinDigits(valueAr);
+
+            // Basic format check
+            var match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) {
+                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd');
+                $date.addClass('is-invalid');
+                return false;
+            }
+
+            var year = parseInt(match[1], 10);
+            var month = parseInt(match[2], 10);
+            var day = parseInt(match[3], 10);
+
+            if (month < 1 || month > 12) {
+                $msg.text('الشهر غير صحيح (1-12)');
+                $date.addClass('is-invalid');
+                return false;
+            }
+
+            var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            var maxDay = daysInMonth[month - 1];
+
+            if (day < 1 || day > maxDay) {
+                $msg.text('اليوم غير صحيح لهذا الشهر');
+                $date.addClass('is-invalid');
+                return false;
+            }
+
+            $msg.text('');
+            $date.removeClass('is-invalid');
+            return true;
+        }
+
+        function isLeapYear(y) {
+            return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
+        }
+
+        // Auto-convert all text inputs and textareas to Arabic digits (except numeric calculation fields)
+        $(document).on("input", "#rawTransactionForm input[type='text']:not(#Quantity):not(#Weight), #rawTransactionForm textarea", function() {
+            let input = this;
+            let val = input.value;
+            if (val.length > 0) {
+                let newVal = toArabicDigits(val);
+                if (newVal !== val) {
+                    let cursorPos = input.selectionStart;
+                    input.value = newVal;
+                    input.setSelectionRange(cursorPos, cursorPos);
+                }
+            }
+        });
+
+        // Validate date on input/blur/change
+        $(document).on('input blur change', '#Date', function() {
+            validateDateImmediate();
+        });
+    </script>
+}

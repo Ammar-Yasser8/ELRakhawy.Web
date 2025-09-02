@@ -30,6 +30,7 @@ namespace Elrakhawy.DAL.Data
         public DbSet<YarnTransaction> YarnTransactions { get; set; }
         public DbSet<FullWarpBeam> FullWarpBeams { get; set; }
         public DbSet<RawItem> RawItems { get; set; }
+        public DbSet<RawTransaction> RawTransactions { get; set; }
         public DbSet<FullWarpBeamTransaction> FullWarpBeamTransations { get; set; }  
         //public DbSet<OriginYarn> OriginYarns { get; set; }
 

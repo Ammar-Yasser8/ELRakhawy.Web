@@ -1,0 +1,417 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model RawTransactionDetailsViewModel
+@{
+    ViewData["Title"] = $"تفاصيل معاملة رقم {Model.Transaction.TransactionId}";
+    var currentTime = "2025-09-02 13:07:13";
+    var currentUser = "Ammar-Yasser8";
+    var hasPositiveBalance = Model.CurrentItemBalance > 0 || Model.CurrentItemCountBalance > 0;
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas @Model.Transaction.TransactionTypeIcon me-2"></i>
+                تفاصيل معاملة @Model.Transaction.TransactionType
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "RawItems")">المواد الخام</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Overview")">عرض المعاملات</a></li>
+                    <li class="breadcrumb-item active">@Model.Transaction.TransactionId</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Transaction Details Card -->
+    <div class="card mb-4">
+        <div class="card-header bg-@Model.Transaction.TransactionTypeClass text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-file-alt me-2"></i>بيانات المعاملة
+                <span class="badge bg-light text-dark ms-2">@Model.Transaction.TransactionId</span>
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <!-- Basic Information -->
+                <div class="col-md-6 mb-4">
+                    <h6 class="text-primary border-bottom pb-2">
+                        <i class="fas fa-info-circle me-2"></i>المعلومات الأساسية
+                    </h6>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="fw-bold text-muted">رقم الإذن التسلسلي:</td>
+                            <td>@Model.Transaction.TransactionId</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(Model.Transaction.InternalId))
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">رقم الإذن الداخلي:</td>
+                                <td>@Model.Transaction.InternalId</td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Transaction.ExternalId))
+                        {
+                            <tr>
+                                <td class="fw-bold text-muted">رقم الإذن الخارجي:</td>
+                                <td>@Model.Transaction.ExternalId</td>
+                            </tr>
+                        }
+                        <tr>
+                            <td class="fw-bold text-muted">تاريخ المعاملة:</td>
+                            <td>@Model.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">نوع المعاملة:</td>
+                            <td>
+                                <span class="badge bg-@Model.Transaction.TransactionTypeClass">
+                                    <i class="fas @Model.Transaction.TransactionTypeIcon me-1"></i>
+                                    @Model.Transaction.TransactionType
+                                </span>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- Raw Material Information -->
+                <div class="col-md-6 mb-4">
+                    <h6 class="text-primary border-bottom pb-2">
+                        <i class="fas fa-industry me-2"></i>بيانات الصنف الخام
+                    </h6>
+                    <table class="table table-borderless">
+                        <tr>
+                            <td class="fw-bold text-muted">اسم الصنف:</td>
+                            <td>@Model.Transaction.RawItemName</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">السداء:</td>
+                            <td>@Model.WarpDetails</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">اللحمة:</td>
+                            <td>@Model.WeftDetails</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">الجهة:</td>
+                            <td>@Model.Transaction.StakeholderName</td>
+                        </tr>
+                        <tr>
+                            <td class="fw-bold text-muted">نمط التعبئة:</td>
+                            <td>@Model.Transaction.PackagingStyleName</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quantities Section -->
+            <div class="row">
+                <div class="col-12 mb-4">
+                    <h6 class="text-primary border-bottom pb-2">
+                        <i class="fas fa-calculator me-2"></i>الكميات والأرصدة
+                    </h6>
+                    <div class="row">
+                        @if (Model.Transaction.IsInbound)
+                        {
+                            <div class="col-md-2">
+                                <div class="card text-center border-success">
+                                    <div class="card-body">
+                                        <h4 class="text-success mb-0">@Model.Transaction.InboundMeters.ToString("N3")</h4>
+                                        <small class="text-muted">وارد (متر)</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="card text-center border-success">
+                                    <div class="card-body">
+                                        <h4 class="text-success mb-0">@Model.Transaction.InboundKg.ToString("N3")</h4>
+                                        <small class="text-muted">وارد (كجم)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-md-2">
+                                <div class="card text-center border-warning">
+                                    <div class="card-body">
+                                        <h4 class="text-warning mb-0">@Model.Transaction.Outbound.ToString("N3")</h4>
+                                        <small class="text-muted">صادر</small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        <div class="col-md-2">
+                            <div class="card text-center border-info">
+                                <div class="card-body">
+                                    <h4 class="text-info mb-0">@Model.Transaction.Count</h4>
+                                    <small class="text-muted">العدد</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-primary">
+                                <div class="card-body">
+                                    <h4 class="text-primary mb-0">@Model.CurrentItemBalance.ToString("N3")</h4>
+                                    <small class="text-muted">رصيد الكمية الحالي</small>
+                                    @if (hasPositiveBalance)
+                                    {
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
+                                                <i class="fas fa-sync-alt me-1"></i>إعادة تعيين
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card text-center border-secondary">
+                                <div class="card-body">
+                                    <h4 class="text-secondary mb-0">@Model.CurrentItemCountBalance</h4>
+                                    <small class="text-muted">رصيد العدد الحالي</small>
+                                    @if (hasPositiveBalance)
+                                    {
+                                        <div class="mt-2">
+                                            <small class="text-info">
+                                                <i class="fas fa-info-circle me-1"></i>سيتم تصفير الرصيدين معاً
+                                            </small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Comment Section -->
+            @if (!string.IsNullOrEmpty(Model.Transaction.Comment))
+            {
+                <div class="row">
+                    <div class="col-12">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-comment me-2"></i>البيان والملاحظات
+                        </h6>
+                        <div class="alert alert-light">
+                            <p class="mb-0">@Model.Transaction.Comment</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Related Transactions -->
+    @if (Model.HasRelatedTransactions)
+    {
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-history me-2"></i>المعاملات ذات الصلة لنفس الصنف
+                    <span class="badge bg-light text-dark ms-2">@Model.RelatedTransactionsCount معاملة</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>رقم الإذن</th>
+                                <th>التاريخ</th>
+                                <th>النوع</th>
+                                <th>الكمية</th>
+                                <th>العدد</th>
+                                <th>رصيد الكمية</th>
+                                <th>رصيد العدد</th>
+                                <th>الجهة</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var transaction in Model.RelatedTransactions)
+                            {
+                                <tr @(transaction.TransactionId.Contains("ADJ") ? "class=table-warning" : "")>
+                                    <td>
+                                        @transaction.TransactionId
+                                        @if (transaction.TransactionId.Contains("ADJ"))
+                                        {
+                                            <small class="badge bg-warning ms-1">تسوية</small>
+                                        }
+                                    </td>
+                                    <td>@transaction.Date.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        <span class="badge bg-@transaction.TransactionTypeClass">
+                                            <i class="fas @transaction.TransactionTypeIcon me-1"></i>
+                                            @transaction.TransactionType
+                                        </span>
+                                    </td>
+                                    <td>
+                                        @if (transaction.IsInbound)
+                                        {
+                                            <span class="text-success">@transaction.TotalInbound.ToString("N3")</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-warning">@transaction.Outbound.ToString("N3")</span>
+                                        }
+                                    </td>
+                                    <td>@transaction.Count</td>
+                                    <td><span class="badge bg-info">@transaction.QuantityBalance.ToString("N3")</span></td>
+                                    <td><span class="badge bg-secondary">@transaction.CountBalance</span></td>
+                                    <td>@transaction.StakeholderName</td>
+                                    <td>
+                                        <a href="@Url.Action("Details", new { id = transaction.Id })"
+                                           class="btn btn-sm btn-outline-primary" title="عرض التفاصيل">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- Action Buttons -->
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex gap-2">
+                <a href="@Url.Action("Overview")" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>العودة للقائمة
+                </a>
+                <a href="@Url.Action("Inbound")" class="btn btn-success">
+                    <i class="fas fa-plus me-1"></i>إضافة وارد جديد
+                </a>
+                <a href="@Url.Action("Outbound")" class="btn btn-warning">
+                    <i class="fas fa-plus me-1"></i>إضافة صادر جديد
+                </a>
+                @if (hasPositiveBalance)
+                {
+                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
+                        <i class="fas fa-sync-alt me-1"></i>إعادة تعيين الرصيد
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Balance Modal -->
+<!-- Reset Balance Modal -->
+@if (hasPositiveBalance)
+{
+    <div class="modal fade" id="resetBalanceModal" tabindex="-1" aria-labelledby="resetBalanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="@Url.Action("ResetBalance")">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="transactionId" value="@Model.Transaction.Id" />
+
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="resetBalanceModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>إعادة تعيين رصيد الصنف الخام
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>تحذير:</strong> سيؤدي هذا الإجراء إلى إعادة تعيين رصيد الصنف الخام إلى صفر نهائياً.
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-primary">الرصيد الحالي:</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>الكمية:</strong> <span class="text-danger">@Model.CurrentItemBalance.ToString("N3")</span> كجم/متر</li>
+                                    <li><strong>العدد:</strong> <span class="text-danger">@Model.CurrentItemCountBalance</span> قطعة</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-success">الرصيد بعد التسوية:</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>الكمية:</strong> <span class="text-success">0.000</span> كجم/متر</li>
+                                    <li><strong>العدد:</strong> <span class="text-success">0</span> قطعة</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <h6 class="text-info">تفاصيل الصنف الخام:</h6>
+                            <ul class="list-unstyled">
+                                <li><strong>الصنف:</strong> @Model.Transaction.RawItemName</li>
+                                <li><strong>السداء:</strong> @Model.WarpDetails</li>
+                                <li><strong>اللحمة:</strong> @Model.WeftDetails</li>
+                            </ul>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="resetReason" class="form-label">
+                                <i class="fas fa-comment me-1"></i>سبب إعادة التعيين (اختياري):
+                            </label>
+                            <textarea id="resetReason" name="reason" class="form-control" rows="3"
+                                  placeholder="أدخل سبب إعادة تعيين الرصيد (مثل: جرد سنوي، تسوية مخزون، خطأ في الإدخال...)"></textarea>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>ملاحظة:</strong> سيتم إنشاء معاملة تسوية جديدة برقم إذن يبدأ بـ RAW-ADJ وسيتم تسجيل جميع التفاصيل للمراجعة المستقبلية.
+                        </div>
+
+                        <!-- Debug Information (remove in production) -->
+                        <div class="alert alert-secondary small">
+                            <strong>معلومات المطور:</strong><br>
+                            معرف المعاملة: @Model.Transaction.Id<br>
+                            الرصيد المعروض: @Model.CurrentItemBalance.ToString("N3")<br>
+                            رصيد العدد: @Model.CurrentItemCountBalance<br>
+                            وقت الطلب: 2025-09-02 13:13:22<br>
+                            المستخدم: Ammar-Yasser8
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </button>
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من إعادة تعيين الرصيد إلى صفر؟\n\nالرصيد الحالي: @Model.CurrentItemBalance.ToString("N3") كمية، @Model.CurrentItemCountBalance عدد')">
+                            <i class="fas fa-sync-alt me-1"></i>تأكيد إعادة التعيين
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Raw Transaction Details loaded at 2025-09-02 13:07:13 by Ammar-Yasser8');
+
+            // Handle reset balance form submission
+            $('#resetBalanceModal form').on('submit', function(e) {
+                var reason = $('#resetReason').val().trim();
+                if (reason === '') {
+                    if (!confirm('لم تقم بإدخال سبب إعادة التعيين. هل تريد المتابعة بدون سبب؟')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+
+                // Show loading state
+                $(this).find('button[type="submit"]')
+                    .prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التسوية...');
+            });
+        });
+    </script>
+}

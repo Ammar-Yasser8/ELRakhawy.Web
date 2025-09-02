@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace ELRakhawy.EL.ViewModels
 {
-    public class RawTransactionViewModel
+    public class RawTransactionFormViewModel
     {
         public int Id { get; set; }
 
@@ -34,7 +34,7 @@ namespace ELRakhawy.EL.ViewModels
         public double Quantity { get; set; }
 
         [Required(ErrorMessage = "يرجى إدخال الوزن")]
-        [Range(0.001, double.MaxValue, ErrorMessage = "الوزن يجب أن تكون أكبر من الصفر")]
+        [Range(0.001, double.MaxValue, ErrorMessage = "الوزن يجب أن يكون أكبر من الصفر")]
         [Display(Name = "الوزن (كجم)")]
         public double Weight { get; set; }
 
@@ -42,6 +42,8 @@ namespace ELRakhawy.EL.ViewModels
         [Range(0, int.MaxValue, ErrorMessage = "العدد يجب أن يكون صفر أو أكبر")]
         [Display(Name = "العدد")]
         public int Count { get; set; }
+
+      
 
         [Required(ErrorMessage = "يرجى اختيار الجهة")]
         [Display(Name = "الجهة")]
@@ -72,6 +74,8 @@ namespace ELRakhawy.EL.ViewModels
         public List<SelectListItem> AvailableItems { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> Stakeholders { get; set; } = new List<SelectListItem>();
         public List<SelectListItem> PackagingStyles { get; set; } = new List<SelectListItem>();
+
+        
 
         // Current balance information (for display)
         public double CurrentQuantityBalance { get; set; }
