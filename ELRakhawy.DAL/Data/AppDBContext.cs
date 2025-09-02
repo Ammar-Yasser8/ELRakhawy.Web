@@ -31,7 +31,8 @@ namespace Elrakhawy.DAL.Data
         public DbSet<FullWarpBeam> FullWarpBeams { get; set; }
         public DbSet<RawItem> RawItems { get; set; }
         public DbSet<RawTransaction> RawTransactions { get; set; }
-        public DbSet<FullWarpBeamTransaction> FullWarpBeamTransations { get; set; }  
+        public DbSet<FullWarpBeamTransaction> FullWarpBeamTransations { get; set; }
+        public DbSet<FabricItem> FabricItems { get; set; }  
         //public DbSet<OriginYarn> OriginYarns { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -49,6 +50,20 @@ namespace Elrakhawy.DAL.Data
                 .HasMany(y => y.Manufacturers)
                 .WithMany(m => m.YarnItems)
                 .UsingEntity(j => j.ToTable("YarnItemManufacturers"));
+
+            // FabricItem configuration
+            modelBuilder.Entity<FabricItem>(entity =>
+            {
+                entity.HasIndex(f => f.Item)
+                    .IsUnique()
+                    .HasDatabaseName("IX_FabricItems_Item_Unique");
+
+                entity.HasOne(f => f.OriginRaw)
+                    .WithMany()
+                    .HasForeignKey(f => f.OriginRawId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .HasConstraintName("FK_FabricItems_RawItems");
+            });
 
             // PackagingStyleForms many-to-many
             modelBuilder.Entity<PackagingStyleForms>()
