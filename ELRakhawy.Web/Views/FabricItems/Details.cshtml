@@ -1,0 +1,181 @@
+@using ELRakhawy.EL.Models
+@model FabricItem
+
+@{
+    ViewData["Title"] = "تفاصيل صنف القماش";
+    Layout = "_Layout";
+}
+
+<!-- Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-pill px-4 py-3 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home me-1"></i>الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-fabric me-1"></i>إدارة أصناف الأقمشة
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-eye me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-info text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-eye"></i> تفاصيل صنف القماش</h5>
+                </div>
+                <div class="card-body" dir="rtl">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="detail-item">
+                                <h6 class="detail-label">
+                                    <i class="fas fa-tag me-2 text-primary"></i>اسم الصنف
+                                </h6>
+                                <p class="detail-value">@Html.DisplayFor(model => model.Item)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="detail-item">
+                                <h6 class="detail-label">
+                                    <i class="fas fa-cube me-2 text-secondary"></i>الخام المكون
+                                </h6>
+                                <p class="detail-value">@Html.DisplayFor(model => model.OriginRaw.Item)</p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="detail-item">
+                                <h6 class="detail-label">
+                                    <i class="fas fa-power-off me-2 text-success"></i>الحالة
+                                </h6>
+                                <p class="detail-value">
+                                    @if (Model.Status)
+                                    {
+                                        <span class="badge bg-success fs-6">
+                                            <i class="fas fa-check-circle me-1"></i>نشط
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger fs-6">
+                                            <i class="fas fa-times-circle me-1"></i>غير نشط
+                                        </span>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="detail-item">
+                                <h6 class="detail-label">
+                                    <i class="fas fa-hashtag me-2 text-info"></i>رقم الهوية
+                                </h6>
+                                <p class="detail-value">@Html.DisplayFor(model => model.Id)</p>
+                            </div>
+                        </div>
+                        
+                        @if (!string.IsNullOrEmpty(Model.Comment))
+                        {
+                            <div class="col-md-12 mb-3">
+                                <div class="detail-item">
+                                    <h6 class="detail-label">
+                                        <i class="fas fa-comment me-2 text-warning"></i>البيان
+                                    </h6>
+                                    <div class="detail-value comment-box">
+                                        @Html.DisplayFor(model => model.Comment)
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="text-center">
+                        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-lg me-3">
+                            <i class="fas fa-edit"></i> تعديل
+                        </a>
+                        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-danger btn-lg me-3">
+                            <i class="fas fa-trash"></i> حذف
+                        </a>
+                        <a asp-action="Index" class="btn btn-secondary btn-lg">
+                            <i class="fas fa-arrow-left"></i> العودة للقائمة
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+    
+    .detail-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px;
+        border-left: 4px solid #007bff;
+        height: 100%;
+    }
+    
+    .detail-label {
+        color: #495057;
+        font-weight: 600;
+        margin-bottom: 8px;
+        border-bottom: 1px solid #dee2e6;
+        padding-bottom: 5px;
+    }
+    
+    .detail-value {
+        font-size: 1.1rem;
+        color: #212529;
+        margin-bottom: 0;
+        font-weight: 500;
+    }
+    
+    .comment-box {
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 12px;
+        white-space: pre-wrap;
+        min-height: 80px;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .badge {
+        padding: 8px 12px;
+    }
+    
+    hr {
+        border-top: 2px solid #dee2e6;
+        border-radius: 2px;
+    }
+</style>

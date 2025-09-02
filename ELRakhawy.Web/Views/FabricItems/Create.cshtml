@@ -1,0 +1,192 @@
+@using ELRakhawy.EL.Models
+@model FabricItem
+
+@{
+    ViewData["Title"] = "إضافة صنف قماش جديد";
+    Layout = "_Layout";
+
+    var rawItems = ViewBag.RawItems as IEnumerable<RawItem> ?? new List<RawItem>();
+}
+
+<!-- Navigation Bar -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <ol class="breadcrumb bg-light rounded-pill px-4 py-3 shadow-sm">
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
+                <i class="fas fa-home me-1"></i>الرئيسية
+            </a>
+        </li>
+        <li class="breadcrumb-item">
+            <a href="@Url.Action("Index")" class="text-decoration-none">
+                <i class="fas fa-fabric me-1"></i>إدارة أصناف الأقمشة
+            </a>
+        </li>
+        <li class="breadcrumb-item active">
+            <i class="fas fa-plus-circle me-1"></i>@ViewData["Title"]
+        </li>
+    </ol>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white text-center">
+                    <h5 class="mb-0"><i class="fas fa-plus"></i> إضافة صنف قماش جديد</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" id="createForm" dir="rtl">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Item" class="control-label">الصنف</label>
+                            <input asp-for="Item" class="form-control" placeholder="أدخل اسم صنف القماش..." />
+                            <span asp-validation-for="Item" class="text-danger"></span>
+                            @if (ViewContext.ViewData.ModelState["Item"]?.Errors.Count > 0)
+                            {
+                                <span class="text-danger">@ViewContext.ViewData.ModelState["Item"].Errors[0].ErrorMessage</span>
+                            }
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="OriginRawId" class="control-label">الخام المكون</label>
+                            <select asp-for="OriginRawId" class="form-control">
+                                <option value="">-- اختر الخام المكون --</option>
+                                @foreach (var rawItem in rawItems)
+                                {
+                                    <option value="@rawItem.Id">@rawItem.Item</option>
+                                }
+                            </select>
+                            <span asp-validation-for="OriginRawId" class="text-danger"></span>
+                            <small class="form-text text-muted">
+                                <i class="fas fa-info-circle me-1"></i>اختر الخام المستخدم في تكوين هذا القماش
+                            </small>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Status" class="control-label">الحالة</label>
+                            <div class="form-check form-switch">
+                                <input asp-for="Status" class="form-check-input" type="checkbox" role="switch" id="statusSwitch" checked>
+                                <label class="form-check-label" for="statusSwitch">
+                                    <span id="statusLabel">نشط</span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="Comment" class="control-label">البيان</label>
+                            <textarea asp-for="Comment" class="form-control" rows="4" placeholder="أدخل ملاحظات إضافية (اختياري)..."></textarea>
+                            <span asp-validation-for="Comment" class="text-danger"></span>
+                            <div class="d-flex justify-content-between">
+                                <small class="text-muted">
+                                    <i class="fas fa-lightbulb me-1"></i>اختياري - يمكن إضافة معلومات إضافية
+                                </small>
+                                <small class="text-muted">
+                                    <span id="charCount">0</span> / 1000 حرف
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="form-group text-center">
+                            <button type="submit" class="btn btn-primary btn-lg me-3">
+                                <i class="fas fa-save"></i> حفظ
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-arrow-left"></i> إلغاء
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-control {
+        direction: rtl;
+        text-align: right;
+    }
+    
+    .form-check-label {
+        margin-right: 0.5em;
+    }
+    
+    .card {
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        border-radius: 15px 15px 0 0 !important;
+    }
+    
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+    }
+    
+    .form-control:focus {
+        border-color: #007bff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+</style>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        $(document).ready(function() {
+            // Status toggle functionality
+            $('#statusSwitch').change(function() {
+                if ($(this).is(':checked')) {
+                    $('#statusLabel').text('نشط').removeClass('text-danger').addClass('text-success');
+                } else {
+                    $('#statusLabel').text('غير نشط').removeClass('text-success').addClass('text-danger');
+                }
+            });
+
+            // Character count for comment
+            $('#Comment').on('input', function() {
+                var length = $(this).val().length;
+                $('#charCount').text(length);
+                
+                if (length > 900) {
+                    $('#charCount').addClass('text-warning');
+                } else if (length > 950) {
+                    $('#charCount').removeClass('text-warning').addClass('text-danger');
+                } else {
+                    $('#charCount').removeClass('text-warning text-danger');
+                }
+            });
+
+            // Form validation enhancement
+            $('#createForm').on('submit', function(e) {
+                var isValid = true;
+                
+                // Check required fields
+                if (!$('#Item').val().trim()) {
+                    isValid = false;
+                    $('#Item').addClass('is-invalid');
+                } else {
+                    $('#Item').removeClass('is-invalid');
+                }
+                
+                if (!$('#OriginRawId').val()) {
+                    isValid = false;
+                    $('#OriginRawId').addClass('is-invalid');
+                } else {
+                    $('#OriginRawId').removeClass('is-invalid');
+                }
+                
+                if (!isValid) {
+                    e.preventDefault();
+                    $('html, body').animate({
+                        scrollTop: $('.is-invalid').first().offset().top - 100
+                    }, 500);
+                }
+            });
+        });
+    </script>
+}
