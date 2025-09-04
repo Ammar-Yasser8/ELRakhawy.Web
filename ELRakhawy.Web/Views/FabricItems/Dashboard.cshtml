@@ -1,0 +1,626 @@
+﻿@{
+    Layout = "_Layout";
+    ViewData["Title"] = "الجداول العامة للأقمشة";
+    ViewData["Description"] = "جداول عامة للأقمشة";
+}
+
+<!-- Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-tshirt text-info me-2"></i>
+                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Header Section -->
+<div class="welcome-card mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body bg-light p-4">
+            <div class="row align-items-center">
+                <div class="col-lg-7">
+                    <h2 class="mb-3 text-dark">@ViewData["Title"]</h2>
+                    <p class="text-muted mb-0">إدارة شاملة لجميع جداول القماش والأقمشة في النظام</p>
+                </div>
+                <div class="col-lg-5">
+                    <!-- Search Bar -->
+                    <div class="search-container">
+                        <div class="input-group">
+                            <input type="text" id="fabricSearch" class="form-control"
+                                   placeholder="بحث في جداول الأقمشة..." autocomplete="off">
+                            <button class="btn btn-primary" type="button" id="searchButton">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button class="btn btn-outline-secondary" type="button" id="clearSearch" style="display: none;">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <!-- Search Suggestions -->
+                        <div id="searchSuggestions" class="search-suggestions"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+   
+    <!-- Cards Grid - Fabric Tables -->
+    <div id="fabricTablesContainer">
+        <div class="row">
+            <!-- Fabric Styles Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm fabric-table-card"
+                     data-keywords="طرز styles patterns fabric قماش أنماط"
+                     onclick="location.href='@Url.Action("Index", "FabricStyles")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-swatchbook fa-3x text-primary"></i>
+                        </div>
+                        <h5 class="card-title mb-3">طرز القماش</h5>
+                        <p class="card-text text-muted">إدارة وعرض جميع طرز وأنماط القماش المتاحة في النظام</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-primary">أساسي</span>
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث: 2025-09-02 20:02:42
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fabric Colors Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm fabric-table-card"
+                     data-keywords="ألوان colors palette لون قماش fabric"
+                     onclick="location.href='@Url.Action("Index", "FabricColors")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-palette fa-3x text-success"></i>
+                        </div>
+                        <h5 class="card-title mb-3">ألوان القماش</h5>
+                        <p class="card-text text-muted">إدارة وعرض جميع ألوان القماش المرتبطة بالطرز المختلفة</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-success">ألوان</span>
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث: 2025-09-02 20:02:42
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fabric Designs Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm fabric-table-card"
+                     data-keywords="تصاميم designs patterns مطبوع fabric قماش"
+                     onclick="location.href='@Url.Action("Index", "FabricDesigns")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-paint-brush fa-3x text-info"></i>
+                        </div>
+                        <h5 class="card-title mb-3">تصاميم القماش</h5>
+                        <p class="card-text text-muted">إدارة وعرض جميع تصاميم القماش المطبوعة والعادية</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-info">تصاميم</span>
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث: 2025-09-02 20:02:42
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fabric Studios Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm fabric-table-card"
+                     data-keywords="استوديو studio images صور gallery معرض قماش"
+                     onclick="location.href='@Url.Action("Index", "FabricStudios")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-camera fa-3x text-warning"></i>
+                        </div>
+                        <h5 class="card-title mb-3">استوديو القماش</h5>
+                        <p class="card-text text-muted">إدارة معرض صور القماش والبوسترات والصور المعلمة</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-warning">صور</span>
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث: 2025-09-02 20:02:42
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fabric Items Card -->
+            <div class="col-lg-3 col-md-6 mb-4">
+                <div class="card h-100 shadow-sm fabric-table-card"
+                     data-keywords="أصناف items products منتجات قماش fabric"
+                     onclick="location.href='@Url.Action("Index", "FabricItems")'">
+                    <div class="card-body text-center p-4">
+                        <div class="mb-3">
+                            <i class="fas fa-tshirt fa-3x text-danger"></i>
+                        </div>
+                        <h5 class="card-title mb-3">أصناف القماش</h5>
+                        <p class="card-text text-muted">إدارة وعرض جميع أصناف ومنتجات القماش في النظام</p>
+                        <div class="mt-auto">
+                            <span class="badge bg-danger">منتجات</span>
+                            <span class="badge bg-success">متاح</span>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-light text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            محدث: 2025-09-02 20:02:42
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+           
+           
+
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="card mb-4">
+        <div class="card-header bg-dark text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-bolt me-2"></i>إجراءات سريعة
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <a href="@Url.Action("Create", "FabricStyles")" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-plus me-1"></i>إضافة طراز جديد
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="@Url.Action("Create", "FabricColors")" class="btn btn-outline-success w-100">
+                        <i class="fas fa-plus me-1"></i>إضافة لون جديد
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="@Url.Action("Create", "FabricDesigns")" class="btn btn-outline-info w-100">
+                        <i class="fas fa-plus me-1"></i>إضافة تصميم جديد
+                    </a>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <a href="@Url.Action("Create", "FabricStudios")" class="btn btn-outline-warning w-100">
+                        <i class="fas fa-plus me-1"></i>إضافة استوديو جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyState" class="text-center py-5" style="display: none;">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h5 class="text-muted">لا توجد جداول مطابقة للبحث</h5>
+        <p class="text-muted">جرب تغيير كلمات البحث أو استخدم المصطلحات العربية</p>
+        <button class="btn btn-outline-primary" id="resetSearch">
+            <i class="fas fa-refresh me-1"></i>إعادة تعيين
+        </button>
+    </div>
+
+@section Scripts {
+        <script>
+            $(document).ready(function() {
+                console.log('Fabric tables navigation page loaded at 2025-09-02 20:02:42 by Ammar-Yasser8');
+
+                // Enhanced search functionality
+                let searchTimeout;
+                $('#fabricSearch').on('input', function() {
+                    clearTimeout(searchTimeout);
+                    const searchTerm = $(this).val().toLowerCase().trim();
+
+                    if (searchTerm.length > 0) {
+                        $('#clearSearch').show();
+                        showSearchSuggestions(searchTerm);
+                    } else {
+                        $('#clearSearch').hide();
+                        hideSearchSuggestions();
+                    }
+
+                    searchTimeout = setTimeout(() => {
+                        filterFabricTables(searchTerm);
+                    }, 300);
+                });
+
+                // Clear search
+                $('#clearSearch').click(function() {
+                    $('#fabricSearch').val('');
+                    $(this).hide();
+                    hideSearchSuggestions();
+                    filterFabricTables('');
+                });
+
+                // Search suggestions for fabric-specific terms
+                function showSearchSuggestions(term) {
+                    const suggestions = [
+                        'طرز القماش', 'ألوان القماش', 'تصاميم القماش', 'استوديو القماش',
+                        'أصناف القماش', 'المواد الخام', 'معايير الجودة', 'فئات القماش',
+                        'ألوان', 'تصاميم', 'مطبوع', 'صور', 'خامات', 'جودة'
+                    ].filter(s => s.includes(term));
+
+                    if (suggestions.length > 0) {
+                        const html = suggestions.map(s =>
+                            `<div class="suggestion-item" data-value="${s}">${s}</div>`
+                        ).join('');
+                        $('#searchSuggestions').html(html).show();
+                    } else {
+                        hideSearchSuggestions();
+                    }
+                }
+
+                function hideSearchSuggestions() {
+                    $('#searchSuggestions').hide().empty();
+                }
+
+                // Handle suggestion clicks
+                $(document).on('click', '.suggestion-item', function() {
+                    const value = $(this).data('value');
+                    $('#fabricSearch').val(value);
+                    hideSearchSuggestions();
+                    filterFabricTables(value.toLowerCase());
+                    $('#clearSearch').show();
+                });
+
+                // Filter functionality
+                function filterFabricTables(searchTerm) {
+                    let visibleCount = 0;
+
+                    $('.fabric-table-card').each(function() {
+                        const card = $(this);
+                        const keywords = card.data('keywords').toLowerCase();
+                        const title = card.find('.card-title').text().toLowerCase();
+                        const description = card.find('.card-text').text().toLowerCase();
+
+                        const matchesSearch = !searchTerm ||
+                            keywords.includes(searchTerm) ||
+                            title.includes(searchTerm) ||
+                            description.includes(searchTerm);
+
+                        if (matchesSearch) {
+                            card.closest('.col-lg-3').show();
+                            visibleCount++;
+                            // Add highlight effect
+                            if (searchTerm) {
+                                card.addClass('search-highlight');
+                            } else {
+                                card.removeClass('search-highlight');
+                            }
+                        } else {
+                            card.closest('.col-lg-3').hide();
+                            card.removeClass('search-highlight');
+                        }
+                    });
+
+                    // Show/hide empty state
+                    if (visibleCount === 0 && searchTerm) {
+                        $('#emptyState').show();
+                        $('#fabricTablesContainer').hide();
+                    } else {
+                        $('#emptyState').hide();
+                        $('#fabricTablesContainer').show();
+                    }
+
+                    console.log(`Search completed. Visible cards: ${visibleCount}, Search term: "${searchTerm}"`);
+                }
+
+                // Card hover effects
+                $('.fabric-table-card').hover(
+                    function() {
+                        $(this).addClass('shadow-lg').css('transform', 'translateY(-5px)');
+                    },
+                    function() {
+                        $(this).removeClass('shadow-lg').css('transform', 'translateY(0)');
+                    }
+                );
+
+                // Reset search
+                $('#resetSearch').click(function() {
+                    $('#fabricSearch').val('');
+                    $('#clearSearch').hide();
+                    hideSearchSuggestions();
+                    filterFabricTables('');
+                });
+
+                // Keyboard shortcuts
+                $(document).keydown(function(e) {
+                    if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+                        e.preventDefault();
+                        $('#fabricSearch').focus();
+                    }
+                    if (e.keyCode === 27) { // Escape
+                        hideSearchSuggestions();
+                    }
+                });
+
+                // Hide suggestions when clicking outside
+                $(document).click(function(e) {
+                    if (!$(e.target).closest('.search-container').length) {
+                        hideSearchSuggestions();
+                    }
+                });
+
+                // Add click tracking for analytics
+                $('.fabric-table-card').click(function() {
+                    const tableName = $(this).find('.card-title').text();
+                    console.log(`Navigating to: ${tableName} at 2025-09-02 20:02:42 by Ammar-Yasser8`);
+                });
+
+                console.log('Fabric tables navigation page initialized successfully');
+            });
+        </script>
+
+        <style>
+            /* Enhanced Fabric-specific Styles */
+            .fabric-table-card {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                cursor: pointer;
+                border: 1px solid #e9ecef;
+                position: relative;
+                overflow: hidden;
+            }
+
+                .fabric-table-card::before {
+                    content: '';
+                    position: absolute;
+                    top: 0;
+                    left: -100%;
+                    width: 100%;
+                    height: 100%;
+                    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+                    transition: left 0.5s;
+                }
+
+                .fabric-table-card:hover::before {
+                    left: 100%;
+                }
+
+                .fabric-table-card:hover {
+                    transform: translateY(-8px) scale(1.02);
+                    box-shadow: 0 20px 40px rgba(0,0,0,0.12) !important;
+                    border-color: #007bff;
+                }
+
+                    .fabric-table-card:hover .card-body {
+                        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+                    }
+
+                .fabric-table-card .fa-3x {
+                    transition: all 0.3s ease;
+                }
+
+                .fabric-table-card:hover .fa-3x {
+                    transform: rotateY(180deg) scale(1.1);
+                }
+
+            .search-highlight {
+                border: 2px solid #ffc107 !important;
+                background: linear-gradient(135deg, #fff3cd 0%, #ffffff 100%);
+            }
+
+            .search-container {
+                position: relative;
+            }
+
+            .search-suggestions {
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                background: white;
+                border: 1px solid #ddd;
+                border-radius: 8px;
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                z-index: 1000;
+                max-height: 250px;
+                overflow-y: auto;
+            }
+
+            .suggestion-item {
+                padding: 12px 16px;
+                cursor: pointer;
+                border-bottom: 1px solid #eee;
+                font-size: 14px;
+                transition: all 0.2s ease;
+            }
+
+                .suggestion-item:hover {
+                    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                    color: white;
+                    transform: translateX(5px);
+                }
+
+                .suggestion-item:last-child {
+                    border-bottom: none;
+                }
+
+            .card-title {
+                color: #2c3e50;
+                font-weight: 600;
+            }
+
+            .card-text {
+                font-size: 14px;
+                line-height: 1.6;
+                color: #6c757d;
+            }
+
+            .badge {
+                font-size: 11px;
+                padding: 6px 10px;
+                font-weight: 500;
+            }
+
+            .card-footer {
+                background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%) !important;
+                border-top: 1px solid #dee2e6;
+            }
+
+            /* Statistics cards animations */
+            .row .card {
+                animation: slideInUp 0.6s ease-out;
+            }
+
+                .row .card:nth-child(1) {
+                    animation-delay: 0.1s;
+                }
+
+                .row .card:nth-child(2) {
+                    animation-delay: 0.2s;
+                }
+
+                .row .card:nth-child(3) {
+                    animation-delay: 0.3s;
+                }
+
+                .row .card:nth-child(4) {
+                    animation-delay: 0.4s;
+                }
+
+            @@keyframes slideInUp {
+                from
+
+            {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            }
+
+            /* Responsive improvements */
+            @@media (max-width: 992px) {
+                .col-lg-3
+
+            {
+                width: 50%;
+            }
+
+            }
+
+            @@media (max-width: 768px) {
+                .col-lg-3
+
+            {
+                width: 100%;
+            }
+
+            .fabric-table-card:hover {
+                transform: translateY(-2px) scale(1.01);
+            }
+
+            .search-container {
+                margin-top: 1rem;
+            }
+
+            .fabric-table-card:hover .fa-3x {
+                transform: scale(1.05);
+            }
+
+            }
+
+            /* Enhanced scrollbar */
+            .search-suggestions::-webkit-scrollbar {
+                width: 8px;
+            }
+
+            .search-suggestions::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 4px;
+            }
+
+            .search-suggestions::-webkit-scrollbar-thumb {
+                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+                border-radius: 4px;
+            }
+
+                .search-suggestions::-webkit-scrollbar-thumb:hover {
+                    background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+                }
+
+            /* Loading animation for cards */
+            .fabric-table-card {
+                animation: fadeInScale 0.8s ease-out;
+            }
+
+            @@keyframes fadeInScale {
+                from
+
+            {
+                opacity: 0;
+                transform: translateY(30px) scale(0.9);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            }
+
+            /* Quick actions hover effects */
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            }
+
+            /* Fabric-themed gradient backgrounds */
+            .bg-primary {
+                background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+            }
+
+            .bg-success {
+                background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%) !important;
+            }
+
+            .bg-info {
+                background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%) !important;
+            }
+
+            .bg-warning {
+                background: linear-gradient(135deg, #ffc107 0%, #d39e00 100%) !important;
+            }
+
+            .bg-danger {
+                background: linear-gradient(135deg, #dc3545 0%, #bd2130 100%) !important;
+            }
+        </style>
+}

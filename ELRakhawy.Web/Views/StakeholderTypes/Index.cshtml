@@ -352,12 +352,95 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            const CURRENT_TIME = '2025-08-19 19:31:55';
+            const CURRENT_TIME = '2025-09-04 16:33:23';
             const CURRENT_USER = 'Ammar-Yasser8';
 
-            console.log('Enhanced stakeholder types with inline search loaded:', {
+            console.log('Enhanced stakeholder types with Arabic numbers loaded:', {
                 time: CURRENT_TIME,
                 user: CURRENT_USER
+            });
+
+            // Arabic number conversion functions
+            function toArabicDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            }
+
+            function toLatinDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
+
+            function isArabicChar(c) {
+                return /[\u0600-\u06FF]/.test(c);
+            }
+
+            function isEnglishChar(c) {
+                return /[a-zA-Z]/.test(c);
+            }
+
+            function getLastLetter(str) {
+                if (!str || str.trim().length === 0) {
+                    return 'arabic';
+                }
+
+                for (let i = str.length - 1; i >= 0; i--) {
+                    let char = str[i];
+                    if (isArabicChar(char)) {
+                        return 'arabic';
+                    } else if (isEnglishChar(char)) {
+                        return 'english';
+                    }
+                }
+                return 'arabic'; // default is Arabic
+            }
+
+            // Apply Arabic number conversion to search inputs
+            function applyNumberConversion($input) {
+                let val = $input.val();
+
+                if (val && val.length > 0) {
+                    let lastLetterLang = getLastLetter(val);
+                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+
+                    if (newVal !== val) {
+                        let cursorPos = $input[0].selectionStart;
+                        $input.val(newVal);
+                        try {
+                            $input[0].setSelectionRange(cursorPos, cursorPos);
+                        } catch (ex) {
+                            $input.focus();
+                        }
+                    }
+                }
+            }
+
+            // Enhanced search input event handler with Arabic support
+            $(document).on("input keyup paste", "#searchByType, #searchByFinancial, #searchByForms, #searchByComment", function(e) {
+                const $input = $(this);
+                applyNumberConversion($input);
+            });
+
+            // Direct number key conversion for immediate Arabic conversion
+            $(document).on("keypress", "#searchByType, #searchByFinancial, #searchByForms, #searchByComment", function(e) {
+                // Convert English digits to Arabic immediately
+                if (e.which >= 48 && e.which <= 57) { // 0-9
+                    e.preventDefault();
+                    let digit = String.fromCharCode(e.which);
+                    let arabicDigit = toArabicDigits(digit);
+
+                    let input = e.target;
+                    let cursorPos = input.selectionStart || 0;
+                    let currentValue = input.value;
+
+                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    input.value = newValue;
+
+                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                    // Trigger search
+                    $(input).trigger('input');
+                }
             });
 
             // Initialize components
@@ -391,12 +474,24 @@
                 toast.show();
             }
 
-            // Enhanced search functionality
+            // Enhanced search functionality with Arabic number support
             function performSearch() {
                 const typeSearch = $('#searchByType').val().toLowerCase().trim();
+                const typeSearchLatin = toLatinDigits(typeSearch);
+                const typeSearchArabic = toArabicDigits(typeSearch);
+
                 const financialSearch = $('#searchByFinancial').val().toLowerCase().trim();
+                const financialSearchLatin = toLatinDigits(financialSearch);
+                const financialSearchArabic = toArabicDigits(financialSearch);
+
                 const formsSearch = $('#searchByForms').val().toLowerCase().trim();
+                const formsSearchLatin = toLatinDigits(formsSearch);
+                const formsSearchArabic = toArabicDigits(formsSearch);
+
                 const commentSearch = $('#searchByComment').val().toLowerCase().trim();
+                const commentSearchLatin = toLatinDigits(commentSearch);
+                const commentSearchArabic = toArabicDigits(commentSearch);
+
                 let visibleCount = 0;
 
                 $('.stakeholder-type-row').each(function() {
@@ -406,10 +501,26 @@
                     const forms = row.find('.stakeholder-type-forms').text().toLowerCase();
                     const comment = row.find('.stakeholder-type-comment').text().toLowerCase();
 
-                    const typeMatch = !typeSearch || type.includes(typeSearch);
-                    const financialMatch = !financialSearch || financial.includes(financialSearch);
-                    const formsMatch = !formsSearch || forms.includes(formsSearch);
-                    const commentMatch = !commentSearch || comment.includes(commentSearch);
+                    // Enhanced matching with Arabic/English number support
+                    const typeMatch = !typeSearch ||
+                        type.includes(typeSearch) ||
+                        type.includes(typeSearchLatin) ||
+                        type.includes(typeSearchArabic);
+
+                    const financialMatch = !financialSearch ||
+                        financial.includes(financialSearch) ||
+                        financial.includes(financialSearchLatin) ||
+                        financial.includes(financialSearchArabic);
+
+                    const formsMatch = !formsSearch ||
+                        forms.includes(formsSearch) ||
+                        forms.includes(formsSearchLatin) ||
+                        forms.includes(formsSearchArabic);
+
+                    const commentMatch = !commentSearch ||
+                        comment.includes(commentSearch) ||
+                        comment.includes(commentSearchLatin) ||
+                        comment.includes(commentSearchArabic);
 
                     const shouldShow = typeMatch && financialMatch && formsMatch && commentMatch;
                     row.toggle(shouldShow);
@@ -420,9 +531,10 @@
                 updateSearchInfo(visibleCount, typeSearch, financialSearch, formsSearch, commentSearch);
             }
 
+            // Enhanced updateSearchInfo with Arabic numbers
             function updateSearchInfo(visibleCount, typeSearch, financialSearch, formsSearch, commentSearch) {
-                $('#visibleCount').text(visibleCount);
-                $('#badgeCount').text(visibleCount);
+                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
+                $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
 
                 // Show/hide clear buttons
                 $('#clearTypeSearch').toggle(typeSearch.length > 0);
@@ -434,14 +546,8 @@
                                    formsSearch.length > 0 || commentSearch.length > 0;
                 $('#clearAllSearch').toggle(hasAnySearch);
 
-                // Show/hide no results
-                if (visibleCount === 0 && hasAnySearch) {
-                    $('#noResultsMessage').show();
-                    $('#stakeholderTypesContainer .section-card').hide();
-                } else {
-                    $('#noResultsMessage').hide();
-                    $('#stakeholderTypesContainer .section-card').show();
-                }
+                // Keep table always visible - no modal overlays
+                $('#stakeholderTypesContainer .section-card').show();
 
                 // Add visual feedback to search inputs
                 $('#searchByType').toggleClass('border-primary', typeSearch.length > 0);
@@ -450,12 +556,14 @@
                 $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
             }
 
+            // Enhanced updateCounts with Arabic numbers
             function updateCounts() {
                 const totalCount = $('.stakeholder-type-row').length;
                 const visibleCount = $('.stakeholder-type-row:visible').length;
-                $('#totalCount').text(totalCount);
-                $('#visibleCount').text(visibleCount);
-                $('#badgeCount').text(visibleCount);
+
+                $('#totalCount').text(toArabicDigits(totalCount.toString()));
+                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
+                $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
             }
 
             // Search events
@@ -501,7 +609,7 @@
                 loadStakeholderTypeDetails(id);
             });
 
-            // Load stakeholder type details (mock function - implement API when available)
+            // Enhanced load stakeholder type details with Arabic numbers
             function loadStakeholderTypeDetails(id) {
                 // Find the row data
                 const row = $(`.stakeholder-type-row[data-id="${id}"]`);
@@ -524,8 +632,11 @@
                 detailsModal.show();
             }
 
-            // Render details modal content
+            // Enhanced render details modal content with Arabic numbers
             function renderDetailsModal(data) {
+                const arabicId = toArabicDigits(data.id.toString());
+                const arabicFormsCount = toArabicDigits((data.forms ? data.forms.length : 0).toString());
+
                 const formsHtml = data.forms && data.forms.length > 0
                     ? data.forms.map(form =>
                         `<div class="col-auto">
@@ -570,12 +681,12 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <small class="text-muted">
-                                                    <i class="fas fa-hashtag me-1"></i>معرف النوع: <strong>#${data.id}</strong>
+                                                    <i class="fas fa-hashtag me-1"></i>معرف النوع: <strong>#${arabicId}</strong>
                                                 </small>
                                             </div>
                                             <div class="col-md-6">
                                                 <small class="text-muted">
-                                                    <i class="fas fa-link me-1"></i>عدد الواجهات: <strong>${data.forms ? data.forms.length : 0}</strong>
+                                                    <i class="fas fa-link me-1"></i>عدد الواجهات: <strong>${arabicFormsCount}</strong>
                                                 </small>
                                             </div>
                                         </div>
@@ -616,7 +727,7 @@
                                 <div class="row text-center">
                                     <div class="col-md-4">
                                         <div class="p-2">
-                                            <div class="text-primary fs-5 fw-bold">${data.forms ? data.forms.length : 0}</div>
+                                            <div class="text-primary fs-5 fw-bold">${arabicFormsCount}</div>
                                             <small class="text-muted">واجهات مرتبطة</small>
                                         </div>
                                     </div>
@@ -665,10 +776,16 @@
                 }
             });
 
-            // Initialize page
+            // Test number conversion functions
+            console.log('Testing Arabic number conversion:');
+            console.log('123 to Arabic:', toArabicDigits('123'));
+            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
+            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+
+            // Initialize page with Arabic numbers
             updateCounts();
 
-            console.log('Enhanced stakeholder types page with inline search initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            console.log('Enhanced stakeholder types page with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
         });
     </script>
 

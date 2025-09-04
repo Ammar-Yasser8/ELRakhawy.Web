@@ -542,17 +542,111 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            const CURRENT_TIME = '@currentTime';
-            const CURRENT_USER = '@currentUser';
+            const CURRENT_TIME = '2025-09-04 16:06:24';
+            const CURRENT_USER = 'Ammar-Yasser8';
             const TOTAL_ITEMS = @totalItems;
 
-            console.log('Enhanced Index page loaded at', CURRENT_TIME, 'by', CURRENT_USER, 'with', TOTAL_ITEMS, 'items');
+            console.log('Enhanced Index page with Arabic numbers loaded at', CURRENT_TIME, 'by', CURRENT_USER, 'with', TOTAL_ITEMS, 'items');
+
+            // Arabic number conversion functions
+            function toArabicDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            }
+
+            function toLatinDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
+
+            function isArabicChar(c) {
+                return /[\u0600-\u06FF]/.test(c);
+            }
+
+            function isEnglishChar(c) {
+                return /[a-zA-Z]/.test(c);
+            }
+
+            function getLastLetter(str) {
+                if (!str || str.trim().length === 0) {
+                    return 'arabic';
+                }
+
+                for (let i = str.length - 1; i >= 0; i--) {
+                    let char = str[i];
+                    if (isArabicChar(char)) {
+                        return 'arabic';
+                    } else if (isEnglishChar(char)) {
+                        return 'english';
+                    }
+                }
+                return 'arabic'; // default is Arabic
+            }
+
+            // Apply Arabic number conversion to all search inputs
+            function applyNumberConversion($input) {
+                let val = $input.val();
+
+                if (val && val.length > 0) {
+                    let lastLetterLang = getLastLetter(val);
+                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+
+                    if (newVal !== val) {
+                        let cursorPos = $input[0].selectionStart;
+                        $input.val(newVal);
+                        try {
+                            $input[0].setSelectionRange(cursorPos, cursorPos);
+                        } catch (ex) {
+                            $input.focus();
+                        }
+                    }
+                }
+            }
+
+            // Enhanced search input event handler with Arabic support
+            $(document).on("input keyup paste", ".column-search-input, #globalSearch, #mobileGlobalSearch, .mobile-search-input", function(e) {
+                const $input = $(this);
+
+                // Skip number conversion for count balance field (should stay as entered)
+                if ($input.attr('id') !== 'searchCountBalance') {
+                    applyNumberConversion($input);
+                }
+            });
+
+            // Direct number key conversion for immediate Arabic conversion
+            $(document).on("keypress", ".column-search-input, #globalSearch, #mobileGlobalSearch, .mobile-search-input", function(e) {
+                const $input = $(this);
+
+                // Skip conversion for count balance field
+                if ($input.attr('id') === 'searchCountBalance') {
+                    return;
+                }
+
+                // Convert English digits to Arabic immediately
+                if (e.which >= 48 && e.which <= 57) { // 0-9
+                    e.preventDefault();
+                    let digit = String.fromCharCode(e.which);
+                    let arabicDigit = toArabicDigits(digit);
+
+                    let input = e.target;
+                    let cursorPos = input.selectionStart || 0;
+                    let currentValue = input.value;
+
+                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    input.value = newValue;
+
+                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                    // Trigger search
+                    $input.trigger('input');
+                }
+            });
 
             // Initialize enhanced search functionality
             let activeSearches = {};
             let filteredRows = [];
 
-            // Column search functionality
+            // Column search functionality with Arabic number support
             $('.column-search-input').on('input change', function() {
                 const $input = $(this);
                 const column = $input.data('column');
@@ -594,9 +688,11 @@
                 updateVisibleCount();
             });
 
-            // Global search
+            // Enhanced global search with Arabic number support
             $('#globalSearch, #mobileGlobalSearch').on('input', function() {
                 const searchTerm = $(this).val().toLowerCase().trim();
+                const searchTermLatin = toLatinDigits(searchTerm);
+                const searchTermArabic = toArabicDigits(searchTerm);
 
                 if (searchTerm === '') {
                     $('#itemsTable tbody tr, .mobile-item-card').show();
@@ -605,7 +701,11 @@
                     $('#itemsTable tbody tr').each(function() {
                         const $row = $(this);
                         const searchContent = $row.data('search-content').toLowerCase();
-                        if (searchContent.includes(searchTerm)) {
+
+                        // Check for matches with original, Latin, and Arabic versions
+                        if (searchContent.includes(searchTerm) ||
+                            searchContent.includes(searchTermLatin) ||
+                            searchContent.includes(searchTermArabic)) {
                             $row.show();
                         } else {
                             $row.hide();
@@ -616,7 +716,10 @@
                     $('.mobile-item-card').each(function() {
                         const $card = $(this);
                         const searchContent = $card.data('search-content').toLowerCase();
-                        if (searchContent.includes(searchTerm)) {
+
+                        if (searchContent.includes(searchTerm) ||
+                            searchContent.includes(searchTermLatin) ||
+                            searchContent.includes(searchTermArabic)) {
                             $card.show();
                         } else {
                             $card.hide();
@@ -627,22 +730,84 @@
                 updateVisibleCount();
             });
 
-            // Mobile search controls
+            // Mobile search controls with Arabic support
             $('#mobileItemSearch').on('input', function() {
+                applyNumberConversion($(this));
                 $('#searchItem').val($(this).val()).trigger('input');
             });
 
             $('#mobileManufacturerSearch').on('input', function() {
+                applyNumberConversion($(this));
                 $('#searchManufacturer').val($(this).val()).trigger('input');
             });
 
             $('#mobileOriginSearch').on('input', function() {
+                applyNumberConversion($(this));
                 $('#searchOriginYarn').val($(this).val()).trigger('input');
             });
 
             $('#mobileStatusSearch').on('change', function() {
                 $('#searchStatus').val($(this).val()).trigger('change');
             });
+
+            // Enhanced filter matching with Arabic number support
+            function matchesFilter($element, search) {
+                const column = search.column;
+                const value = search.value;
+                const valueLatin = toLatinDigits(value);
+                const valueArabic = toArabicDigits(value);
+
+                switch(column) {
+                    case 0: // Item name
+                        const itemText = $element.find('td:eq(0)').text().toLowerCase() || $element.find('.card-title').text().toLowerCase();
+                        return itemText.includes(value) || itemText.includes(valueLatin) || itemText.includes(valueArabic);
+
+                    case 1: // Manufacturer
+                        const manufacturerText = $element.find('td:eq(1)').text().toLowerCase() || $element.data('search-content').toLowerCase();
+                        return manufacturerText.includes(value) || manufacturerText.includes(valueLatin) || manufacturerText.includes(valueArabic) ||
+                               (value === '' && manufacturerText.includes('غير محدد'));
+
+                    case 2: // Origin yarn
+                        const originText = $element.find('td:eq(2)').text().toLowerCase() || $element.data('search-content').toLowerCase();
+                        return originText.includes(value) || originText.includes(valueLatin) || originText.includes(valueArabic) ||
+                               (value === '' && originText.includes('غير محدد'));
+
+                    case 3: // Status
+                        const status = $element.data('status');
+                        if (value === 'نشط') return status === 'active';
+                        if (value === 'غير نشط') return status === 'inactive';
+                        return true;
+
+                    case 4: // Balance
+                        const balance = parseFloat($element.data('balance')) || 0;
+                        switch(value) {
+                            case 'zero': return balance <= 0;
+                            case 'low': return balance > 0 && balance <= 10;
+                            case 'medium': return balance > 10 && balance <= 100;
+                            case 'high': return balance > 100;
+                            default: return true;
+                        }
+
+                    case 5: // Count balance - enhanced with Arabic number support
+                        const countBalanceText = $element.find('td:eq(5)').text().toLowerCase();
+                        const countBalanceNumber = parseFloat(toLatinDigits(value));
+
+                        if (!isNaN(countBalanceNumber)) {
+                            // Extract number from count balance text
+                            const elementCountBalance = parseFloat($element.find('td:eq(5) .h6').text() || '0');
+                            return elementCountBalance === countBalanceNumber;
+                        } else {
+                            return countBalanceText.includes(value) || countBalanceText.includes(valueLatin) || countBalanceText.includes(valueArabic);
+                        }
+
+                    case 6: // Comment
+                        const commentText = $element.find('td:eq(6)').text().toLowerCase() || $element.data('search-content').toLowerCase();
+                        return commentText.includes(value) || commentText.includes(valueLatin) || commentText.includes(valueArabic);
+
+                    default:
+                        return true;
+                }
+            }
 
             // Apply column filters function
             function applyColumnFilters() {
@@ -692,54 +857,7 @@
                 });
             }
 
-            // Check if row/card matches filter
-            function matchesFilter($element, search) {
-                const column = search.column;
-                const value = search.value;
-
-                switch(column) {
-                    case 0: // Item name
-                        const itemText = $element.find('td:eq(0)').text().toLowerCase() || $element.find('.card-title').text().toLowerCase();
-                        return itemText.includes(value);
-
-                    case 1: // Manufacturer
-                        const manufacturerText = $element.find('td:eq(1)').text().toLowerCase() || $element.data('search-content').toLowerCase();
-                        return manufacturerText.includes(value) || (value === '' && manufacturerText.includes('غير محدد'));
-
-                    case 2: // Origin yarn
-                        const originText = $element.find('td:eq(2)').text().toLowerCase() || $element.data('search-content').toLowerCase();
-                        return originText.includes(value) || (value === '' && originText.includes('غير محدد'));
-
-                    case 3: // Status
-                        const status = $element.data('status');
-                        if (value === 'نشط') return status === 'active';
-                        if (value === 'غير نشط') return status === 'inactive';
-                        return true;
-
-                    case 4: // Balance
-                        const balance = parseFloat($element.data('balance')) || 0;
-                        switch(value) {
-                            case 'zero': return balance <= 0;
-                            case 'low': return balance > 0 && balance <= 10;
-                            case 'medium': return balance > 10 && balance <= 100;
-                            case 'high': return balance > 100;
-                            default: return true;
-                        }
-
-                    case 5: // Count balance
-                        const countBalanceText = $element.find('td:eq(5)').text().toLowerCase();
-                        return countBalanceText.includes(value);
-
-                    case 6: // Comment
-                        const commentText = $element.find('td:eq(6)').text().toLowerCase() || $element.data('search-content').toLowerCase();
-                        return commentText.includes(value);
-
-                    default:
-                        return true;
-                }
-            }
-
-            // Get search label for summary
+            // Get search label for summary with Arabic numbers
             function getSearchLabel(inputId, value) {
                 const labels = {
                     'searchItem': `الصنف: "${value}"`,
@@ -747,7 +865,7 @@
                     'searchOriginYarn': `الغزل المكون: "${value}"`,
                     'searchStatus': `الحالة: ${value}`,
                     'searchBalance': getBalanceLabel(value),
-                    'searchCountBalance': `رصيد العدد: ${value}`,
+                    'searchCountBalance': `رصيد العدد: ${toArabicDigits(value)}`,
                     'searchComment': `البيان: "${value}"`
                 };
                 return labels[inputId] || `"${value}"`;
@@ -795,12 +913,37 @@
                 $('#' + searchId).val('').removeClass('has-value').trigger('input');
             });
 
-            // Update visible count
+            // Update visible count with Arabic numbers
             function updateVisibleCount() {
                 const visibleDesktop = $('#itemsTable tbody tr:visible').length;
                 const visibleMobile = $('.mobile-item-card:visible').length;
                 const visible = Math.max(visibleDesktop, visibleMobile);
-                $('#visibleCount').text(visible);
+                $('#visibleCount').text(toArabicDigits(visible.toString()));
+
+                // Update sidebar stats with Arabic numbers
+                $('#sidebarTotalItems').text(toArabicDigits(TOTAL_ITEMS.toString()));
+                updateSidebarStats();
+            }
+
+            // Update sidebar stats with Arabic numbers
+            function updateSidebarStats() {
+                const visibleRows = $('#itemsTable tbody tr:visible, .mobile-item-card:visible');
+                let activeCount = 0;
+                let lowStockCount = 0;
+                let zeroStockCount = 0;
+
+                visibleRows.each(function() {
+                    const status = $(this).data('status');
+                    const balance = parseFloat($(this).data('balance')) || 0;
+
+                    if (status === 'active') activeCount++;
+                    if (balance <= 10 && balance > 0) lowStockCount++;
+                    if (balance <= 0) zeroStockCount++;
+                });
+
+                $('#sidebarActiveItems').text(toArabicDigits(activeCount.toString()));
+                $('#sidebarLowStock').text(toArabicDigits(lowStockCount.toString()));
+                $('#sidebarZeroStock').text(toArabicDigits(zeroStockCount.toString()));
             }
 
             // Refresh data functionality
@@ -816,68 +959,68 @@
                 }, 1500);
             });
 
-                    // Delete functionality
-        $('.delete-item').click(function() {
-            const itemName = $(this).data('name');
-            const itemId = $(this).data('id');
+            // Delete functionality
+            $('.delete-item').click(function() {
+                const itemName = $(this).data('name');
+                const itemId = $(this).data('id');
 
-            if (confirm(`هل أنت متأكد من حذف الصنف "${itemName}"؟`)) {
-                // Show loading state
-                const $button = $(this);
-                $button.prop('disabled', true)
-                       .html('<span class="spinner-border spinner-border-sm"></span>');
+                if (confirm(`هل أنت متأكد من حذف الصنف "${itemName}"؟`)) {
+                    // Show loading state
+                    const $button = $(this);
+                    $button.prop('disabled', true)
+                           .html('<span class="spinner-border spinner-border-sm"></span>');
 
-                // Call delete API endpoint
-                $.ajax({
-                    url: `/api/YarnItems/${itemId}`,
-                    type: 'DELETE',
-                    success: function() {
-                        // Remove the row/card from UI
-                        const $row = $button.closest('tr');
-                        const $card = $button.closest('.mobile-item-card');
+                    // Call delete API endpoint
+                    $.ajax({
+                        url: `/api/YarnItems/${itemId}`,
+                        type: 'DELETE',
+                        success: function() {
+                            // Remove the row/card from UI
+                            const $row = $button.closest('tr');
+                            const $card = $button.closest('.mobile-item-card');
 
-                        $row.fadeOut(300, function() { $row.remove(); });
-                        $card.fadeOut(300, function() { $card.remove(); });
+                            $row.fadeOut(300, function() { $row.remove(); });
+                            $card.fadeOut(300, function() { $card.remove(); });
 
-                        // Show success message
-                        showAlert('success', `تم حذف الصنف "${itemName}" بنجاح`);
+                            // Show success message
+                            showAlert('success', `تم حذف الصنف "${itemName}" بنجاح`);
 
-                        // Update counts
-                        updateVisibleCount();
-                    },
-                    error: function(xhr) {
-                        // Show error message
-                        showAlert('danger', `فشل حذف الصنف "${itemName}". ${xhr.responseText || 'حدث خطأ ما'}`);
+                            // Update counts
+                            updateVisibleCount();
+                        },
+                        error: function(xhr) {
+                            // Show error message
+                            showAlert('danger', `فشل حذف الصنف "${itemName}". ${xhr.responseText || 'حدث خطأ ما'}`);
 
-                        // Reset button state
-                        $button.prop('disabled', false)
-                               .html('<i class="fas fa-trash"></i>');
-                    }
-                });
-            }
-        });
+                            // Reset button state
+                            $button.prop('disabled', false)
+                                   .html('<i class="fas fa-trash"></i>');
+                        }
+                    });
+                }
+            });
 
-        // Helper function to show alerts
-        function showAlert(type, message) {
-            const alertHtml = `
-                <div class="alert alert-${type} alert-dismissible fade show mb-4 shadow-sm border-0">
-                    <div class="d-flex align-items-center">
-                        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-3 fa-lg"></i>
-                        <div>
-                            <strong>${type === 'success' ? 'نجح!' : 'خطأ!'}</strong>
-                            <span class="ms-2">${message}</span>
+            // Helper function to show alerts
+            function showAlert(type, message) {
+                const alertHtml = `
+                    <div class="alert alert-${type} alert-dismissible fade show mb-4 shadow-sm border-0">
+                        <div class="d-flex align-items-center">
+                            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-3 fa-lg"></i>
+                            <div>
+                                <strong>${type === 'success' ? 'نجح!' : 'خطأ!'}</strong>
+                                <span class="ms-2">${message}</span>
+                            </div>
                         </div>
-                    </div>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>`;
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>`;
 
-            $('.col-xl-9').prepend(alertHtml);
+                $('.col-xl-9').prepend(alertHtml);
 
-            // Auto-hide alert after 5 seconds
-            setTimeout(() => {
-                $('.alert').fadeOut(350, function() { $(this).remove(); });
-            }, 5000);
-        }
+                // Auto-hide alert after 5 seconds
+                setTimeout(() => {
+                    $('.alert').fadeOut(350, function() { $(this).remove(); });
+                }, 5000);
+            }
 
             // Initialize tooltips
             $('[data-bs-toggle="tooltip"]').tooltip();
@@ -910,10 +1053,12 @@
                 }, 5000);
             });
 
-            console.log('Enhanced search functionality initialized successfully');
+            // Initialize stats with Arabic numbers
+            updateVisibleCount();
+
+            console.log('Enhanced search functionality with Arabic numbers initialized successfully');
         });
     </script>
-
     <style>
         /* Enhanced Custom Styles */
         .bg-gradient-primary {

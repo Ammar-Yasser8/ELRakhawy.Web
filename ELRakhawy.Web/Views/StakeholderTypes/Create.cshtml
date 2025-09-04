@@ -123,6 +123,88 @@
                         </button>
                     </div>
                 </form>
+                <script>
+                    // دالة لتحويل الأرقام للغة العربية
+                    function toArabicDigits(str) {
+                        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                    }
+
+                    // دالة لتحويل الأرقام للاتينية
+                    function toLatinDigits(str) {
+                        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف عربي
+                    function isArabicChar(c) {
+                        return /[\u0600-\u06FF]/.test(c);
+                    }
+
+                    // دالة لاكتشاف إذا كان الحرف إنجليزي
+                    function isEnglishChar(c) {
+                        return /[a-zA-Z]/.test(c);
+                    }
+
+                    // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                    function getLastLetter(str) {
+                        for (let i = str.length - 1; i >= 0; i--) {
+                            let char = str[i];
+                            if (isArabicChar(char)) {
+                                return 'arabic';
+                            } else if (isEnglishChar(char)) {
+                                return 'english';
+                            }
+                        }
+                        return 'arabic'; // default is Arabic
+                    }
+
+                    // تطبيق التحويل على كل الحقول النصية
+                    document.addEventListener("input", function (e) {
+                        if (e.target.closest("#createForm")) {
+                            let input = e.target;
+                            let val = input.value;
+
+                            if (val.length > 0) {
+                                let lastLetterLang = getLastLetter(val);
+
+                                let newVal;
+                                if (lastLetterLang === 'arabic') {
+                                    // حول جميع الأرقام للعربية
+                                    newVal = toArabicDigits(val);
+                                } else {
+                                    // حول جميع الأرقام للاتينية
+                                    newVal = toLatinDigits(val);
+                                }
+
+                                // تحديث القيمة فقط إذا تغيرت
+                                if (newVal !== val) {
+                                    let cursorPos = input.selectionStart;
+                                    input.value = newVal;
+                                    // استعادة موضع المؤشر
+                                    input.setSelectionRange(cursorPos, cursorPos);
+                                }
+                            }
+                        }
+                    });
+
+                    // دالة منشئ النماذج السريع
+                    document.getElementById('generateForm')?.addEventListener('click', function() {
+                        let materialType = document.getElementById('materialType').value;
+                        let operationType = document.getElementById('operationType').value;
+
+                        if (materialType && operationType) {
+                            let generatedName = operationType + ' ' + materialType;
+                            let formNameInput = document.querySelector('input[name="FormName"]');
+                            if (formNameInput) {
+                                formNameInput.value = generatedName;
+                                // تطبيق تحويل الأرقام على النص المولد
+                                let event = new Event('input', { bubbles: true });
+                                formNameInput.dispatchEvent(event);
+                            }
+                        } else {
+                            alert('يرجى اختيار نوع المادة ونوع العملية أولاً');
+                        }
+                    });
+                </script>
             </div>
         </div>
     </div>

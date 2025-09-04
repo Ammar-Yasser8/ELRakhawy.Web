@@ -1,0 +1,262 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FabricColorIndexViewModel
+@{
+    ViewData["Title"] = "إدارة ألوان القماش";
+    var currentTime = "2025-09-02 19:36:11";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+       <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-palette me-2"></i>إدارة ألوان القماش
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Dashboard", "FabricItems")">الجداول العامة للأقمشة</a></li>
+                    <li class="breadcrumb-item active">ألوان القماش</li>
+                </ol>
+            </nav>
+        </div>
+        
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card text-center border-primary">
+                <div class="card-body">
+                    <h4 class="text-primary mb-0">@Model.TotalItems</h4>
+                    <small class="text-muted">إجمالي ألوان القماش</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Actions -->
+    <div class="card mb-4">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <i class="fas fa-filter me-2"></i>البحث والتصفية
+                    </h5>
+                </div>
+                <div class="col-auto">
+                    <a href="@Url.Action("Create")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>إضافة لون جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <form method="get" action="@Url.Action("Index")">
+                <div class="row">
+                    <div class="col-md-5 mb-3">
+                        <label class="form-label">البحث في الألوان</label>
+                        <input type="text" name="searchQuery" class="form-control" value="@Model.SearchQuery" 
+                               placeholder="ابحث في اسم اللون أو البيان..." />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">الطراز</label>
+                        <select name="selectedStyleId" class="form-select">
+                            <option value="">-- كل الطرز --</option>
+                            @foreach (var style in Model.StylesFilter)
+                            {
+                                <option value="@style.Value" @@(Model.SelectedStyleId?.ToString() == style.Value ? "selected" : "")>@style.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-outline-primary me-2">
+                            <i class="fas fa-search me-1"></i>بحث
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>إعادة تعيين
+                        </a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Colors Table -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-list me-2"></i>قائمة ألوان القماش
+                @if (Model.HasItems)
+                {
+                    <span class="badge bg-light text-dark ms-2">@Model.TotalItems لون</span>
+                }
+            </h5>
+        </div>
+        <div class="card-body p-0">
+            @if (Model.HasItems)
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>اللون</th>
+                                <th>الطراز</th>
+                                <th>البيان</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var color in Model.FabricColors)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="color-preview me-2" style="width: 30px; height: 30px; background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1); border-radius: 4px; border: 1px solid #ddd;"></div>
+                                            <div>
+                                                <strong>@color.Color</strong>
+                                                <br><small class="text-muted">رقم: @color.Id</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-info">@color.StyleName</span>
+                                    </td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(color.Comment))
+                                        {
+                                            <span>@color.Comment</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">لا يوجد بيان</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="@Url.Action("Edit", new { id = color.Id })" 
+                                               class="btn btn-outline-primary" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-outline-danger delete-btn" 
+                                                    data-id="@color.Id" data-name="@color.Color" title="حذف">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                @if (Model.TotalPages > 1)
+                {
+                    <div class="card-footer">
+                        <nav aria-label="تصفح الصفحات">
+                            <ul class="pagination justify-content-center mb-0">
+                                @if (Model.HasPreviousPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                           page = Model.CurrentPage - 1, 
+                                           searchQuery = Model.SearchQuery,
+                                           selectedStyleId = Model.SelectedStyleId
+                                         })">السابق</a>
+                                    </li>
+                                }
+
+                                @for (int i = Math.Max(1, Model.CurrentPage - 2); i <= Math.Min(Model.TotalPages, Model.CurrentPage + 2); i++)
+                                {
+                                    <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                           page = i, 
+                                           searchQuery = Model.SearchQuery,
+                                           selectedStyleId = Model.SelectedStyleId
+                                         })">@i</a>
+                                    </li>
+                                }
+
+                                @if (Model.HasNextPage)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { 
+                                           page = Model.CurrentPage + 1, 
+                                           searchQuery = Model.SearchQuery,
+                                           selectedStyleId = Model.SelectedStyleId
+                                         })">التالي</a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                        <div class="text-center mt-2">
+                            <small class="text-muted">
+                                صفحة @Model.CurrentPage من @Model.TotalPages (إجمالي @Model.TotalItems لون)
+                            </small>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5">
+                    <i class="fas fa-palette fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">لا توجد ألوان قماش</h5>
+                    <p class="text-muted">لا توجد ألوان تطابق معايير البحث المحددة</p>
+                    <a href="@Url.Action("Create")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>إضافة لون جديد
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Fabric Colors Index loaded at 2025-09-02 19:36:11 by Ammar-Yasser8');
+
+            // Delete functionality
+            $('.delete-btn').click(function() {
+                var btn = $(this);
+                var colorId = btn.data('id');
+                var colorName = btn.data('name');
+                
+                if (confirm(`هل أنت متأكد من حذف لون القماش "${colorName}"؟\n\nلا يمكن التراجع عن هذا الإجراء.`)) {
+                    $.post('@Url.Action("Delete")', { id: colorId }, function(result) {
+                        if (result.success) {
+                            btn.closest('tr').fadeOut(function() {
+                                $(this).remove();
+                            });
+                            showToast('success', result.message);
+                        } else {
+                            showToast('error', result.message);
+                        }
+                    }).fail(function() {
+                        showToast('error', 'حدث خطأ أثناء حذف اللون');
+                    });
+                }
+            });
+
+            function showToast(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+                
+                var toast = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+                
+                $('body').append(toast);
+                setTimeout(function() {
+                    toast.alert('close');
+                }, 5000);
+            }
+        });
+    </script>
+}

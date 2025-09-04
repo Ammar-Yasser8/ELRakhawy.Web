@@ -290,170 +290,380 @@
                             </button>
                         </div>
                     </form>
+
                     <script>
-                        // دالة لتحويل الأرقام للغة العربية
-                        function toArabicDigits(str) {
-                            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-                        }
+                        $(document).ready(function() {
+                            const CURRENT_TIME = '2025-09-03 15:44:45';
+                            const CURRENT_USER = 'Ammar-Yasser8';
 
-                        // دالة لتحويل الأرقام للاتينية
-                        function toLatinDigits(str) {
-                            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-                        }
+                            console.log('Enhanced stakeholders create form loaded:', {
+                                time: CURRENT_TIME,
+                                user: CURRENT_USER
+                            });
 
-                        // دالة لاكتشاف إذا كان الحرف عربي
-                        function isArabicChar(c) {
-                            return /[\u0600-\u06FF]/.test(c);
-                        }
-
-                        // دالة لاكتشاف إذا كان الحرف إنجليزي
-                        function isEnglishChar(c) {
-                            return /[a-zA-Z]/.test(c);
-                        }
-
-                        // دالة للعثور على آخر حرف (ليس رقم أو رمز)
-                        function getLastLetter(str) {
-                            for (let i = str.length - 1; i >= 0; i--) {
-                                let char = str[i];
-                                if (isArabicChar(char)) {
-                                    return 'arabic';
-                                } else if (isEnglishChar(char)) {
-                                    return 'english';
-                                }
+                            // دالة لتحويل الأرقام للغة العربية
+                            function toArabicDigits(str) {
+                                if (typeof str !== 'string') return str;
+                                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
                             }
-                            return 'arabic'; // default is Arabic
-                        }
 
-                        // استثناء حقل أرقام التواصل من التحويل (يبقى كما هو)
-                        function shouldSkipConversion(input) {
-                            // تجاهل حقل أرقام التواصل لأنه يحتوي على أرقام هواتف
-                            return input.name === 'ContactNumbers' || input.id === 'ContactNumbers';
-                        }
+                            // دالة لتحويل الأرقام للاتينية
+                            function toLatinDigits(str) {
+                                if (typeof str !== 'string') return str;
+                                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                            }
 
-                        // تطبيق التحويل على كل الحقول النصية
-                        document.addEventListener("input", function (e) {
-                            if (e.target.closest("#createForm")) {
+                            // دالة لاكتشاف إذا كان الحرف عربي
+                            function isArabicChar(c) {
+                                return /[\u0600-\u06FF]/.test(c);
+                            }
+
+                            // دالة لاكتشاف إذا كان الحرف إنجليزي
+                            function isEnglishChar(c) {
+                                return /[a-zA-Z]/.test(c);
+                            }
+
+                            // دالة للعثور على آخر حرف (ليس رقم أو رمز)
+                            function getLastLetter(str) {
+                                if (!str || str.trim().length === 0) {
+                                    return 'arabic';
+                                }
+
+                                for (let i = str.length - 1; i >= 0; i--) {
+                                    let char = str[i];
+                                    if (isArabicChar(char)) {
+                                        return 'arabic';
+                                    } else if (isEnglishChar(char)) {
+                                        return 'english';
+                                    }
+                                }
+                                return 'arabic'; // default is Arabic
+                            }
+
+                            // استثناء حقل أرقام التواصل من التحويل (يبقى كما هو)
+                            function shouldSkipConversion(input) {
+                                return input.name === 'ContactNumbers' ||
+                                       input.id === 'ContactNumbers' ||
+                                       $(input).attr('name') === 'ContactNumbers';
+                            }
+
+                            // تطبيق التحويل على كل الحقول النصية - FIXED VERSION
+                            document.addEventListener("input", function (e) {
+                                if (e.target.closest("#createForm")) {
+                                    let input = e.target;
+                                    let val = input.value;
+
+                                    console.log('Input event on:', input.name || input.id, 'Value:', val);
+
+                                    // تجاهل حقل أرقام التواصل من التحويل
+                                    if (shouldSkipConversion(input)) {
+                                        console.log('Skipping conversion for ContactNumbers field');
+                                        // تحديث عداد الأحرف للتعليقات فقط
+                                        if (input.name === 'Comment') {
+                                            updateCharCount();
+                                        }
+                                        return;
+                                    }
+
+                                    if (val && val.length > 0) {
+                                        let lastLetterLang = getLastLetter(val);
+                                        console.log('Detected language:', lastLetterLang);
+
+                                        let newVal;
+                                        if (lastLetterLang === 'arabic') {
+                                            // حول جميع الأرقام للعربية
+                                            newVal = toArabicDigits(val);
+                                        } else {
+                                            // حول جميع الأرقام للاتينية
+                                            newVal = toLatinDigits(val);
+                                        }
+
+                                        console.log('Original:', val, 'New:', newVal);
+
+                                        // تحديث القيمة فقط إذا تغيرت
+                                        if (newVal !== val) {
+                                            let cursorPos = input.selectionStart;
+                                            input.value = newVal;
+                                            // استعادة موضع المؤشر
+                                            try {
+                                                input.setSelectionRange(cursorPos, cursorPos);
+                                            } catch (ex) {
+                                                console.log('Cursor position restore failed');
+                                            }
+                                            console.log('Value updated from', val, 'to', newVal);
+                                        }
+                                    }
+
+                                    // تحديث عداد الأحرف للتعليقات
+                                    if (input.name === 'Comment') {
+                                        updateCharCount();
+                                    }
+                                }
+                            });
+
+                            // إضافة معالج إضافي للأحداث الأخرى
+                            $(document).on("keyup paste", "#createForm input[type='text'], #createForm textarea", function(e) {
                                 let input = e.target;
                                 let val = input.value;
 
+                                console.log('Keyup/Paste event on:', input.name || input.id);
+
                                 // تجاهل حقل أرقام التواصل
                                 if (shouldSkipConversion(input)) {
-                                    // تحديث عداد الأحرف فقط للتعليقات
-                                    if (input.name === 'Comment') {
-                                        document.getElementById('commentCounter').textContent = val.length;
-                                    }
                                     return;
                                 }
 
-                                if (val.length > 0) {
+                                if (val && val.length > 0) {
                                     let lastLetterLang = getLastLetter(val);
+                                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
 
-                                    let newVal;
-                                    if (lastLetterLang === 'arabic') {
-                                        // حول جميع الأرقام للعربية
-                                        newVal = toArabicDigits(val);
-                                    } else {
-                                        // حول جميع الأرقام للاتينية
-                                        newVal = toLatinDigits(val);
-                                    }
-
-                                    // تحديث القيمة فقط إذا تغيرت
                                     if (newVal !== val) {
                                         let cursorPos = input.selectionStart;
                                         input.value = newVal;
-                                        // استعادة موضع المؤشر
-                                        input.setSelectionRange(cursorPos, cursorPos);
+                                        try {
+                                            input.setSelectionRange(cursorPos, cursorPos);
+                                        } catch (ex) {
+                                            $(input).focus();
+                                        }
                                     }
                                 }
-
-                                // تحديث عداد الأحرف للتعليقات
-                                if (input.name === 'Comment') {
-                                    document.getElementById('commentCounter').textContent = val.length;
-                                }
-                            }
-                        });
-
-                        // وظائف إضافية للفورم
-                        document.addEventListener('DOMContentLoaded', function() {
-                            // تحديث مؤشر الحالة
-                            const statusCheckbox = document.querySelector('input[name="Status"]');
-                            const statusLabel = document.getElementById('statusLabel');
-
-                            if (statusCheckbox && statusLabel) {
-                                statusCheckbox.addEventListener('change', function() {
-                                    statusLabel.textContent = this.checked ? 'نشط' : 'غير نشط';
-                                });
-                            }
-
-                            // وظائف تحديد/إلغاء تحديد الكل للأنواع
-                            const selectAllBtn = document.getElementById('selectAllTypes');
-                            const deselectAllBtn = document.getElementById('deselectAllTypes');
-                            const typeCheckboxes = document.querySelectorAll('input[name="SelectedTypeIds"]');
-
-                            if (selectAllBtn) {
-                                selectAllBtn.addEventListener('click', function() {
-                                    typeCheckboxes.forEach(checkbox => {
-                                        checkbox.checked = true;
-                                        checkbox.dispatchEvent(new Event('change'));
-                                    });
-                                });
-                            }
-
-                            if (deselectAllBtn) {
-                                deselectAllBtn.addEventListener('click', function() {
-                                    typeCheckboxes.forEach(checkbox => {
-                                        checkbox.checked = false;
-                                        checkbox.dispatchEvent(new Event('change'));
-                                    });
-                                });
-                            }
-
-                            // تحديث النوع الرئيسي بناءً على الأنواع المحددة
-                            const primaryTypeSelect = document.getElementById('primaryTypeSelect');
-
-                            typeCheckboxes.forEach(checkbox => {
-                                checkbox.addEventListener('change', function() {
-                                    updatePrimaryTypeOptions();
-                                    updateCheckIcons();
-                                });
                             });
 
-                            function updatePrimaryTypeOptions() {
-                                if (!primaryTypeSelect) return;
+                            // معالج خاص للأرقام المكتوبة مباشرة
+                            $(document).on("keypress", "#createForm input[type='text'], #createForm textarea", function(e) {
+                                // تجاهل حقل أرقام التواصل
+                                if (shouldSkipConversion(e.target)) {
+                                    return;
+                                }
 
-                                const selectedTypes = Array.from(typeCheckboxes)
-                                    .filter(cb => cb.checked)
-                                    .map(cb => cb.value);
+                                // التحقق من الأرقام الإنجليزية المكتوبة
+                                if (e.which >= 48 && e.which <= 57) { // 0-9
+                                    e.preventDefault();
+                                    let digit = String.fromCharCode(e.which);
+                                    let arabicDigit = toArabicDigits(digit);
 
-                                // تحديث خيارات النوع الرئيسي
-                                Array.from(primaryTypeSelect.options).forEach(option => {
-                                    if (option.value === '') return; // تجاهل الخيار الافتراضي
+                                    let input = e.target;
+                                    let cursorPos = input.selectionStart || 0;
+                                    let currentValue = input.value;
 
-                                    option.disabled = !selectedTypes.includes(option.value);
-                                });
+                                    // إدراج الرقم العربي في الموضع الصحيح
+                                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                                    input.value = newValue;
 
-                                // إذا كان النوع الرئيسي المحدد غير موجود في الأنواع المحددة، امسحه
-                                if (primaryTypeSelect.value && !selectedTypes.includes(primaryTypeSelect.value)) {
-                                    primaryTypeSelect.value = '';
+                                    // تحديث موضع المؤشر
+                                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                                    console.log('Direct digit conversion:', digit, '->', arabicDigit);
+
+                                    // تحديث عداد الأحرف إذا كان حقل التعليقات
+                                    if (input.name === 'Comment') {
+                                        updateCharCount();
+                                    }
+                                }
+                            });
+
+                            // Form validation and submission
+                            $("#createForm").on("submit", function(e) {
+                                if (!validateForm()) {
+                                    e.preventDefault();
+                                    return false;
+                                }
+
+                                $("#submitBtn")
+                                    .prop("disabled", true)
+                                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+
+                                return true;
+                            });
+
+                            // Enhanced form validation
+                            function validateForm() {
+                                let isValid = true;
+                                $("#validationSummary").addClass("d-none");
+
+                                // Check if at least one type is selected
+                                if (!$("input[name='SelectedTypeIds']:checked").length) {
+                                    $("#typesValidationMsg").removeClass("d-none");
+                                    $("#validationSummary").removeClass("d-none");
+                                    isValid = false;
+                                } else {
+                                    $("#typesValidationMsg").addClass("d-none");
+                                }
+
+                                // Check name field
+                                if (!$("#Name").val().trim()) {
+                                    $("#Name").addClass("is-invalid");
+                                    isValid = false;
+                                } else {
+                                    $("#Name").removeClass("is-invalid");
+                                }
+
+                                return isValid;
+                            }
+
+                            // Select all types
+                            $("#selectAllTypes").on("click", function() {
+                                console.log('Select all types clicked at', CURRENT_TIME, 'by', CURRENT_USER);
+                                $("input[name='SelectedTypeIds']").prop("checked", true);
+                                updateTypeSelectionUI();
+                                updatePrimaryTypeOptions();
+                                $("#typesValidationMsg").addClass("d-none");
+                            });
+
+                            // Deselect all types
+                            $("#deselectAllTypes").on("click", function() {
+                                console.log('Deselect all types clicked at', CURRENT_TIME, 'by', CURRENT_USER);
+                                $("input[name='SelectedTypeIds']").prop("checked", false);
+                                $("#primaryTypeSelect").val(""); // Clear primary type selection
+                                updateTypeSelectionUI();
+                                updatePrimaryTypeOptions();
+                            });
+
+                            // Enhanced character counter - FIXED
+                            function updateCharCount() {
+                                const maxLength = 1000;
+                                const currentLength = $("#Comment").val().length;
+                                const arabicLength = toArabicDigits(currentLength.toString());
+                                const arabicMax = toArabicDigits(maxLength.toString());
+
+                                $("#commentCounter").text(arabicLength);
+
+                                $("#commentCounter").removeClass("text-warning text-danger");
+                                if (currentLength > maxLength * 0.8) {
+                                    $("#commentCounter").addClass("text-warning");
+                                }
+                                if (currentLength >= maxLength) {
+                                    $("#commentCounter").addClass("text-danger").removeClass("text-warning");
                                 }
                             }
 
-                            function updateCheckIcons() {
-                                typeCheckboxes.forEach(checkbox => {
-                                    const checkIcon = checkbox.closest('.type-check-container')?.querySelector('.check-icon');
-                                    if (checkIcon) {
-                                        if (checkbox.checked) {
-                                            checkIcon.classList.remove('d-none');
+                            // Enhanced primary type selection
+                            function updatePrimaryTypeOptions() {
+                                const selectedTypes = [];
+                                $("input[name='SelectedTypeIds']:checked").each(function() {
+                                    selectedTypes.push($(this).val());
+                                });
+
+                                console.log('Updating primary type options. Selected types:', selectedTypes);
+
+                                // Reset all options first
+                                $("#primaryTypeSelect option").each(function() {
+                                    const optionValue = $(this).val();
+
+                                    if (optionValue === '') {
+                                        // Keep the default option always enabled
+                                        $(this).prop("disabled", false);
+                                    } else {
+                                        // Enable only if the type is selected
+                                        if (selectedTypes.includes(optionValue)) {
+                                            $(this).prop("disabled", false);
+                                            console.log('Enabled option:', optionValue, $(this).text());
                                         } else {
-                                            checkIcon.classList.add('d-none');
+                                            $(this).prop("disabled", true);
+                                            console.log('Disabled option:', optionValue, $(this).text());
                                         }
                                     }
                                 });
+
+                                // Clear primary type if it's not in selected types anymore
+                                const currentPrimaryType = $("#primaryTypeSelect").val();
+                                if (currentPrimaryType && !selectedTypes.includes(currentPrimaryType)) {
+                                    $("#primaryTypeSelect").val("");
+                                    console.log('Cleared primary type selection because it was not in selected types');
+                                }
+
+                                // Force refresh of the select element
+                                $("#primaryTypeSelect").trigger('change.select2');
                             }
 
-                            // تهيئة الحالة الأولية
+                            // Update visual indicators for selected types
+                            function updateTypeSelectionUI() {
+                                $("input[name='SelectedTypeIds']").each(function() {
+                                    const checkbox = $(this);
+                                    const container = checkbox.closest(".type-check-container");
+                                    const checkIcon = container.find(".check-icon");
+
+                                    if (checkbox.prop("checked")) {
+                                        container.addClass("selected");
+                                        checkIcon.removeClass("d-none");
+                                    } else {
+                                        container.removeClass("selected");
+                                        checkIcon.addClass("d-none");
+                                    }
+                                });
+
+                                // Update counter display with Arabic numbers
+                                const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
+                                const totalCount = $("input[name='SelectedTypeIds']").length;
+                                const arabicSelected = toArabicDigits(selectedCount.toString());
+                                const arabicTotal = toArabicDigits(totalCount.toString());
+
+                                // Update button text to show count
+                                $("#selectAllTypes").text(selectedCount === totalCount ? 'محدد الكل' : `تحديد الكل (${arabicSelected}/${arabicTotal})`);
+                            }
+
+                            // Enhanced type selection handling
+                            $("input[name='SelectedTypeIds']").on("change", function() {
+                                console.log('Type selection changed:', $(this).val(), 'checked:', $(this).prop("checked"));
+
+                                updateTypeSelectionUI();
+                                updatePrimaryTypeOptions();
+                                validateForm();
+
+                                // If no types selected, show validation error
+                                if (!$("input[name='SelectedTypeIds']:checked").length) {
+                                    $("#typesValidationMsg").removeClass("d-none");
+                                } else {
+                                    $("#typesValidationMsg").addClass("d-none");
+                                }
+                            });
+
+                            // Status toggle handling
+                            $("#Status").on("change", function() {
+                                const isActive = $(this).prop("checked");
+                                $("#statusLabel").text(isActive ? "نشط" : "غير نشط");
+                            });
+
+                            // Name field validation
+                            $("#Name").on("input blur", function() {
+                                if ($(this).val().trim()) {
+                                    $(this).removeClass("is-invalid").addClass("is-valid");
+                                } else {
+                                    $(this).removeClass("is-valid");
+                                }
+                            });
+
+                            // Initialize Select2 if available
+                            if (typeof $.fn.select2 !== 'undefined') {
+                                $("#primaryTypeSelect").select2({
+                                    placeholder: "-- اختر النوع الرئيسي (اختياري) --",
+                                    dir: "rtl",
+                                    language: "ar",
+                                    width: '100%',
+                                    allowClear: true
+                                });
+                            }
+
+                            // Test number conversion functions
+                            console.log('Testing number conversion:');
+                            console.log('123 to Arabic:', toArabicDigits('123'));
+                            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
+                            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+
+                            // Initialize form state
+                            updateCharCount();
+                            updateTypeSelectionUI();
                             updatePrimaryTypeOptions();
-                            updateCheckIcons();
+
+                            // Initialize tooltips if available
+                            if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
+                                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                                });
+                            }
+
+                            console.log('Stakeholders create form initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
                         });
                     </script>
                 </div>

@@ -429,12 +429,97 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            const CURRENT_TIME = '2025-08-16 20:01:16';
+            const CURRENT_TIME = '2025-09-04 16:17:58';
             const CURRENT_USER = 'Ammar-Yasser8';
 
-            console.log('Enhanced packaging styles with details integration loaded:', {
+            console.log('Enhanced packaging styles with Arabic numbers loaded:', {
                 time: CURRENT_TIME,
                 user: CURRENT_USER
+            });
+
+            // Arabic number conversion functions
+            function toArabicDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            }
+
+            function toLatinDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
+
+            function isArabicChar(c) {
+                return /[\u0600-\u06FF]/.test(c);
+            }
+
+            function isEnglishChar(c) {
+                return /[a-zA-Z]/.test(c);
+            }
+
+            function getLastLetter(str) {
+                if (!str || str.trim().length === 0) {
+                    return 'arabic';
+                }
+
+                for (let i = str.length - 1; i >= 0; i--) {
+                    let char = str[i];
+                    if (isArabicChar(char)) {
+                        return 'arabic';
+                    } else if (isEnglishChar(char)) {
+                        return 'english';
+                    }
+                }
+                return 'arabic'; // default is Arabic
+            }
+
+            // Apply Arabic number conversion to inputs
+            function applyNumberConversion($input) {
+                let val = $input.val();
+
+                if (val && val.length > 0) {
+                    let lastLetterLang = getLastLetter(val);
+                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+
+                    if (newVal !== val) {
+                        let cursorPos = $input[0].selectionStart;
+                        $input.val(newVal);
+                        try {
+                            $input[0].setSelectionRange(cursorPos, cursorPos);
+                        } catch (ex) {
+                            $input.focus();
+                        }
+                    }
+                }
+            }
+
+            // Enhanced search and form input event handler with Arabic support
+            $(document).on("input keyup paste", "#searchByName, #searchByForms, #searchByComment, #styleName, #styleComment", function(e) {
+                const $input = $(this);
+                applyNumberConversion($input);
+            });
+
+            // Direct number key conversion for immediate Arabic conversion
+            $(document).on("keypress", "#searchByName, #searchByForms, #searchByComment, #styleName, #styleComment", function(e) {
+                // Convert English digits to Arabic immediately
+                if (e.which >= 48 && e.which <= 57) { // 0-9
+                    e.preventDefault();
+                    let digit = String.fromCharCode(e.which);
+                    let arabicDigit = toArabicDigits(digit);
+
+                    let input = e.target;
+                    let cursorPos = input.selectionStart || 0;
+                    let currentValue = input.value;
+
+                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    input.value = newValue;
+
+                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                    // Trigger appropriate events
+                    if ($(input).attr('id').startsWith('search')) {
+                        $(input).trigger('input');
+                    }
+                }
             });
 
             // Initialize components
@@ -448,10 +533,10 @@
             let availableForms = [];
             let currentDetailsId = null;
 
-            // Character counter for comment
+            // Enhanced character counter for comment with Arabic numbers
             $('#styleComment').on('input', function() {
                 const count = $(this).val().length;
-                $('#charCount').text(count);
+                $('#charCount').text(toArabicDigits(count.toString()));
 
                 if (count > 900) {
                     $('#charCount').addClass('text-warning');
@@ -495,7 +580,7 @@
                 $('#loadingOverlay').addClass('d-none');
             }
 
-            // Load packaging styles data
+            // Enhanced load packaging styles data with Arabic numbers
             function loadPackagingStyles() {
                 showLoading();
 
@@ -580,8 +665,10 @@
                 });
             }
 
-            // Render details modal content
+            // Enhanced render details modal content with Arabic numbers
             function renderDetailsModal(style) {
+                const arabicFormsCount = toArabicDigits((style.formsCount || 0).toString());
+
                 const formsHtml = style.forms && style.forms.length > 0
                     ? style.forms.map(form =>
                         `<div class="col-auto">
@@ -621,7 +708,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <small class="text-muted">
-                                                    <i class="fas fa-link me-1"></i>عدد الواجهات: <strong>${style.formsCount || 0}</strong>
+                                                    <i class="fas fa-link me-1"></i>عدد الواجهات: <strong>${arabicFormsCount}</strong>
                                                 </small>
                                             </div>
                                         </div>
@@ -655,7 +742,7 @@
                                 <div class="row text-center">
                                     <div class="col-md-4">
                                         <div class="p-2">
-                                            <div class="text-primary fs-5 fw-bold">${style.formsCount || 0}</div>
+                                            <div class="text-primary fs-5 fw-bold">${arabicFormsCount}</div>
                                             <small class="text-muted">واجهات مرتبطة</small>
                                         </div>
                                     </div>
@@ -720,13 +807,12 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group" role="group">
-                                    
                                      <button class="btn btn-sm btn-outline-info edit-style"
                                              onclick="window.location.href='/PackagingStyles/Edit/${style.id}'"
                                              title="تعديل ${style.styleName}">
                                          <i class="fas fa-edit"></i>
                                      </button>
-                                           
+
                                     </button>
                                     <button class="btn btn-sm btn-outline-secondary view-details"
                                             data-id="${style.id}" title="تفاصيل ${style.styleName}">
@@ -772,11 +858,20 @@
                 container.html(formsHtml);
             }
 
-            // Enhanced search functionality
+            // Enhanced search functionality with Arabic number support
             function performSearch() {
                 const nameSearch = $('#searchByName').val().toLowerCase().trim();
+                const nameSearchLatin = toLatinDigits(nameSearch);
+                const nameSearchArabic = toArabicDigits(nameSearch);
+
                 const formsSearch = $('#searchByForms').val().toLowerCase().trim();
+                const formsSearchLatin = toLatinDigits(formsSearch);
+                const formsSearchArabic = toArabicDigits(formsSearch);
+
                 const commentSearch = $('#searchByComment').val().toLowerCase().trim();
+                const commentSearchLatin = toLatinDigits(commentSearch);
+                const commentSearchArabic = toArabicDigits(commentSearch);
+
                 let visibleCount = 0;
 
                 $('.packaging-style-row').each(function() {
@@ -785,9 +880,21 @@
                     const forms = row.find('.packaging-style-forms').text().toLowerCase();
                     const comment = row.find('.packaging-style-comment').text().toLowerCase();
 
-                    const nameMatch = !nameSearch || name.includes(nameSearch);
-                    const formsMatch = !formsSearch || forms.includes(formsSearch);
-                    const commentMatch = !commentSearch || comment.includes(commentSearch);
+                    // Enhanced matching with Arabic/English number support
+                    const nameMatch = !nameSearch ||
+                        name.includes(nameSearch) ||
+                        name.includes(nameSearchLatin) ||
+                        name.includes(nameSearchArabic);
+
+                    const formsMatch = !formsSearch ||
+                        forms.includes(formsSearch) ||
+                        forms.includes(formsSearchLatin) ||
+                        forms.includes(formsSearchArabic);
+
+                    const commentMatch = !commentSearch ||
+                        comment.includes(commentSearch) ||
+                        comment.includes(commentSearchLatin) ||
+                        comment.includes(commentSearchArabic);
 
                     const shouldShow = nameMatch && formsMatch && commentMatch;
                     row.toggle(shouldShow);
@@ -798,9 +905,10 @@
                 updateSearchInfo(visibleCount, nameSearch, formsSearch, commentSearch);
             }
 
+            // Enhanced updateSearchInfo with Arabic numbers
             function updateSearchInfo(visibleCount, nameSearch, formsSearch, commentSearch) {
-                $('#visibleCount').text(visibleCount);
-                $('#badgeCount').text(visibleCount);
+                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
+                $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
 
                 // Show/hide clear buttons
                 $('#clearNameSearch').toggle(nameSearch.length > 0);
@@ -810,14 +918,8 @@
                 const hasAnySearch = nameSearch.length > 0 || formsSearch.length > 0 || commentSearch.length > 0;
                 $('#clearAllSearch').toggle(hasAnySearch);
 
-                // Show/hide no results
-                if (visibleCount === 0 && hasAnySearch) {
-                    $('#noResultsMessage').show();
-                    $('#packagingStylesContainer .section-card').hide();
-                } else {
-                    $('#noResultsMessage').hide();
-                    $('#packagingStylesContainer .section-card').show();
-                }
+                // Keep table always visible - no modal overlays
+                $('#packagingStylesContainer .section-card').show();
 
                 // Add visual feedback to search inputs
                 $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
@@ -825,10 +927,12 @@
                 $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
             }
 
+            // Enhanced updateCounts with Arabic numbers
             function updateCounts(count) {
-                $('#totalCount').text(count);
-                $('#visibleCount').text(count);
-                $('#badgeCount').text(count);
+                const arabicCount = toArabicDigits(count.toString());
+                $('#totalCount').text(arabicCount);
+                $('#visibleCount').text(arabicCount);
+                $('#badgeCount').text(arabicCount);
             }
 
             // Search events
@@ -898,11 +1002,11 @@
                 }
             });
 
-            // Reset form
+            // Enhanced reset form with Arabic character counter
             function resetForm() {
                 $('#packagingStyleForm')[0].reset();
                 $('#styleId').val('');
-                $('#charCount').text('0');
+                $('#charCount').text(toArabicDigits('0'));
                 $('#packagingStyleForm .is-invalid').removeClass('is-invalid');
                 $('#packagingStyleForm').removeClass('was-validated');
                 $('#availableFormsContainer input[type="checkbox"]').prop('checked', false);
@@ -924,7 +1028,7 @@
                             $('#styleId').val(style.id);
                             $('#styleName').val(style.styleName);
                             $('#styleComment').val(style.comment || '');
-                            $('#charCount').text((style.comment || '').length);
+                            $('#charCount').text(toArabicDigits(((style.comment || '').length).toString()));
 
                             const selectedFormIds = style.forms ? style.forms.map(f => f.id) : [];
                             renderAvailableForms(availableForms, selectedFormIds);
@@ -1059,11 +1163,17 @@
                 }
             });
 
+            // Test number conversion functions
+            console.log('Testing Arabic number conversion:');
+            console.log('123 to Arabic:', toArabicDigits('123'));
+            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
+            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+
             // Initialize page
             loadPackagingStyles();
             loadAvailableForms();
 
-            console.log('Enhanced packaging styles page with details modal initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            console.log('Enhanced packaging styles page with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
         });
     </script>
 

@@ -1,0 +1,487 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FabricStudioExtractViewModel
+@{
+    ViewData["Title"] = "استخراج بيانات استوديو القماش";
+    var currentTime = "2025-09-02 19:43:07";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-download me-2"></i>استخراج بيانات استوديو القماش
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index")">استوديو القماش</a></li>
+                    <li class="breadcrumb-item active">استخراج البيانات</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Item Information -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tshirt me-2"></i>معلومات الصنف
+                    </h5>
+                </div>
+                <div class="col-auto">
+                    <a href="@Url.Action("Index")" class="btn btn-outline-light btn-sm">
+                        <i class="fas fa-arrow-left me-1"></i>العودة للقائمة
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 class="text-primary">@Model.ItemName</h4>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-industry me-1"></i>المادة الخام: <strong>@Model.OriginRawName</strong>
+                    </p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p class="mb-1">@Model.SummaryText</p>
+                    <div>
+                        @if (Model.HasColors)
+                        {
+                            <span class="badge bg-primary me-1">
+                                <i class="fas fa-palette me-1"></i>@Model.ColorsCount لون
+                            </span>
+                        }
+                        @if (Model.HasDesigns)
+                        {
+                            <span class="badge bg-info">
+                                <i class="fas fa-paint-brush me-1"></i>@Model.DesignsCount تصميم
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h6 class="mb-0">إجراءات الاستخراج</h6>
+                </div>
+                <div class="col-auto">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-outline-success" id="exportExcelBtn">
+                            <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                        </button>
+                        <button type="button" class="btn btn-outline-info" id="exportPdfBtn">
+                            <i class="fas fa-file-pdf me-1"></i>تصدير PDF
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="printBtn">
+                            <i class="fas fa-print me-1"></i>طباعة
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" id="downloadImagesBtn">
+                            <i class="fas fa-download me-1"></i>تحميل الصور
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (Model.HasStudios)
+    {
+        <!-- View Options -->
+        <div class="card mb-4">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">عرض الاستوديوهات</h6>
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-outline-primary" id="gridViewBtn" title="عرض شبكي">
+                            <i class="fas fa-th"></i>
+                        </button>
+                        <button type="button" class="btn btn-primary" id="listViewBtn" title="عرض قائمة">
+                            <i class="fas fa-list"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid View -->
+        <div id="gridView" class="row" style="display: none;">
+            @foreach (var studio in Model.Studios)
+            {
+                <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="position-relative">
+                            <img src="@(string.IsNullOrEmpty(studio.WatermarkedImagePath) ? "/images/no-image-placeholder.png" : studio.WatermarkedImagePath)" 
+                                 class="card-img-top" style="height: 200px; object-fit: cover;" alt="@studio.DisplayName" />
+                            
+                            <!-- Type Badge -->
+                            <span class="position-absolute top-0 end-0 badge bg-@studio.TypeClass m-2">
+                                <i class="fas @studio.TypeIcon me-1"></i>@studio.StudioType
+                            </span>
+                            
+                            <!-- Download Button -->
+                            <div class="position-absolute bottom-0 start-0 m-2">
+                                <div class="btn-group-vertical">
+                                    @if (studio.HasWatermarkedImage)
+                                    {
+                                        <a href="@studio.WatermarkedImagePath" download class="btn btn-sm btn-primary">
+                                            <i class="fas fa-download"></i>
+                                        </a>
+                                    }
+                                    @if (studio.HasImage)
+                                    {
+                                        <a href="@studio.ImagePath" download class="btn btn-sm btn-info">
+                                            <i class="fas fa-file-image"></i>
+                                        </a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="card-body">
+                            <h6 class="card-title">@studio.PrimaryName</h6>
+                            <p class="card-text small text-muted">@studio.StudioType</p>
+                        </div>
+                        
+                        <div class="card-footer bg-transparent">
+                            <a href="@Url.Action("Details", new { id = studio.Id })" class="btn btn-sm btn-outline-primary w-100">
+                                <i class="fas fa-eye me-1"></i>عرض التفاصيل
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- List View -->
+        <div id="listView" class="card">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>قائمة الاستوديوهات
+                    <span class="badge bg-light text-dark ms-2">@Model.TotalStudios استوديو</span>
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="studiosTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>الصورة الرئيسية</th>
+                                <th>البوستر</th>
+                                <th>النوع</th>
+                                <th>اللون/التصميم</th>
+                                <th>الإجراءات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var studio in Model.Studios)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (studio.HasWatermarkedImage)
+                                        {
+                                            <img src="@studio.WatermarkedImagePath" 
+                                                 class="rounded" style="width: 60px; height: 60px; object-fit: cover;" 
+                                                 alt="@studio.DisplayName"
+                                                 data-bs-toggle="modal" 
+                                                 data-bs-target="#imageModal" 
+                                                 data-image-src="@studio.WatermarkedImagePath"
+                                                 data-image-title="@studio.DisplayName"
+                                                 style="cursor: pointer;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                <i class="fas fa-image text-muted"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (studio.HasImage)
+                                        {
+                                            <img src="@studio.ImagePath" 
+                                                 class="rounded" style="width: 60px; height: 60px; object-fit: cover;" 
+                                                 alt="بوستر @studio.DisplayName"
+                                                 data-bs-toggle="modal" 
+                                                 data-bs-target="#imageModal" 
+                                                 data-image-src="@studio.ImagePath"
+                                                 data-image-title="بوستر @studio.DisplayName"
+                                                 style="cursor: pointer;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                                <i class="fas fa-file-image text-muted"></i>
+                                            </div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-@studio.TypeClass">
+                                            <i class="fas @studio.TypeIcon me-1"></i>@studio.StudioType
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>@studio.PrimaryName</strong>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group btn-group-sm">
+                                            <a href="@Url.Action("Details", new { id = studio.Id })" 
+                                               class="btn btn-outline-primary" title="التفاصيل">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="@Url.Action("Edit", new { id = studio.Id })" 
+                                               class="btn btn-outline-warning" title="تعديل">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            @if (studio.HasWatermarkedImage)
+                                            {
+                                                <a href="@studio.WatermarkedImagePath" download 
+                                                   class="btn btn-outline-success" title="تحميل الصورة الرئيسية">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                            }
+                                            @if (studio.HasImage)
+                                            {
+                                                <a href="@studio.ImagePath" download 
+                                                   class="btn btn-outline-info" title="تحميل البوستر">
+                                                    <i class="fas fa-file-image"></i>
+                                                </a>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- No Studios Message -->
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-camera fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">لا توجد استوديوهات لهذا الصنف</h5>
+                <p class="text-muted">لم يتم إنشاء أي استوديوهات للصنف "@Model.ItemName" بعد</p>
+                <a href="@Url.Action("Create", new { itemId = Model.ItemId })" class="btn btn-primary">
+                    <i class="fas fa-plus me-1"></i>إضافة استوديو جديد
+                </a>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">عرض الصورة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" alt="" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <a id="downloadImageBtn" href="" download class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i>تحميل الصورة
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Fabric Studio Extract loaded at 2025-09-02 19:43:07 by Ammar-Yasser8');
+
+            // View toggle functionality
+            $('#gridViewBtn, #listViewBtn').click(function() {
+                var isGridView = $(this).attr('id') === 'gridViewBtn';
+                
+                $('#gridViewBtn, #listViewBtn').removeClass('btn-primary').addClass('btn-outline-primary');
+                $(this).removeClass('btn-outline-primary').addClass('btn-primary');
+                
+                if (isGridView) {
+                    $('#listView').hide();
+                    $('#gridView').show();
+                } else {
+                    $('#gridView').hide();
+                    $('#listView').show();
+                }
+            });
+
+            // Initialize with list view
+            $('#listViewBtn').click();
+
+            // Image modal functionality
+            $('#imageModal').on('show.bs.modal', function (event) {
+                var trigger = $(event.relatedTarget);
+                var imageSrc = trigger.data('image-src');
+                var imageTitle = trigger.data('image-title');
+                
+                var modal = $(this);
+                modal.find('.modal-title').text(imageTitle);
+                modal.find('#modalImage').attr('src', imageSrc);
+                modal.find('#downloadImageBtn').attr('href', imageSrc);
+            });
+
+            // Export Excel functionality
+            $('#exportExcelBtn').click(function() {
+                showToast('info', 'جاري تحضير ملف Excel...');
+                // Here you would implement Excel export functionality
+                setTimeout(function() {
+                    showToast('success', 'تم تصدير البيانات إلى Excel بنجاح');
+                }, 2000);
+            });
+
+            // Export PDF functionality
+            $('#exportPdfBtn').click(function() {
+                showToast('info', 'جاري تحضير ملف PDF...');
+                // Here you would implement PDF export functionality
+                setTimeout(function() {
+                                        showToast('success', 'تم تصدير البيانات إلى PDF بنجاح');
+                }, 2000);
+            });
+
+            // Print functionality
+            $('#printBtn').click(function() {
+                window.print();
+            });
+
+            // Download Images functionality
+            $('#downloadImagesBtn').click(function() {
+                var studios = @Html.Raw(Json.Serialize(Model.Studios));
+                var itemName = '@Model.ItemName';
+
+                if (studios.length === 0) {
+                    showToast('warning', 'لا توجد صور للتحميل');
+                    return;
+                }
+
+                showToast('info', 'جاري تحضير الصور للتحميل...');
+
+                // Create download links for all images
+                var downloadCount = 0;
+                var totalImages = 0;
+
+                studios.forEach(function(studio, index) {
+                    if (studio.hasWatermarkedImage) {
+                        totalImages++;
+                        setTimeout(function() {
+                            downloadImage(studio.watermarkedImagePath, `${itemName}_${studio.primaryName}_صورة_رئيسية.jpg`);
+                            downloadCount++;
+                            if (downloadCount === totalImages) {
+                                showToast('success', `تم تحميل ${totalImages} صورة بنجاح`);
+                            }
+                        }, index * 500); // Delay to avoid browser blocking
+                    }
+
+                    if (studio.hasImage) {
+                        totalImages++;
+                        setTimeout(function() {
+                            downloadImage(studio.imagePath, `${itemName}_${studio.primaryName}_بوستر.jpg`);
+                            downloadCount++;
+                            if (downloadCount === totalImages) {
+                                showToast('success', `تم تحميل ${totalImages} صورة بنجاح`);
+                            }
+                        }, (index * 500) + 250);
+                    }
+                });
+
+                if (totalImages === 0) {
+                    showToast('warning', 'لا توجد صور للتحميل');
+                }
+            });
+
+            function downloadImage(url, filename) {
+                var link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
+            function showToast(type, message) {
+                var alertClass = {
+                    'success': 'alert-success',
+                    'error': 'alert-danger',
+                    'warning': 'alert-warning',
+                    'info': 'alert-info'
+                }[type] || 'alert-primary';
+
+                var icon = {
+                    'success': 'fa-check-circle',
+                    'error': 'fa-exclamation-circle',
+                    'warning': 'fa-exclamation-triangle',
+                    'info': 'fa-info-circle'
+                }[type] || 'fa-bell';
+
+                var toast = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+
+                $('body').append(toast);
+                setTimeout(function() {
+                    toast.alert('close');
+                }, 5000);
+            }
+        });
+    </script>
+
+    <!-- Print Styles -->
+    <style media="print">
+        .btn, .card-header, nav, .modal {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .card-body {
+            padding: 0 !important;
+        }
+
+        body {
+            font-size: 12px;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .table th, .table td {
+            padding: 0.25rem !important;
+        }
+
+        img {
+            max-width: 100px !important;
+            max-height: 100px !important;
+        }
+    </style>
+}

@@ -1,0 +1,394 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FabricStudioDetailsViewModel
+@{
+    ViewData["Title"] = "تفاصيل استوديو القماش";
+    var currentTime = "2025-09-02 19:43:07";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas fa-camera me-2"></i>تفاصيل استوديو القماش
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index")">استوديو القماش</a></li>
+                    <li class="breadcrumb-item active">التفاصيل</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Actions Bar -->
+    <div class="card mb-4">
+        <div class="card-body py-2">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h5 class="mb-0">@Model.DisplayName</h5>
+                    <small class="text-muted">رقم الاستوديو: @Model.Id</small>
+                </div>
+                <div class="btn-group">
+                    <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left me-1"></i>العودة للقائمة
+                    </a>
+                    <a href="@Url.Action("Edit", new { id = Model.Id })" class="btn btn-outline-warning">
+                        <i class="fas fa-edit me-1"></i>تعديل
+                    </a>
+                    <button type="button" class="btn btn-outline-@(Model.Status ? "warning" : "success") toggle-status-btn"
+                            data-id="@Model.Id" data-current-status="@Model.Status.ToString().ToLower()">
+                        <i class="fas @(Model.Status ? "fa-eye-slash" : "fa-eye") me-1"></i>
+                        @(Model.Status ? "إلغاء تنشيط" : "تنشيط")
+                    </button>
+                    <button type="button" class="btn btn-outline-danger delete-btn"
+                            data-id="@Model.Id" data-name="@Model.DisplayName">
+                        <i class="fas fa-trash me-1"></i>حذف
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Images Section -->
+        <div class="col-lg-8 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-images me-2"></i>الصور
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Main Image -->
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-primary">
+                                <i class="fas fa-image me-1"></i>الصورة الرئيسية
+                            </h6>
+                            @if (Model.HasWatermarkedImage)
+                            {
+                                <div class="position-relative">
+                                    <img src="@Model.WatermarkedImagePath"
+                                         class="img-fluid rounded shadow"
+                                         alt="@Model.DisplayName"
+                                         style="width: 100%; height: 300px; object-fit: cover;"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#imageModal"
+                                         data-image-src="@Model.WatermarkedImagePath"
+                                         data-image-title="الصورة الرئيسية - @Model.DisplayName"
+                                         style="cursor: pointer;" />
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge bg-dark bg-opacity-75">
+                                            <i class="fas fa-expand-alt me-1"></i>انقر للتكبير
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 bg-light rounded">
+                                    <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                    <p class="text-muted">لا توجد صورة رئيسية</p>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Poster Image -->
+                        <div class="col-md-6 mb-3">
+                            <h6 class="text-info">
+                                <i class="fas fa-file-image me-1"></i>البوستر
+                                @if (Model.HasDesign)
+                                {
+                                    <span class="badge bg-success ms-1">مطلوب</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary ms-1">اختياري</span>
+                                }
+                            </h6>
+                            @if (Model.HasImage)
+                            {
+                                <div class="position-relative">
+                                    <img src="@Model.ImagePath"
+                                         class="img-fluid rounded shadow"
+                                         alt="بوستر @Model.DisplayName"
+                                         style="width: 100%; height: 300px; object-fit: cover;"
+                                         data-bs-toggle="modal"
+                                         data-bs-target="#imageModal"
+                                         data-image-src="@Model.ImagePath"
+                                         data-image-title="البوستر - @Model.DisplayName"
+                                         style="cursor: pointer;" />
+                                    <div class="position-absolute top-0 end-0 m-2">
+                                        <span class="badge bg-dark bg-opacity-75">
+                                            <i class="fas fa-expand-alt me-1"></i>انقر للتكبير
+                                        </span>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="text-center py-5 bg-light rounded">
+                                    <i class="fas fa-file-image fa-3x text-muted mb-2"></i>
+                                    <p class="text-muted">لا يوجد بوستر</p>
+                                    @if (Model.HasDesign)
+                                    {
+                                        <small class="text-warning">البوستر مطلوب للتصاميم</small>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Details Section -->
+        <div class="col-lg-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>تفاصيل الاستوديو
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <!-- Status -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">الحالة</label>
+                        <div>
+                            <span class="badge bg-@Model.StatusClass fs-6" id="statusBadge">
+                                <i class="fas @Model.StatusIcon me-1"></i>
+                                <span id="statusText">@Model.StatusText</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Item -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">الصنف</label>
+                        <p class="mb-0">
+                            <strong>@Model.ItemName</strong>
+                        </p>
+                        <small class="text-muted">المادة الخام: @Model.OriginRawName</small>
+                    </div>
+
+                    <!-- Type and Details -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">النوع</label>
+                        <div>
+                            <span class="badge bg-@Model.TypeClass fs-6">
+                                <i class="fas @Model.TypeIcon me-1"></i>@Model.StudioType
+                            </span>
+                        </div>
+                    </div>
+
+                    @if (Model.HasColor)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">اللون</label>
+                            <p class="mb-0">
+                                <strong class="text-primary">@Model.ColorName</strong>
+                            </p>
+                            <small class="text-muted">الطراز: @Model.ColorStyleName</small>
+                        </div>
+                    }
+
+                    @if (Model.HasDesign)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">التصميم</label>
+                            <p class="mb-0">
+                                <strong class="text-info">@Model.DesignName</strong>
+                            </p>
+                            <small class="text-muted">الطراز: @Model.DesignStyleName</small>
+                        </div>
+                    }
+
+                    <!-- Comment -->
+                    @if (!string.IsNullOrEmpty(Model.Comment))
+                    {
+                        <div class="mb-3">
+                            <label class="form-label small text-muted">البيان</label>
+                            <p class="mb-0">@Model.Comment</p>
+                        </div>
+                    }
+
+                    <!-- Timestamps -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted">تواريخ مهمة</label>
+                        <div class="small">
+                            <div class="d-flex justify-content-between">
+                                <span>تاريخ الإنشاء:</span>
+                                <span class="text-muted">@Model.FormattedCreatedAt</span>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span>آخر تحديث:</span>
+                                <span class="text-muted">@Model.FormattedUpdatedAt</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Actions -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">
+                        <i class="fas fa-tools me-2"></i>إجراءات مرتبطة
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="@Url.Action("Extract", new { itemId = Model.ItemId })" class="btn btn-outline-primary">
+                                    <i class="fas fa-download me-2"></i>استخراج بيانات الصنف
+                                </a>
+                            </div>
+                            <small class="text-muted">عرض جميع الاستوديوهات للصنف @Model.ItemName</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="@Url.Action("Create", new { itemId = Model.ItemId })" class="btn btn-outline-success">
+                                    <i class="fas fa-plus me-2"></i>إضافة استوديو مشابه
+                                </a>
+                            </div>
+                            <small class="text-muted">إنشاء استوديو جديد لنفس الصنف</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="d-grid">
+                                <a href="@Url.Action("Index", "FabricItems", new { id = Model.ItemId })" class="btn btn-outline-info">
+                                    <i class="fas fa-tshirt me-2"></i>عرض تفاصيل الصنف
+                                </a>
+                            </div>
+                            <small class="text-muted">الانتقال لصفحة الصنف الأساسي</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">عرض الصورة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="modalImage" src="" class="img-fluid" alt="" />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                <a id="downloadImageBtn" href="" download class="btn btn-primary">
+                    <i class="fas fa-download me-1"></i>تحميل الصورة
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            console.log('Fabric Studio Details loaded at 2025-09-02 19:43:07 by Ammar-Yasser8');
+
+            // Image modal functionality
+            $('#imageModal').on('show.bs.modal', function (event) {
+                var trigger = $(event.relatedTarget);
+                var imageSrc = trigger.data('image-src');
+                var imageTitle = trigger.data('image-title');
+
+                var modal = $(this);
+                modal.find('.modal-title').text(imageTitle);
+                modal.find('#modalImage').attr('src', imageSrc);
+                modal.find('#downloadImageBtn').attr('href', imageSrc);
+            });
+
+            // Toggle status functionality
+            $('.toggle-status-btn').click(function() {
+                var btn = $(this);
+                var studioId = btn.data('id');
+                var currentStatus = btn.data('current-status') === 'true';
+                var newStatusText = currentStatus ? 'غير نشط' : 'نشط';
+
+                if (confirm(`هل تريد تغيير حالة الاستوديو إلى "${newStatusText}"؟`)) {
+                    $.post('@Url.Action("ToggleStatus")', { id: studioId }, function(result) {
+                        if (result.success) {
+                            // Update status badge
+                            $('#statusBadge').removeClass('bg-success bg-secondary')
+                                           .addClass('bg-' + result.statusClass);
+                            $('#statusBadge i').removeClass('fa-check-circle fa-times-circle')
+                                             .addClass(result.statusIcon);
+                            $('#statusText').text(result.statusText);
+
+                            // Update button
+                            btn.data('current-status', result.newStatus.toString().toLowerCase())
+                               .removeClass('btn-outline-warning btn-outline-success')
+                               .addClass(result.newStatus ? 'btn-outline-warning' : 'btn-outline-success')
+                               .html(`<i class="fas ${result.newStatus ? 'fa-eye-slash' : 'fa-eye'} me-1"></i>${result.newStatus ? 'إلغاء تنشيط' : 'تنشيط'}`);
+
+                            showToast('success', result.message);
+                        } else {
+                            showToast('error', result.message);
+                        }
+                    }).fail(function() {
+                        showToast('error', 'حدث خطأ أثناء تحديث الحالة');
+                    });
+                }
+            });
+
+            // Delete functionality
+            $('.delete-btn').click(function() {
+                var btn = $(this);
+                var studioId = btn.data('id');
+                var studioName = btn.data('name');
+
+                if (confirm(`هل أنت متأكد من حذف استوديو "${studioName}"؟\n\nسيتم حذف جميع الصور المرتبطة.\nلا يمكن التراجع عن هذا الإجراء.`)) {
+                    $.post('@Url.Action("Delete")', { id: studioId }, function(result) {
+                        if (result.success) {
+                            showToast('success', result.message);
+                            setTimeout(function() {
+                                window.location.href = '@Url.Action("Index")';
+                            }, 2000);
+                        } else {
+                            showToast('error', result.message);
+                        }
+                    }).fail(function() {
+                        showToast('error', 'حدث خطأ أثناء حذف الاستوديو');
+                    });
+                }
+            });
+
+            function showToast(type, message) {
+                var alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                var icon = type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle';
+
+                var toast = $(`
+                    <div class="alert ${alertClass} alert-dismissible fade show position-fixed" style="top: 20px; right: 20px; z-index: 9999;">
+                        <i class="fas ${icon} me-2"></i>${message}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                `);
+
+                $('body').append(toast);
+                setTimeout(function() {
+                    toast.alert('close');
+                }, 5000);
+            }
+        });
+    </script>
+}

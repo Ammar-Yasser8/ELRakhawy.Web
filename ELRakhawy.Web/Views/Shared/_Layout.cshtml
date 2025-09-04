@@ -661,7 +661,7 @@
                     </li>
 
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#adminMenu" role="button" aria-expanded="false">
+                        <a class="nav-link sidebar-menu-toggle" data-bs-toggle="collapse" href="#adminMenu" role="button" aria-expanded="false">
                             <i class="fas fa-cogs"></i>
                             <span>إدارة النظام</span>
                             <i class="fas fa-chevron-down arrow"></i>
@@ -677,14 +677,14 @@
                         </div>
                     </li>
 
-                    <!-- Updated HTML Structure -->
+                    <!-- Yarn Section -->
                     <li class="nav-item">
-                        <a class="nav-link main-header"
+                        <a class="nav-link main-header sidebar-menu-toggle"
                            data-bs-toggle="collapse"
                            href="#YarnFabricMenu"
                            role="button"
                            aria-expanded="false"
-                           data-navigate-url="@Url.Action("Dashboard", "YarnItems")">
+                           data-navigate-url="/YarnItems/Dashboard">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fas fa-tshirt"></i>
                                 <span>قسم الغزل</span>
@@ -694,101 +694,103 @@
                         <div class="collapse" id="YarnFabricMenu">
                             <ul class="nav flex-column sub-menu">
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Overview", "YarnItems")">
+                                    <a class="nav-link" href="/YarnItems/Overview">
                                         <i class="fas fa-chart-bar me-2"></i>
                                         <span>نظرة عامة</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Index", "YarnItems")">
+                                    <a class="nav-link" href="/YarnItems/Index">
                                         <i class="fas fa-cog me-2"></i>
                                         <span>إدارة الأصناف</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Inbound", "YarnTransactions")">
+                                    <a class="nav-link" href="/YarnTransactions/Inbound">
                                         <i class="fas fa-plus-circle me-2"></i>
                                         <span>إضافة وارد</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Outbound", "YarnTransactions")">
+                                    <a class="nav-link" href="/YarnTransactions/Outbound">
                                         <i class="fas fa-minus-circle me-2"></i>
                                         <span>إضافة صادر</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Search", "YarnTransactions")">
+                                    <a class="nav-link" href="/YarnTransactions/Search">
                                         <i class="fas fa-search me-2"></i>
                                         <span>البحث في المعاملات</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Overview", "YarnTransactions")">
-                                        <i class="fas fa-search me-2"></i>
-                                        <span>  المعاملات</span>
+                                    <a class="nav-link" href="/YarnTransactions/Overview">
+                                        <i class="fas fa-list-alt me-2"></i>
+                                        <span>المعاملات</span>
                                     </a>
                                 </li>
                             </ul>
                         </div>
                     </li>
-                    <!-- Updated HTML Structure for Raw Section -->
+
+                    <!-- Raw Section -->
                     <li class="nav-item">
-                            <a class="nav-link main-header"
-                               data-bs-toggle="collapse"
-                               href="#RawFabricMenu"
-                               role="button"
-                               aria-expanded="false"
-                               data-navigate-url="/RawItems/Index">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-cut"></i>
-                                    <span>قسم الخام</span>
-                                </div>
-                                <i class="fas fa-chevron-down arrow"></i>
-                            </a>
-                            <div class="collapse" id="RawFabricMenu">
-                                <ul class="nav flex-column sub-menu">
-                                    <li class="nav-item">
-                                        <a class="nav-link" href="/RawItems/Index">
-                                            <span>إدارة الخام</span>
-                                        </a>
-                                    </li>
+                        <a class="nav-link main-header sidebar-menu-toggle"
+                           data-bs-toggle="collapse"
+                           href="#RawFabricMenu"
+                           role="button"
+                           aria-expanded="false"
+                           data-navigate-url="/RawItems/Index">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-cut"></i>
+                                <span>قسم الخام</span>
+                            </div>
+                            <i class="fas fa-chevron-down arrow"></i>
+                        </a>
+                        <div class="collapse" id="RawFabricMenu">
+                            <ul class="nav flex-column sub-menu">
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Inbound", "RawTransactions")">
+                                    <a class="nav-link" href="/RawItems/Index">
+                                        <span>إدارة الخام</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/RawTransactions/Inbound">
                                         <i class="fas fa-plus-circle me-2"></i>
                                         <span>إضافة وارد</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Outbound", "RawTransactions")">
+                                    <a class="nav-link" href="/RawTransactions/Outbound">
                                         <i class="fas fa-minus-circle me-2"></i>
                                         <span>إضافة صادر</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Overview", "RawTransactions")">
+                                    <a class="nav-link" href="/RawTransactions/Overview">
                                         <i class="fas fa-list-alt me-2"></i>
                                         <span>معاملات الخام</span>
                                     </a>
                                 </li>
-                                </ul>
-                            </div>
-                        </li>
-                    <!-- Updated HTML Structure for Warp Section -->
+                            </ul>
+                        </div>
+                    </li>
+
+                    <!-- Warp Section -->
                     <li class="nav-item">
-                            <a class="nav-link main-header"
-                               data-bs-toggle="collapse"
-                               href="#WarpFabricMenu"
-                               role="button"
-                               aria-expanded="false"
-                               data-navigate-url="/FullWarpBeam/Index">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-cut"></i>
-                                    <span>قسم السدى</span>
-                                </div>
-                                <i class="fas fa-chevron-down arrow"></i>
-                            </a>
-                            <div class="collapse" id="WarpFabricMenu">
+                        <a class="nav-link main-header sidebar-menu-toggle"
+                           data-bs-toggle="collapse"
+                           href="#WarpFabricMenu"
+                           role="button"
+                           aria-expanded="false"
+                           data-navigate-url="/FullWarpBeam/Index">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-grip-horizontal"></i>
+                                <span>قسم السدى</span>
+                            </div>
+                            <i class="fas fa-chevron-down arrow"></i>
+                        </a>
+                        <div class="collapse" id="WarpFabricMenu">
                             <ul class="nav flex-column sub-menu">
                                 <li class="nav-item">
                                     <a class="nav-link" href="/FullWarpBeam/Index">
@@ -797,75 +799,74 @@
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Inbound", "FullWarpBeamTransations")">
+                                    <a class="nav-link" href="/FullWarpBeamTransations/Inbound">
                                         <i class="fas fa-plus-circle me-2"></i>
                                         <span>إضافة وارد</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Outbound", "FullWarpBeamTransations")">
+                                    <a class="nav-link" href="/FullWarpBeamTransations/Outbound">
                                         <i class="fas fa-minus-circle me-2"></i>
                                         <span>إضافة صادر</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Overview", "FullWarpBeamTransations")">
+                                    <a class="nav-link" href="/FullWarpBeamTransations/Overview">
                                         <i class="fas fa-list-alt me-2"></i>
-                                        <span>معاملات  </span>
+                                        <span>معاملات السدى</span>
                                     </a>
                                 </li>
                             </ul>
-
-                            </div>
+                        </div>
                     </li>
 
-                    <!-- Updated HTML Structure for Warp Section -->
+                    <!-- Fabric Section -->
                     <li class="nav-item">
-                        <a class="nav-link main-header"
+                        <a class="nav-link main-header sidebar-menu-toggle"
                            data-bs-toggle="collapse"
-                           href="#WarpFabricMenu"
+                           href="#FabricMenu"
                            role="button"
                            aria-expanded="false"
-                           data-navigate-url="/FabricItems/Index">
+                           data-navigate-url="/FabricItems/Dashboard">
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-cut"></i>
+                                <i class="fas fa-layer-group"></i>
                                 <span>قسم القماش</span>
                             </div>
                             <i class="fas fa-chevron-down arrow"></i>
                         </a>
-                        <div class="collapse" id="WarpFabricMenu">
+                        <div class="collapse" id="FabricMenu">
                             <ul class="nav flex-column sub-menu">
                                 <li class="nav-item">
                                     <a class="nav-link" href="/FabricItems/Index">
                                         <i class="fas fa-chart-bar me-2"></i>
-                                        <span>إدارة القماس</span>
+                                        <span>إدارة القماش</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Inbound", "FullWarpBeamTransations")">
+                                    <a class="nav-link" href="/FabricTransactions/Inbound">
                                         <i class="fas fa-plus-circle me-2"></i>
                                         <span>إضافة وارد</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Outbound", "FullWarpBeamTransations")">
+                                    <a class="nav-link" href="/FabricTransactions/Outbound">
                                         <i class="fas fa-minus-circle me-2"></i>
                                         <span>إضافة صادر</span>
                                     </a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="@Url.Action("Overview", "FullWarpBeamTransations")">
+                                    <a class="nav-link" href="/FabricTransactions/Overview">
                                         <i class="fas fa-list-alt me-2"></i>
-                                        <span>معاملات  </span>
+                                        <span>معاملات القماش</span>
                                     </a>
                                 </li>
                             </ul>
-
                         </div>
                     </li>
 
+                    <!-- Finance Section -->
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#financeMenu" role="button" aria-expanded="false">
+                        <a class="nav-link sidebar-menu-toggle" data-bs-toggle="collapse" href="#financeMenu" role="button" aria-expanded="false">
                             <i class="fas fa-calculator"></i>
                             <span>الإدارة المالية</span>
                             <i class="fas fa-chevron-down arrow"></i>
@@ -881,8 +882,9 @@
                         </div>
                     </li>
 
+                    <!-- Clients Section -->
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#clientsMenu" role="button" aria-expanded="false">
+                        <a class="nav-link sidebar-menu-toggle" data-bs-toggle="collapse" href="#clientsMenu" role="button" aria-expanded="false">
                             <i class="fas fa-users"></i>
                             <span>العملاء والموردين</span>
                             <i class="fas fa-chevron-down arrow"></i>
@@ -904,6 +906,7 @@
                     </li>
                 </ul>
             </nav>
+
 
         </aside>
         <!-- CSS Styles (add to your CSS file or in a <style> tag) -->

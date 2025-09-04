@@ -17,6 +17,10 @@ namespace ELRakhawy.Web.Controllers
             _unitOfWork = unitOfWork;
         }
 
+        public IActionResult Dashboard()
+        {
+            return View();
+        }
         // GET: FabricItems
         public IActionResult Index(string searchQuery = "", int? selectedRawItemId = null,
                                   string statusFilter = "All", int page = 1, int pageSize = 20)

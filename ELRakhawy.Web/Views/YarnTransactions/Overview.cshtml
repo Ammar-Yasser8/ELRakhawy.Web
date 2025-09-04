@@ -4,6 +4,8 @@
 @{
     ViewData["Title"] = "نظرة عامة على أرصدة الغزل";
     Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentTime = "2025-09-04 18:39:33"; // ✅ Updated to current time
+    var currentUser = "Ammar-Yasser8";
 }
 
 <div class="container-fluid">
@@ -52,13 +54,13 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
+    <!-- Statistics Cards with Arabic Numbers -->
     <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
             <div class="card border-primary h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
-                    <h4 class="text-primary">@Model.TotalItems</h4>
+                    <h4 class="text-primary" id="totalItemsDisplay">@Model.TotalItems</h4>
                     <p class="text-muted mb-0">إجمالي الأصناف</p>
                 </div>
             </div>
@@ -68,9 +70,9 @@
             <div class="card border-success h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
-                    <h4 class="text-success">@Model.AvailableItems</h4>
+                    <h4 class="text-success" id="availableItemsDisplay">@Model.AvailableItems</h4>
                     <p class="text-muted mb-0">الأصناف المتاحة</p>
-                    <small class="text-success">@Model.PercentageAvailable.ToString("F1")%</small>
+                    <small class="text-success" id="percentageDisplay">@Model.PercentageAvailable.ToString("F1")%</small>
                 </div>
             </div>
         </div>
@@ -79,8 +81,8 @@
             <div class="card border-info h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-weight fa-2x text-info mb-2"></i>
-                    <h4 class="text-info">@Model.TotalQuantityBalance.ToString("N2")</h4>
-                    <p class="text-muted mb-0">إجمالي الكمية</p>
+                    <h4 class="text-info" id="totalQuantityDisplay">@Model.TotalQuantityBalance.ToString("N2")</h4>
+                    <p class="text-muted mb-0">إجمالي الكمية (كجم)</p>
                 </div>
             </div>
         </div>
@@ -89,7 +91,7 @@
             <div class="card border-warning h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-sort-numeric-up fa-2x text-warning mb-2"></i>
-                    <h4 class="text-warning">@Model.TotalCountBalance</h4>
+                    <h4 class="text-warning" id="totalCountDisplay">@Model.TotalCountBalance</h4>
                     <p class="text-muted mb-0">إجمالي العدد</p>
                 </div>
             </div>
@@ -123,7 +125,7 @@
 
                         <div class="d-flex align-items-center gap-2">
                             <small class="text-muted">
-                                آخر تحديث: @Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")
+                                آخر تحديث: <span id="lastUpdatedDisplay">@Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")</span>
                             </small>
                         </div>
                     </div>
@@ -132,7 +134,7 @@
         </div>
     </div>
 
-    <!-- Overview Table -->
+    <!-- Overview Table with Enhanced Display -->
     <div class="row">
         <div class="col-12">
             <div class="card">
@@ -145,7 +147,7 @@
                                     <th>الغزل الأصلي</th>
                                     <th>الشركة المصنعة</th>
                                     <th>رصيد الكمية</th>
-                                    <th>رصيد العدد</th>
+                                    <th>رصيد العدد والتعبئة</th>
                                     <th>الحالة</th>
                                     <th>إجمالي المعاملات</th>
                                     <th>آخر معاملة</th>
@@ -163,53 +165,86 @@
                                                 <div class="me-2">
                                                     @if (item.IsAvailable)
                                                     {
-                                                        <div class="bg-success rounded-circle" style="width: 10px; height: 10px;"></div>
+                                                        <div class="bg-success rounded-circle" style="width: 10px; height: 10px;" title="متاح"></div>
                                                     }
                                                     else
                                                     {
-                                                        <div class="bg-danger rounded-circle" style="width: 10px; height: 10px;"></div>
+                                                        <div class="bg-danger rounded-circle" style="width: 10px; height: 10px;" title="غير متاح"></div>
                                                     }
                                                 </div>
-                                                <strong>@item.YarnItemName</strong>
+                                                <div>
+                                                    <strong>@item.YarnItemName</strong>
+                                                    <small class="d-block text-muted">ID: @item.YarnItemId</small>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td>@(item.OriginYarnName ?? "غير محدد")</td>
-                                        <td>@(item.ManufacturerNames ?? "غير محدد")</td>
                                         <td>
-                                            <span class="@(item.QuantityBalance > 0 ? "text-success" : "text-danger") fw-bold">
-                                                @item.QuantityBalance.ToString("N3")
+                                            <div class="text-info fw-bold">@(item.OriginYarnName ?? "غير محدد")</div>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">@(item.ManufacturerNames ?? "غير محدد")</small>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <span class="@(item.QuantityBalance > 0 ? "text-success" : item.QuantityBalance < 0 ? "text-danger" : "text-muted") fw-bold quantity-balance">
+                                                    @item.QuantityBalance.ToString("N3")
+                                                </span>
+                                                <small class="d-block text-muted">كجم</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="count-balance-cell" data-yarn-id="@item.YarnItemId">
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                                        <span class="visually-hidden">جاري التحميل...</span>
+                                                    </div>
+                                                    <small class="text-muted">جاري التحميل...</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(item.IsAvailable ? "bg-success" : "bg-danger") fs-6">
+                                                @if (item.IsAvailable)
+                                                {
+                                                    <i class="fas fa-check-circle me-1"></i>
+                                            
+                                                    @:متاح
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-times-circle me-1"></i>
+                                            
+                                                    @:غير متاح
+                                                }
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="@(item.CountBalance > 0 ? "text-success" : "text-danger") fw-bold">
-                                                @item.CountBalance
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span class="badge @(item.IsAvailable ? "bg-success" : "bg-danger")">
-                                                @item.AvailabilityStatus
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="d-flex flex-column">
-                                                <span class="fw-bold">@item.TotalTransactions</span>
+                                            <div class="text-center">
+                                                <span class="fw-bold d-block transaction-count">@item.TotalTransactions</span>
                                                 @if (item.TotalTransactions > 0)
                                                 {
-                                                    <small class="text-muted">
-                                                        وارد: @item.InboundTransactions | صادر: @item.OutboundTransactions
-                                                    </small>
+                                                    <div class="d-flex justify-content-center gap-2 mt-1">
+                                                        <small class="text-success">
+                                                            <i class="fas fa-arrow-down me-1"></i>
+                                                            <span class="inbound-count">@item.InboundTransactions</span>
+                                                        </small>
+                                                        <small class="text-danger">
+                                                            <i class="fas fa-arrow-up me-1"></i>
+                                                            <span class="outbound-count">@item.OutboundTransactions</span>
+                                                        </small>
+                                                    </div>
                                                 }
                                             </div>
                                         </td>
                                         <td>
                                             @if (item.LastTransactionDate.HasValue)
                                             {
-                                                <div class="d-flex flex-column">
-                                                    <span>@item.LastTransactionText</span>
+                                                <div class="text-center">
+                                                    <span class="fw-bold last-transaction-date">@item.LastTransactionText</span>
                                                     @if (item.DaysSinceLastTransaction >= 0)
                                                     {
-                                                        <small class="text-muted">
-                                                            منذ @item.DaysSinceLastTransaction يوم
+                                                        <small class="d-block text-muted">
+                                                            منذ <span class="days-since">@item.DaysSinceLastTransaction</span> يوم
                                                         </small>
                                                     }
                                                 </div>
@@ -221,23 +256,22 @@
                                         </td>
                                         <td>
                                             <div class="btn-group btn-group-sm">
-                                                @* <button class="btn btn-outline-info"
-                                                        onclick="viewItemDetails(@item.YarnItemId, '@item.YarnItemName')"
-                                                        title="عرض التفاصيل">
-                                                    <i class="fas fa-eye"></i>
-                                                </button> *@
+                                                <button type="button" class="btn btn-outline-info" title="عرض التفاصيل"
+                                                        onclick="viewItemDetails(@item.YarnItemId, '@item.YarnItemName')">
+                                                    <i class="fas fa-info-circle"></i>
+                                                    </button>
                                                 <a href="@Url.Action("Search", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
                                                    class="btn btn-outline-primary" title="البحث في المعاملات">
                                                     <i class="fas fa-search"></i>
                                                 </a>
                                                 @if (item.IsAvailable)
                                                 {
-                                                    <a href="@Url.Action("Outbound", "YarnTransactions", new { YarnItemId = item.YarnItemId, IsInbound = false })"
+                                                    <a href="@Url.Action("Outbound", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
                                                        class="btn btn-outline-warning" title="إنشاء معاملة صادر">
                                                         <i class="fas fa-arrow-up"></i>
                                                     </a>
                                                 }
-                                                <a href="@Url.Action("Inbound", "YarnTransactions", new { YarnItemId = item.YarnItemId, IsInbound = true })"
+                                                <a href="@Url.Action("Inbound", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
                                                    class="btn btn-outline-success" title="إنشاء معاملة وارد">
                                                     <i class="fas fa-arrow-down"></i>
                                                 </a>
@@ -291,10 +325,16 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                <button type="button" class="btn btn-primary" id="seeMoreBtn" onclick="seeMoreTransactions()">
-                    <i class="fas fa-eye me-1"></i>
-                    عرض المزيد
-                </button>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
+                    <button type="button" class="btn btn-warning" onclick="location.href='@Url.Action("ResetBalance", "YarnTransactions")'">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        إعادة ضبط الرصيد
+                    </button>
+                    <button type="button" class="btn btn-primary" id="seeMoreBtn" onclick="seeMoreTransactions()">
+                        <i class="fas fa-eye me-1"></i>
+                        عرض المزيد
+                    </button>
             </div>
         </div>
     </div>
@@ -306,14 +346,24 @@
         <span class="visually-hidden">جاري التحميل...</span>
     </div>
 </div>
-
 @section Scripts {
     <script>
+        // Global variables and constants
         let currentYarnItemId = 0;
         let currentPage = 1;
         const pageSize = 10;
+        const CURRENT_TIME = '2025-09-04 19:04:16';
+        const CURRENT_USER = 'Ammar-Yasser8';
 
         $(document).ready(function() {
+            console.log('🚀 Yarn Overview initialized at', CURRENT_TIME, 'by', CURRENT_USER);
+
+            // Convert all numbers to Arabic on page load
+            convertNumbersToArabic();
+
+            // Load packaging breakdown for all items
+            loadPackagingBreakdowns();
+
             // Initialize tooltips
             $('[title]').tooltip();
 
@@ -321,7 +371,119 @@
             setInterval(function() {
                 refreshData();
             }, 300000);
+
+            // Test modal functionality
+            console.log('🔍 Testing modal availability...');
+            if ($('#itemDetailsModal').length > 0) {
+                console.log('✅ Modal element found');
+            } else {
+                console.error('❌ Modal element NOT found');
+            }
         });
+
+        // ✅ Arabic number conversion functions
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        // ✅ Convert all displayed numbers to Arabic
+        function convertNumbersToArabic() {
+            $('#totalItemsDisplay').text(toArabicDigits($('#totalItemsDisplay').text()));
+            $('#availableItemsDisplay').text(toArabicDigits($('#availableItemsDisplay').text()));
+            $('#totalQuantityDisplay').text(toArabicDigits($('#totalQuantityDisplay').text()));
+            $('#totalCountDisplay').text(toArabicDigits($('#totalCountDisplay').text()));
+            $('#percentageDisplay').text(toArabicDigits($('#percentageDisplay').text()));
+            $('#lastUpdatedDisplay').text(toArabicDigits($('#lastUpdatedDisplay').text()));
+
+            $('.quantity-balance, .transaction-count, .inbound-count, .outbound-count, .last-transaction-date, .days-since').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+        }
+
+        // ✅ Load packaging breakdown for all yarn items
+        function loadPackagingBreakdowns() {
+            $('.count-balance-cell').each(function() {
+                const $cell = $(this);
+                const yarnItemId = $cell.data('yarn-id');
+                if (yarnItemId) {
+                    loadSinglePackagingBreakdown(yarnItemId, $cell);
+                }
+            });
+        }
+
+        // ✅ Load packaging breakdown for a single yarn item
+        function loadSinglePackagingBreakdown(yarnItemId, $targetCell) {
+            $.ajax({
+                url: '/YarnTransactions/GetYarnItemBalance',
+                type: 'GET',
+                data: { yarnItemId: yarnItemId },
+                timeout: 10000,
+                success: function(response) {
+                    if (response && response.success) {
+                        renderPackagingDisplay(response, $targetCell);
+                    } else {
+                        showPackagingError($targetCell, 'لا توجد بيانات');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading packaging for yarn item', yarnItemId, ':', error);
+                    showPackagingError($targetCell, 'خطأ في التحميل');
+                }
+            });
+        }
+
+        // ✅ Render packaging display in cell
+        function renderPackagingDisplay(data, $targetCell) {
+            let html = '';
+            if (data.packagingBreakdown && data.packagingBreakdown.length > 0) {
+                const packagingParts = data.packagingBreakdown.map(p =>
+                    `<span class="badge bg-light text-dark border me-1 mb-1">
+                        <i class="fas fa-box me-1"></i>
+                        ${toArabicDigits(p.totalCount.toString())} ${p.packagingType}
+                    </span>`
+                ).join('');
+
+                html = `
+                    <div class="text-center">
+                        <div class="fw-bold text-success mb-1">
+                            ${toArabicDigits(data.countBalance.toString())} وحدة
+                        </div>
+                        <div class="packaging-breakdown">${packagingParts}</div>
+                        ${data.packagingBreakdown.length > 1 ?
+                            `<small class="text-info d-block mt-1">
+                                ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
+                            </small>` : ''}
+                    </div>`;
+            } else if (data.countBalance > 0) {
+                html = `
+                    <div class="text-center">
+                        <span class="fw-bold text-success">
+                            ${toArabicDigits(data.countBalance.toString())} وحدة
+                        </span>
+                        <small class="d-block text-muted">غير محددة التعبئة</small>
+                    </div>`;
+            } else {
+                html = `<div class="text-center"><span class="text-muted">لا توجد وحدات</span></div>`;
+            }
+            $targetCell.html(html);
+        }
+
+        // ✅ Show packaging error in cell
+        function showPackagingError($targetCell, message) {
+            $targetCell.html(`
+                <div class="text-center">
+                    <small class="text-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>${message}
+                    </small>
+                </div>
+            `);
+        }
 
         // Filter functions
         function toggleAvailableFilter() {
@@ -339,63 +501,77 @@
                 const isAvailable = row.data('available');
 
                 let showRow = true;
+                if (searchTerm && !searchText.includes(searchTerm)) showRow = false;
+                if (availableOnly && !isAvailable) showRow = false;
 
-                // Apply search filter
-                if (searchTerm && !searchText.includes(searchTerm)) {
-                    showRow = false;
-                }
-
-                // Apply availability filter
-                if (availableOnly && !isAvailable) {
-                    showRow = false;
-                }
-
-                if (showRow) {
-                    row.show();
-                } else {
-                    row.hide();
-                }
+                row.toggle(showRow);
             });
-
-            // Update visible count
             updateVisibleCount();
         }
 
         function updateVisibleCount() {
             const visibleRows = $('.yarn-item-row:visible').length;
             const totalRows = $('.yarn-item-row').length;
-
-            // You can add a count display element if needed
-            console.log(`Showing ${visibleRows} of ${totalRows} items`);
+            console.log(`Showing ${visibleRows} of ${totalRows} items at ${CURRENT_TIME}`);
         }
 
-        // Data operations
         function refreshData() {
             showLoadingOverlay();
             const availableOnly = $('#availableOnlyFilter').is(':checked');
             window.location.href = '@Url.Action("Overview", "YarnTransactions")?availableOnly=' + availableOnly;
         }
-          // Global variables
-        let currentYarnItemId = null;
-        let currentPage = 1;
-        let pageSize = 10;
-        let loadingTimeout = null;
 
+        // ✅ FIXED Modal functions with proper error handling and naming
         function viewItemDetails(yarnItemId, yarnItemName) {
-            currentYarnItemId = yarnItemId;
-            currentPage = 1;
+            console.log('🔍 viewItemDetails called with:', yarnItemId, yarnItemName, 'at', CURRENT_TIME);
 
-            $('#itemDetailsModalLabel').html(`<i class="fas fa-info-circle me-2"></i>تفاصيل صنف الغزل: ${yarnItemName}`);
-            $('#itemDetailsModal').modal('show');
+            try {
+                // Validate inputs
+                if (!yarnItemId || yarnItemId <= 0) {
+                    console.error('❌ Invalid yarn item ID:', yarnItemId);
+                    alert('معرف الصنف غير صحيح');
+                    return;
+                }
 
-            loadItemDetails();
+                if (!yarnItemName) {
+                    yarnItemName = 'صنف غير محدد';
+                }
+
+                currentYarnItemId = yarnItemId;
+                currentPage = 1;
+
+                // Set modal title with proper escaping
+                const safeYarnItemName = $('<div>').text(yarnItemName).html(); // HTML escape
+                $('#itemDetailsModalLabel').html(`<i class="fas fa-info-circle me-2"></i>تفاصيل صنف الغزل: ${safeYarnItemName}`);
+
+                // Check if modal exists
+                const modalElement = document.getElementById('itemDetailsModal');
+                if (!modalElement) {
+                    console.error('❌ Modal element not found');
+                    alert('خطأ: نافذة التفاصيل غير موجودة');
+                    return;
+                }
+
+                // Show modal using Bootstrap 5 syntax
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+                modal.show();
+
+                console.log('✅ Modal displayed successfully for yarn item:', yarnItemId);
+
+                // Load details
+                loadItemDetails();
+
+            } catch (error) {
+                console.error('❌ Error in viewItemDetails at', CURRENT_TIME, ':', error);
+                alert('حدث خطأ أثناء فتح نافذة التفاصيل: ' + error.message);
+            }
         }
 
-        function loadItemDetails() {
-            // Clear any existing timeout
-            if (loadingTimeout) {
-                clearTimeout(loadingTimeout);
-            }
+                       function loadItemDetails() {
+            console.log('🔄 Loading details for yarn item:', currentYarnItemId, 'at 2025-09-04 19:10:25');
 
             $('#modalBody').html(`
                 <div class="text-center py-5">
@@ -403,35 +579,9 @@
                         <span class="visually-hidden">جاري التحميل...</span>
                     </div>
                     <h6 class="text-muted">جاري تحميل تفاصيل الصنف...</h6>
-                    <div class="progress mt-3" style="height: 6px;">
-                        <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
-                    </div>
+                    <small class="text-muted d-block mt-2">معرف الصنف: ${toArabicDigits(currentYarnItemId.toString())}</small>
                 </div>
             `);
-
-            // Simulate progress bar
-            let progress = 0;
-            const progressInterval = setInterval(() => {
-                progress += Math.random() * 30;
-                if (progress > 90) progress = 90;
-                $('.progress-bar').css('width', progress + '%');
-            }, 200);
-
-            // Set a timeout to show extended loading message
-            loadingTimeout = setTimeout(() => {
-                $('#modalBody').html(`
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-warning mb-3" role="status" style="width: 3rem; height: 3rem;">
-                            <span class="visually-hidden">جاري التحميل...</span>
-                        </div>
-                        <h6 class="text-warning">يتم تحميل البيانات...</h6>
-                        <p class="text-muted small">قد يستغرق هذا بضع ثوانٍ إضافية بسبب حجم البيانات</p>
-                        <div class="progress mt-3" style="height: 6px;">
-                            <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 95%"></div>
-                        </div>
-                    </div>
-                `);
-            }, 5000);
 
             $.ajax({
                 url: '@Url.Action("ItemDetails", "YarnTransactions")',
@@ -441,63 +591,103 @@
                     page: currentPage,
                     pageSize: pageSize
                 },
-                timeout: 30000, // Increased to 30 seconds
-                cache: false, // Disable caching
-                beforeSend: function() {
-                    // Show loading state
-                    console.log(`Loading details for yarn item ${currentYarnItemId}, page ${currentPage}`);
-                },
+                timeout: 30000,
                 success: function(response) {
-                    clearInterval(progressInterval);
-                    clearTimeout(loadingTimeout);
-                    $('.progress-bar').css('width', '100%');
+                    console.log('📨 FULL RESPONSE at 2025-09-04 19:10:25:', response);
 
-                    setTimeout(() => {
-                        if (response && response.success) {
-                            renderItemDetails(response);
-                        } else {
-                            showError(response?.message || 'حدث خطأ أثناء تحميل البيانات');
+                    // ✅ Show actual response structure
+                    console.log('🔍 RESPONSE STRUCTURE:');
+                    console.log('  - response.yarnItem:', response.yarnItem);
+                    console.log('  - Object.keys(response):', Object.keys(response || {}));
+
+                    if (response.yarnItem) {
+                        console.log('  - Object.keys(response.yarnItem):', Object.keys(response.yarnItem || {}));
+                        console.log('  - response.yarnItem properties:');
+                        for (let key in response.yarnItem) {
+                            console.log(`    - ${key}:`, response.yarnItem[key]);
                         }
-                    }, 300);
+                    }
+
+                    if (response && response.success && response.yarnItem) {
+                        renderItemDetails(response);
+                    } else {
+                        console.error('❌ Response missing yarn item data:', response);
+                        showError(response?.message || 'بيانات الصنف غير متوفرة');
+                    }
                 },
                 error: function(xhr, status, error) {
-                    clearInterval(progressInterval);
-                    clearTimeout(loadingTimeout);
-
-                    console.error('Error loading item details:', {
+                    console.error('❌ AJAX Error:', {
                         status: status,
                         error: error,
                         responseText: xhr.responseText,
-                        statusCode: xhr.status
+                        statusCode: xhr.status,
+                        yarnItemId: currentYarnItemId,
+                        timestamp: '2025-09-04 19:10:25'
                     });
 
                     let errorMessage = 'حدث خطأ أثناء تحميل البيانات';
-
                     if (status === 'timeout') {
-                        errorMessage = 'انتهت مهلة الاتصال. البيانات قد تكون كبيرة الحجم، يرجى المحاولة مرة أخرى.';
-                    } else if (xhr.status === 404) {
-                        errorMessage = 'لم يتم العثور على البيانات المطلوبة.';
-                    } else if (xhr.status === 500) {
-                        errorMessage = 'حدث خطأ في الخادم. يرجى المحاولة لاحقاً أو الاتصال بالدعم الفني.';
-                    } else if (xhr.status === 0) {
-                        errorMessage = 'فشل في الاتصال بالخادم. يرجى التحقق من الاتصال بالإنترنت.';
+                        errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
                     }
-
                     showError(errorMessage);
+                }
+            });
+        }
+        // ✅ Add debug function to test database directly
+        function debugYarnItem() {
+            console.log('🐛 Starting database debug for yarn item:', currentYarnItemId);
+
+            $.ajax({
+                url: '/YarnTransactions/DebugYarnItem',
+                type: 'GET',
+                data: { id: currentYarnItemId },
+                success: function(response) {
+                    console.log('🔍 DEBUG RESPONSE:', response);
+
+                    let debugHtml = `
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-database me-2"></i>فحص قاعدة البيانات</h6>
+                            <pre class="mt-3" style="font-size: 12px; text-align: left; direction: ltr;">
+        ${JSON.stringify(response, null, 2)}
+                            </pre>
+                            <button class="btn btn-primary btn-sm mt-3" onclick="loadItemDetails()">
+                                <i class="fas fa-arrow-left me-1"></i>العودة للتحميل العادي
+                            </button>
+                        </div>
+                    `;
+
+                    $('#modalBody').html(debugHtml);
                 },
-                complete: function() {
-                    clearInterval(progressInterval);
-                    clearTimeout(loadingTimeout);
+                error: function(xhr, status, error) {
+                    console.error('❌ Debug failed:', error);
+                    showError('فشل في فحص قاعدة البيانات: ' + error);
                 }
             });
         }
 
-        function renderItemDetails(data) {
+              function renderItemDetails(data) {
             try {
+                console.log('🎨 Rendering item details at 2025-09-04 19:10:25:', data);
+
                 const yarnItem = data.yarnItem;
                 const transactions = data.transactions || [];
                 const pagination = data.pagination;
-                const currentTime = "2025-09-01 12:32:28";
+
+                if (!yarnItem) {
+                    throw new Error('بيانات الصنف غير موجودة في الاستجابة');
+                }
+
+                // ✅ Use the new property names from controller
+                const yarnItemName = yarnItem.itemName || 'غير محدد';
+                const originYarnName = yarnItem.originYarnName || 'غير محدد';
+                const manufacturerName = yarnItem.manufacturerNames || 'غير محدد';
+
+                console.log('📋 Display names with new properties:', {
+                    yarnItem: yarnItemName,
+                    originYarn: originYarnName,
+                    manufacturer: manufacturerName,
+                    itemId: yarnItem.itemId
+                });
 
                 let html = `
                     <!-- Item Summary -->
@@ -507,12 +697,10 @@
                                 <div class="card-header bg-primary text-white">
                                     <div class="d-flex justify-content-between align-items-center">
                                         <h6 class="mb-0">
-                                            <i class="fas fa-info me-2"></i>
-                                            معلومات الصنف
+                                            <i class="fas fa-info me-2"></i>معلومات الصنف
                                         </h6>
                                         <small class="opacity-75">
-                                            <i class="fas fa-clock me-1"></i>
-                                            ${currentTime}
+                                            <i class="fas fa-clock me-1"></i>${toArabicDigits('2025-09-04 19:10:25')}
                                         </small>
                                     </div>
                                 </div>
@@ -521,70 +709,52 @@
                                         <div class="col-md-6">
                                             <div class="mb-3">
                                                 <label class="fw-bold text-primary">اسم الصنف:</label>
-                                                <span class="ms-2">${yarnItem.Name || 'غير محدد'}</span>
+                                                <span class="ms-2 fw-bold text-dark">${yarnItemName}</span>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="fw-bold text-primary">الغزل الأصلي:</label>
-                                                <span class="ms-2 text-muted">${yarnItem.OriginYarn || 'غير محدد'}</span>
+                                                <span class="ms-2 text-info fw-bold">${originYarnName}</span>
                                             </div>
                                             <div class="mb-3">
                                                 <label class="fw-bold text-primary">الشركة المصنعة:</label>
-                                                <span class="ms-2 text-muted">${yarnItem.Manufacturer || 'غير محدد'}</span>
+                                                <span class="ms-2 text-success">${manufacturerName}</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">معرف الصنف:</label>
+                                                <span class="ms-2 text-muted">${toArabicDigits((yarnItem.itemId || 0).toString())}</span>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="row text-center">
                                                 <div class="col-6">
                                                     <div class="border-end pe-3">
-                                                        <h4 class="mb-1 ${(yarnItem.QuantityBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
-                                                            ${(yarnItem.QuantityBalance || 0).toFixed(3)}
+                                                        <h4 class="mb-1 ${(yarnItem.quantityBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                            ${toArabicDigits(((yarnItem.quantityBalance || 0).toFixed(3)))}
                                                         </h4>
                                                         <small class="text-muted">رصيد الكمية (كجم)</small>
                                                     </div>
                                                 </div>
                                                 <div class="col-6">
-                                                    <h4 class="mb-1 ${(yarnItem.CountBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
-                                                        ${yarnItem.CountBalance || 0}
+                                                    <h4 class="mb-1 ${(yarnItem.countBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                        ${toArabicDigits((yarnItem.countBalance || 0).toString())}
                                                     </h4>
                                                     <small class="text-muted">رصيد العدد</small>
                                                 </div>
                                             </div>
-                                        </div>
-                                    </div>
-
-                                    <hr class="my-3">
-
-                                    <div class="row text-center">
-                                        <div class="col-md-2 col-6 mb-2">
-                                            <div class="bg-success bg-opacity-10 p-3 rounded">
-                                                <h6 class="text-success mb-1">${(yarnItem.TotalInbound || 0).toFixed(3)}</h6>
-                                                <small class="text-muted">إجمالي الوارد</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2 col-6 mb-2">
-                                            <div class="bg-danger bg-opacity-10 p-3 rounded">
-                                                <h6 class="text-danger mb-1">${(yarnItem.TotalOutbound || 0).toFixed(3)}</h6>
-                                                <small class="text-muted">إجمالي الصادر</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2 col-6 mb-2">
-                                            <div class="bg-info bg-opacity-10 p-3 rounded">
-                                                <h6 class="text-info mb-1">${yarnItem.TotalTransactions || 0}</h6>
-                                                <small class="text-muted">إجمالي المعاملات</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-2 col-6 mb-2">
-                                            <div class="bg-warning bg-opacity-10 p-3 rounded">
-                                                <h6 class="text-warning mb-1">${((yarnItem.TotalInbound || 0) - (yarnItem.TotalOutbound || 0)).toFixed(3)}</h6>
-                                                <small class="text-muted">الصافي</small>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-4 col-12 mb-2">
-                                            <div class="p-3">
-                                                <span class="badge ${yarnItem.IsAvailable ? 'bg-success' : 'bg-danger'} fs-6 px-3 py-2">
-                                                    <i class="fas fa-${yarnItem.IsAvailable ? 'check-circle' : 'times-circle'} me-1"></i>
-                                                    ${yarnItem.IsAvailable ? 'متاح في المخزون' : 'غير متاح'}
-                                                </span>
+                                            <hr class="my-3">
+                                            <div class="row text-center">
+                                                <div class="col-4">
+                                                    <h6 class="text-primary mb-1">${toArabicDigits(((yarnItem.totalInbound || 0).toFixed(3)))}</h6>
+                                                    <small class="text-muted">إجمالي الوارد</small>
+                                                </div>
+                                                <div class="col-4">
+                                                    <h6 class="text-danger mb-1">${toArabicDigits(((yarnItem.totalOutbound || 0).toFixed(3)))}</h6>
+                                                    <small class="text-muted">إجمالي الصادر</small>
+                                                </div>
+                                                <div class="col-4">
+                                                    <h6 class="text-info mb-1">${toArabicDigits((yarnItem.totalTransactions || 0).toString())}</h6>
+                                                    <small class="text-muted">المعاملات</small>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -595,130 +765,7 @@
                 `;
 
                 if (transactions.length > 0) {
-                    html += `
-                        <!-- Recent Transactions -->
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="card border-info shadow-sm">
-                                    <div class="card-header bg-info text-white">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <h6 class="mb-0">
-                                                <i class="fas fa-history me-2"></i>
-                                                المعاملات الأخيرة
-                                            </h6>
-                                            <small class="opacity-75">
-                                                الصفحة ${pagination.CurrentPage} من ${pagination.TotalPages}
-                                            </small>
-                                        </div>
-                                    </div>
-                                    <div class="card-body p-0">
-                                        <div class="table-responsive">
-                                            <table class="table table-hover table-sm mb-0">
-                                                <thead class="table-dark">
-                                                    <tr>
-                                                        <th>رقم المعاملة</th>
-                                                        <th>التاريخ</th>
-                                                        <th>النوع</th>
-                                                        <th>الكمية</th>
-                                                        <th>العدد</th>
-                                                        <th>التاجر</th>
-                                                        <th>رصيد الكمية</th>
-                                                        <th>ملاحظات</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                    `;
-
-                    transactions.forEach(function(transaction) {
-                        const transactionDate = new Date(transaction.Date);
-                        html += `
-                            <tr>
-                                <td>
-                                    <div class="fw-bold text-primary small">${transaction.TransactionId || ''}</div>
-                                    ${transaction.InternalId ? `<small class="text-muted d-block">داخلي: ${transaction.InternalId}</small>` : ''}
-                                </td>
-                                <td>
-                                    <div class="fw-bold small">${transactionDate.toLocaleDateString('ar-EG')}</div>
-                                    <small class="text-muted">${transactionDate.toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'})}</small>
-                                </td>
-                                <td>
-                                    <span class="badge rounded-pill ${transaction.IsInbound ? 'bg-success' : 'bg-danger'} small">
-                                        ${transaction.IsInbound ? 'وارد' : 'صادر'}
-                                    </span>
-                                </td>
-                                <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'} fw-bold small">
-                                    ${(transaction.Quantity || 0).toFixed(3)}
-                                </td>
-                                <td class="fw-bold small">${transaction.Count || 0}</td>
-                                <td>
-                                    <div class="small text-muted">${transaction.StakeholderTypeName || ''}</div>
-                                    <div class="fw-bold small">${transaction.StakeholderName || ''}</div>
-                                </td>
-                                <td class="fw-bold text-primary small">${(transaction.QuantityBalance || 0).toFixed(3)}</td>
-                                <td class="small">
-                                    ${transaction.Comment ?
-                                        `<span class="text-muted" title="${transaction.Comment}">
-                                            ${transaction.Comment.length > 15 ? transaction.Comment.substring(0, 15) + '...' : transaction.Comment}
-                                        </span>` :
-                                        '<span class="text-muted">-</span>'
-                                    }
-                                </td>
-                            </tr>
-                        `;
-                    });
-
-                    html += `
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    // Add pagination if needed
-                    if (pagination.TotalPages > 1) {
-                        html += `
-                            <div class="row mt-3">
-                                <div class="col-12">
-                                    <nav aria-label="تنقل المعاملات">
-                                        <ul class="pagination pagination-sm justify-content-center mb-0">
-                        `;
-
-                        if (pagination.HasPreviousPage) {
-                            html += `<li class="page-item">
-                                <a class="page-link" href="#" onclick="loadPage(${pagination.CurrentPage - 1}); return false;">
-                                    <i class="fas fa-chevron-right me-1"></i>السابق
-                                </a>
-                            </li>`;
-                        }
-
-                        // Show page numbers (simplified for performance)
-                        const startPage = Math.max(1, pagination.CurrentPage - 1);
-                        const endPage = Math.min(pagination.TotalPages, pagination.CurrentPage + 1);
-
-                        for (let i = startPage; i <= endPage; i++) {
-                            html += `<li class="page-item ${i === pagination.CurrentPage ? 'active' : ''}">
-                                <a class="page-link" href="#" onclick="loadPage(${i}); return false;">${i}</a>
-                            </li>`;
-                        }
-
-                        if (pagination.HasNextPage) {
-                            html += `<li class="page-item">
-                                <a class="page-link" href="#" onclick="loadPage(${pagination.CurrentPage + 1}); return false;">
-                                    التالي<i class="fas fa-chevron-left ms-1"></i>
-                                </a>
-                            </li>`;
-                        }
-
-                        html += `
-                                        </ul>
-                                    </nav>
-                                </div>
-                            </div>
-                        `;
-                    }
+                    html += renderTransactionsTable(transactions, pagination);
                 } else {
                     html += `
                         <div class="row">
@@ -734,26 +781,135 @@
                 }
 
                 $('#modalBody').html(html);
+                $('[title]').tooltip();
 
-                // Update "See More" button visibility
-                if (pagination.TotalTransactions > pageSize) {
-                    $('#seeMoreBtn').show().off('click').on('click', function() {
-                        seeMoreTransactions();
-                    });
-                } else {
-                    $('#seeMoreBtn').hide();
-                }
-
-                // Initialize tooltips
-                $('[title]').tooltip({
-                    placement: 'top',
-                    trigger: 'hover'
-                });
+                console.log('✅ Item details rendered successfully at 2025-09-04 19:10:25');
 
             } catch (error) {
-                console.error('Error rendering item details:', error);
-                showError('حدث خطأ أثناء عرض البيانات');
+                console.error('❌ Error rendering item details at 2025-09-04 19:10:25:', error);
+                showError('حدث خطأ أثناء عرض البيانات: ' + error.message);
             }
+        }
+
+        function renderTransactionsTable(transactions, pagination) {
+            const safePageInfo = pagination || {
+                CurrentPage: 1,
+                TotalPages: 1,
+                TotalTransactions: 0,
+                HasNextPage: false,
+                HasPreviousPage: false
+            };
+
+            console.log('📊 Rendering transactions table with', transactions.length, 'transactions at', CURRENT_TIME);
+
+            let html = `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-info shadow-sm">
+                            <div class="card-header bg-info text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-history me-2"></i>المعاملات الأخيرة
+                                    </h6>
+                                    <small class="opacity-75">
+                                        الصفحة ${toArabicDigits((safePageInfo.CurrentPage || 1).toString())} من ${toArabicDigits((safePageInfo.TotalPages || 1).toString())}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-sm mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>رقم المعاملة</th>
+                                                <th>التاريخ</th>
+                                                <th>النوع</th>
+                                                <th>الكمية</th>
+                                                <th>العدد</th>
+                                                <th>التاجر</th>
+                                                <th>رصيد الكمية</th>
+                                                <th>ملاحظات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+            `;
+
+            transactions.forEach(function(transaction, index) {
+                try {
+                    const transactionDate = new Date(transaction.Date);
+                    html += `
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-primary small">${transaction.TransactionId || 'غير محدد'}</div>
+                                ${transaction.InternalId ? `<small class="text-muted d-block">داخلي: ${transaction.InternalId}</small>` : ''}
+                            </td>
+                            <td>
+                                <div class="fw-bold small">${toArabicDigits(transactionDate.toLocaleDateString('ar-EG'))}</div>
+                                <small class="text-muted">${toArabicDigits(transactionDate.toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}))}</small>
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill ${transaction.IsInbound ? 'bg-success' : 'bg-danger'} small">
+                                    ${transaction.IsInbound ? 'وارد' : 'صادر'}
+                                </span>
+                            </td>
+                            <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'} fw-bold small">
+                                ${toArabicDigits(((transaction.Quantity || 0).toFixed(3)))}
+                            </td>
+                            <td class="fw-bold small">${toArabicDigits((transaction.Count || 0).toString())}</td>
+                            <td>
+                                <div class="small text-muted">${transaction.StakeholderTypeName || 'غير محدد'}</div>
+                                <div class="fw-bold small">${transaction.StakeholderName || 'غير محدد'}</div>
+                            </td>
+                            <td class="fw-bold text-primary small">${toArabicDigits(((transaction.QuantityBalance || 0).toFixed(3)))}</td>
+                            <td class="small">
+                                ${transaction.Comment ?
+                                    `<span class="text-muted" title="${transaction.Comment}">
+                                        ${transaction.Comment.length > 15 ? transaction.Comment.substring(0, 15) + '...' : transaction.Comment}
+                                    </span>` :
+                                    '<span class="text-muted">-</span>'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                } catch (error) {
+                    console.error('Error rendering transaction row', index, ':', error, transaction);
+                }
+            });
+
+            html += `</tbody></table></div></div></div></div></div>`;
+
+            // Add pagination if needed
+            if (safePageInfo.TotalPages > 1) {
+                html += `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <nav aria-label="تنقل المعاملات">
+                                <ul class="pagination pagination-sm justify-content-center mb-0">`;
+
+                if (safePageInfo.HasPreviousPage) {
+                    html += `<li class="page-item">
+                        <a class="page-link" href="#" onclick="loadPage(${safePageInfo.CurrentPage - 1}); return false;">
+                            <i class="fas fa-chevron-right me-1"></i>السابق
+                        </a>
+                    </li>`;
+                }
+
+                html += `<li class="page-item active">
+                    <span class="page-link">${toArabicDigits(safePageInfo.CurrentPage.toString())}</span>
+                </li>`;
+
+                if (safePageInfo.HasNextPage) {
+                    html += `<li class="page-item">
+                        <a class="page-link" href="#" onclick="loadPage(${safePageInfo.CurrentPage + 1}); return false;">
+                            التالي<i class="fas fa-chevron-left ms-1"></i>
+                        </a>
+                    </li>`;
+                }
+
+                html += `</ul></nav></div></div>`;
+            }
+
+            return html;
         }
 
         function loadPage(page) {
@@ -763,9 +919,7 @@
 
         function seeMoreTransactions() {
             $('#itemDetailsModal').modal('hide');
-
             const searchUrl = `@Url.Action("Search", "YarnTransactions")?YarnItemId=${currentYarnItemId}&FromDate=${new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0]}&ToDate=${new Date().toISOString().split('T')[0]}`;
-
             window.location.href = searchUrl;
         }
 
@@ -787,41 +941,25 @@
             `);
         }
 
-        // Clean up on modal close
-        $('#itemDetailsModal').on('hidden.bs.modal', function () {
-            if (loadingTimeout) {
-                clearTimeout(loadingTimeout);
-            }
-            currentYarnItemId = null;
-            currentPage = 1;
-        });
         // Export functions
         function exportToExcel() {
             showLoadingOverlay();
-
             const form = $('<form>', {
                 method: 'POST',
                 action: '@Url.Action("ExportOverview", "YarnTransactions")'
             });
-
-            // Add anti-forgery token
             form.append($('@Html.AntiForgeryToken()'));
-
-            // Add available only filter
             form.append($('<input>', {
                 type: 'hidden',
                 name: 'availableOnly',
                 value: $('#availableOnlyFilter').is(':checked')
             }));
-
             form.appendTo('body').submit().remove();
-
             setTimeout(hideLoadingOverlay, 2000);
         }
 
         function shareWhatsApp() {
             showLoadingOverlay();
-
             $.ajax({
                 url: '@Url.Action("ShareWhatsApp", "YarnTransactions")',
                 type: 'POST',
@@ -841,51 +979,32 @@
                 },
                 error: function(xhr, status, error) {
                     hideLoadingOverlay();
-                    console.error('Error sharing WhatsApp:', error);
+                    console.error('Error sharing WhatsApp at', CURRENT_TIME, ':', error);
                     showError('حدث خطأ أثناء إنشاء رسالة واتساب');
                 }
             });
         }
 
-        function printOverview() {
-            window.print();
-        }
+        function printOverview() { window.print(); }
+        function showLoadingOverlay() { $('#loadingOverlay').show(); }
+        function hideLoadingOverlay() { $('#loadingOverlay').hide(); }
 
-        // Utility functions
-        function showLoadingOverlay() {
-            $('#loadingOverlay').show();
-        }
-
-        function hideLoadingOverlay() {
-            $('#loadingOverlay').hide();
-        }
-
-        function showError(message) {
-            $('#modalBody').html(`
-                <div class="alert alert-danger text-center">
-                    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
-                    <h6>حدث خطأ</h6>
-                    <p>${message}</p>
-                </div>
-            `);
-        }
+        // Clean up on modal close
+        $('#itemDetailsModal').on('hidden.bs.modal', function () {
+            currentYarnItemId = null;
+            currentPage = 1;
+            console.log('🔒 Modal closed and cleaned up at', CURRENT_TIME);
+        });
 
         // Keyboard shortcuts
         $(document).keydown(function(e) {
-            // Ctrl+R for refresh
-            if (e.ctrlKey && e.keyCode === 82) {
-                e.preventDefault();
-                refreshData();
-            }
-
-            // Escape to close modal
-            if (e.keyCode === 27) {
-                $('#itemDetailsModal').modal('hide');
-            }
+            if (e.ctrlKey && e.keyCode === 82) { e.preventDefault(); refreshData(); }
+            if (e.keyCode === 27) { $('#itemDetailsModal').modal('hide'); }
         });
-    </script>
-    }
 
+        console.log('✅ Yarn Overview page fully loaded with enhanced debugging at', CURRENT_TIME, 'by', CURRENT_USER);
+    </script>
+}
     <style>
         .loading-overlay {
             position: fixed;

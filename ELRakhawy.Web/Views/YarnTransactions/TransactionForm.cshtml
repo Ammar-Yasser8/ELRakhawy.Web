@@ -415,12 +415,13 @@
                             var balanceAr = toArabicDigits(balance.toFixed(3).toString());
                             var countBalanceAr = toArabicDigits(countBalance.toString());
 
-                            $('#currentBalanceDisplay').html(`
-                                <div class="d-flex justify-content-between">
-                                    <span><strong>${balanceAr}</strong> كجم</span>
-                                    <span><strong>${countBalanceAr}</strong> وحدة</span>
-                                </div>
-                            `);
+                                    // In your fetchYarnItemBalance function, replace this part:
+        $('#currentBalanceDisplay').html(`
+            <div class="d-flex justify-content-between">
+                <span><strong>${balanceAr}</strong> كجم</span>
+                <span><strong>${response.packagingDisplay}</strong></span>
+            </div>
+        `);
 
                             // Show detailed balance info
                             showBalanceInfo(response);
@@ -451,54 +452,91 @@
                 });
             }
 
-            // Function to show balance information
-            function showBalanceInfo(data) {
-                var qBalAr = toArabicDigits(data.quantityBalance.toFixed(3).toString());
-                var cBalAr = toArabicDigits((data.countBalance || 0).toString());
-                var tCountAr = toArabicDigits((data.transactionCount || 0).toString());
-                var lastDateAr = toArabicDigits((data.lastTransactionDate || '').toString());
-                var infoHtml = `
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center border-end">
-                                <h5 class="text-primary mb-0">${qBalAr}</h5>
-                                <small class="text-muted">رصيد الكمية (كجم)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center border-end">
-                                <h5 class="text-success mb-0">${cBalAr}</h5>
-                                <small class="text-muted">رصيد العدد</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center border-end">
-                                <h5 class="text-info mb-0">${tCountAr}</h5>
-                                <small class="text-muted">عدد المعاملات</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h5 class="text-warning mb-0">${lastDateAr}</h5>
-                                <small class="text-muted">آخر معاملة</small>
-                            </div>
+        // Function to show balance information with multiple packaging support
+        function showBalanceInfo(data) {
+            var qBalAr = toArabicDigits(data.quantityBalance.toFixed(3).toString());
+            var tCountAr = toArabicDigits((data.transactionCount || 0).toString());
+            var lastDateAr = toArabicDigits((data.lastTransactionDate || '').toString());
+
+            // ✅ Use short display for main view, full display in details
+            var packagingDisplayHtml = data.shortPackagingDisplay || 'لا توجد وحدات';
+            var fullPackagingDisplay = data.packagingDisplay || 'لا توجد وحدات';
+
+            var infoHtml = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center border-end">
+                            <h5 class="text-primary mb-0">${qBalAr}</h5>
+                            <small class="text-muted">رصيد الكمية (كجم)</small>
                         </div>
                     </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong>الصنف:</strong> ${data.yarnItem}</p>
-                            <p class="mb-0"><strong>الغزل المكون:</strong> ${data.originYarn}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-0"><strong>الشركة المصنعة:</strong> ${data.manufacturer}</p>
+                    <div class="col-md-3">
+                        <div class="text-center border-end">
+                            <div class="text-success mb-0" title="${fullPackagingDisplay}">
+                                ${packagingDisplayHtml}
+                            </div>
+                            <small class="text-muted">رصيد العدد بالتعبئة</small>
                         </div>
                     </div>
-                `;
-                
-                $('#balanceInfo').html(infoHtml);
-                $('#balanceInfoCard').fadeIn();
-            }
+                    <div class="col-md-3">
+                        <div class="text-center border-end">
+                            <h5 class="text-info mb-0">${tCountAr}</h5>
+                            <small class="text-muted">عدد المعاملات</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center">
+                            <h5 class="text-warning mb-0">${lastDateAr}</h5>
+                            <small class="text-muted">آخر معاملة</small>
+                        </div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong>الصنف:</strong> ${data.yarnItem}</p>
+                        <p class="mb-0"><strong>الغزل المكون:</strong> ${data.originYarn}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-0"><strong>الشركة المصنعة:</strong> ${data.manufacturer}</p>
+                    </div>
+                </div>
+
+                <!-- ✅ Enhanced packaging breakdown for multiple types -->
+                ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
+                <hr>
+                <div class="row">
+                    <div class="col-12">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <h6 class="fw-bold text-dark mb-0">تفاصيل التعبئة:</h6>
+                            ${data.hasMultiplePackaging ? '<small class="text-muted">أنواع متعددة</small>' : ''}
+                        </div>
+                        <div class="row g-2">
+                            ${data.packagingBreakdown.map(p => `
+                                <div class="col-auto">
+                                    <span class="badge ${p.totalCount > 50 ? 'bg-success' : 'bg-light text-dark border'} fs-6 py-2 px-3">
+                                        <i class="fas fa-box me-1"></i>
+                                        ${toArabicDigits(p.totalCount.toString())} ${p.packagingType}
+                                    </span>
+                                </div>
+                            `).join('')}
+                        </div>
+                        ${data.packagingBreakdown.length > 1 ? `
+                        <div class="mt-2">
+                            <small class="text-info">
+                                <i class="fas fa-info-circle me-1"></i>
+                                المجموع: ${toArabicDigits(data.countBalance.toString())} وحدة موزعة على ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
+                            </small>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                ` : ''}
+            `;
+
+            $('#balanceInfo').html(infoHtml);
+            $('#balanceInfoCard').fadeIn();
+        }
 
             // Function to reset stakeholder dropdown
             function resetStakeholderDropdown($select) {

@@ -9,7 +9,7 @@ namespace ELRakhawy.EL.ViewModels
     // YarnOverviewViewModel.cs
     public class YarnOverviewViewModel
     {
-        public List<YarnOverviewItemViewModel> OverviewItems { get; set; } = new List<YarnOverviewItemViewModel>();
+        public List<YarnOverviewItemViewModel> OverviewItems { get; set; } = new();
         public bool AvailableOnly { get; set; }
         public int TotalItems { get; set; }
         public int AvailableItems { get; set; }
@@ -17,9 +17,8 @@ namespace ELRakhawy.EL.ViewModels
         public int TotalCountBalance { get; set; }
         public DateTime LastUpdated { get; set; }
 
-        // Summary statistics
-        public decimal PercentageAvailable => TotalItems > 0 ? (decimal)AvailableItems / TotalItems * 100 : 0;
-        public int OutOfStockItems => TotalItems - AvailableItems;
+        // ✅ Add percentage calculation
+        public decimal PercentageAvailable => TotalItems > 0 ? ((decimal)AvailableItems / TotalItems) * 100 : 0;
     }
 
     // YarnOverviewItemViewModel.cs
@@ -27,8 +26,8 @@ namespace ELRakhawy.EL.ViewModels
     {
         public int YarnItemId { get; set; }
         public string YarnItemName { get; set; }
-        public string OriginYarnName { get; set; }
-        public string ManufacturerNames { get; set; } // Changed from ManufacturerName
+        public string OriginYarnName { get; set; } // ✅ Should display origin yarn name
+        public string ManufacturerNames { get; set; } // ✅ Should display manufacturer names
         public decimal QuantityBalance { get; set; }
         public int CountBalance { get; set; }
         public DateTime? LastTransactionDate { get; set; }
@@ -38,11 +37,11 @@ namespace ELRakhawy.EL.ViewModels
         public bool IsAvailable { get; set; }
         public bool Status { get; set; }
 
-        // Helper properties
-        public string AvailabilityStatus => IsAvailable ? "متاح" : "غير متاح";
-        public string AvailabilityClass => IsAvailable ? "text-success" : "text-danger";
+        // ✅ Computed properties for display
         public string LastTransactionText => LastTransactionDate?.ToString("dd/MM/yyyy") ?? "لا توجد معاملات";
-        public int DaysSinceLastTransaction => LastTransactionDate?.Date != null ?
-            (DateTime.Today - LastTransactionDate.Value.Date).Days : -1;
+        public int DaysSinceLastTransaction => LastTransactionDate.HasValue
+            ? (DateTime.Now - LastTransactionDate.Value).Days
+            : -1;
+        public string AvailabilityStatus => IsAvailable ? "متاح" : "غير متاح";
     }
 }

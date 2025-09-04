@@ -1,0 +1,12 @@
+﻿@model (bool status, string additionalClasses)
+
+@{
+    var statusText = Model.status ? "نشط" : "غير نشط";
+    var statusClass = Model.status ? "success" : "secondary";
+    var statusIcon = Model.status ? "fa-check-circle" : "fa-times-circle";
+    var classes = $"badge bg-{statusClass} {Model.additionalClasses ?? ""}";
+}
+
+<span class="@classes">
+    <i class="fas @statusIcon me-1"></i>@statusText
+</span>

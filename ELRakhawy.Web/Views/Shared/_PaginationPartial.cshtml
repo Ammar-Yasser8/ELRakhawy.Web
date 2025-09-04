@@ -1,0 +1,44 @@
+﻿@model (int currentPage, int totalPages, string action, string controller, object routeValues)
+
+@{
+    IDictionary<string, object> MergeRouteValues(int page)
+    {
+        var result = new RouteValueDictionary(Model.routeValues);
+        result["page"] = page;
+        return result;
+    }
+}
+
+@if (Model.totalPages > 1)
+{
+    <nav aria-label="تصفح الصفحات">
+        <ul class="pagination justify-content-center mb-0">
+            @if (Model.currentPage > 1)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="@Url.Action(Model.action, Model.controller, MergeRouteValues(Model.currentPage - 1))">
+                        السابق
+                    </a>
+                </li>
+            }
+
+            @for (int i = Math.Max(1, Model.currentPage - 2); i <= Math.Min(Model.totalPages, Model.currentPage + 2); i++)
+            {
+                <li class="page-item @(i == Model.currentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action(Model.action, Model.controller, MergeRouteValues(i))">
+                        @i
+                    </a>
+                </li>
+            }
+
+            @if (Model.currentPage < Model.totalPages)
+            {
+                <li class="page-item">
+                    <a class="page-link" href="@Url.Action(Model.action, Model.controller, MergeRouteValues(Model.currentPage + 1))">
+                        التالي
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+}

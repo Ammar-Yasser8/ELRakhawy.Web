@@ -1,0 +1,483 @@
+﻿@using ELRakhawy.EL.ViewModels
+@model FabricStudioViewModel
+@{
+    ViewData["Title"] = Model.FormTitle;
+    var currentTime = "2025-09-02 19:43:07";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="text-primary mb-1">
+                <i class="fas @(Model.IsEdit ? "fa-edit" : "fa-plus") me-2"></i>@Model.FormTitle
+            </h2>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
+                    <li class="breadcrumb-item"><a href="@Url.Action("Index")">استوديو القماش</a></li>
+                    <li class="breadcrumb-item active">@(Model.IsEdit ? "تعديل" : "إضافة")</li>
+                </ol>
+            </nav>
+        </div>
+        <div class="text-end">
+            <small class="text-muted d-block">@currentTime</small>
+            <small class="text-muted d-block">@currentUser</small>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card shadow-sm">
+        <div class="card-header @(Model.IsEdit ? "bg-warning" : "bg-primary") text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-camera me-2"></i>بيانات استوديو القماش
+            </h5>
+        </div>
+        <div class="card-body">
+            <form id="fabricStudioForm" action="@Url.Action("Save")" method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="ItemName" />
+                <input type="hidden" asp-for="ColorName" />
+                <input type="hidden" asp-for="DesignName" />
+                <input type="hidden" asp-for="ImagePath" />
+                <input type="hidden" asp-for="WatermarkedImagePath" />
+
+                <!-- Important Notice -->
+                <div class="alert alert-info mb-4">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-info-circle me-2"></i>ملاحظات مهمة
+                    </h6>
+                    <ul class="mb-0 small">
+                        <li>يجب اختيار <strong>إما اللون أو التصميم</strong>، وليس كلاهما</li>
+                        <li>البوستر مطلوب <strong>فقط</strong> عند اختيار التصميم</li>
+                        <li>الصورة الرئيسية <strong>مطلوبة دائماً</strong></li>
+                        <li>أقصى حجم للصور: 5 ميجابايت</li>
+                        <li>الصيغ المدعومة: JPG, PNG, GIF, BMP</li>
+                    </ul>
+                </div>
+
+                <div class="row">
+                    <!-- Basic Information -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-info-circle me-2"></i>المعلومات الأساسية
+                        </h6>
+                        
+                        <!-- Item Selection -->
+                        <div class="mb-3">
+                            <label asp-for="ItemId" class="form-label required">
+                                <i class="fas fa-tshirt text-primary me-1"></i>الصنف
+                            </label>
+                            <select asp-for="ItemId" class="form-select" id="itemSelect">
+                                <option value="">-- اختر الصنف --</option>
+                                @foreach (var item in Model.AvailableItems)
+                                {
+                                    <option value="@item.Value" @@(Model.ItemId?.ToString() == item.Value ? "selected" : "")>@item.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="ItemId" class="text-danger"></span>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                <input asp-for="Status" class="form-check-input" type="checkbox" id="statusSwitch" />
+                                <label class="form-check-label" for="statusSwitch">
+                                    <i class="fas fa-check-circle text-success me-1"></i>
+                                    <span class="status-label">@(Model.Status ? "نشط" : "غير نشط")</span>
+                                </label>
+                            </div>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Color/Design Selection -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-palette me-2"></i>اختر اللون أو التصميم
+                        </h6>
+                        
+                        <!-- Selection Type -->
+                        <div class="mb-3">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="selectionType" id="colorRadio" value="color" @(Model.HasColor ? "checked" : "") />
+                                <label class="btn btn-outline-primary" for="colorRadio">
+                                    <i class="fas fa-palette me-1"></i>اختيار اللون
+                                </label>
+                                
+                                <input type="radio" class="btn-check" name="selectionType" id="designRadio" value="design" @(Model.HasDesign ? "checked" : "") />
+                                <label class="btn btn-outline-info" for="designRadio">
+                                    <i class="fas fa-paint-brush me-1"></i>اختيار التصميم
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Color Selection -->
+                        <div class="mb-3" id="colorSelection" style="display: none;">
+                            <label asp-for="ColorId" class="form-label">
+                                <i class="fas fa-palette text-primary me-1"></i>اللون
+                            </label>
+                            <select asp-for="ColorId" class="form-select">
+                                <option value="">-- اختر اللون --</option>
+                                @foreach (var color in Model.AvailableColors)
+                                {
+                                    <option value="@color.Value" @@(Model.ColorId?.ToString() == color.Value ? "selected" : "")>@color.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="ColorId" class="text-danger"></span>
+                        </div>
+
+                        <!-- Design Selection -->
+                        <div class="mb-3" id="designSelection" style="display: none;">
+                            <label asp-for="DesignId" class="form-label">
+                                <i class="fas fa-paint-brush text-info me-1"></i>التصميم
+                            </label>
+                            <select asp-for="DesignId" class="form-select">
+                                <option value="">-- اختر التصميم --</option>
+                                @foreach (var design in Model.AvailableDesigns)
+                                {
+                                    <option value="@design.Value" @@(Model.DesignId?.ToString() == design.Value ? "selected" : "")>@design.Text</option>
+                                }
+                            </select>
+                            <span asp-validation-for="DesignId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Image Uploads -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-image me-2"></i>البوستر (مطلوب للتصميم فقط)
+                        </h6>
+                        
+                        <div class="mb-3" id="imageUploadSection">
+                            <label asp-for="ImageFile" class="form-label" id="imageLabel">
+                                <i class="fas fa-upload text-secondary me-1"></i>رفع البوستر
+                            </label>
+                            <input asp-for="ImageFile" type="file" class="form-control" accept="image/*" id="imageInput" />
+                            <span asp-validation-for="ImageFile" class="text-danger"></span>
+                            
+                            @if (!string.IsNullOrEmpty(Model.ImagePath))
+                            {
+                                <div class="mt-2" id="currentImagePreview">
+                                    <small class="text-muted">الصورة الحالية:</small>
+                                    <div class="mt-1">
+                                        <img src="@Model.ImagePath" class="img-thumbnail" style="max-width: 150px; max-height: 150px;" alt="البوستر الحالي" />
+                                    </div>
+                                </div>
+                            }
+                            
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>البوستر مطلوب فقط عند اختيار التصميم
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Watermarked Image -->
+                    <div class="col-md-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-image me-2"></i>الصورة الرئيسية (مطلوبة)
+                        </h6>
+                        
+                        <div class="mb-3">
+                            <label asp-for="WatermarkedImageFile" class="form-label required">
+                                <i class="fas fa-upload text-danger me-1"></i>رفع الصورة الرئيسية
+                            </label>
+                            <input asp-for="WatermarkedImageFile" type="file" class="form-control" accept="image/*" required />
+                            <span asp-validation-for="WatermarkedImageFile" class="text-danger"></span>
+                            
+                            @if (!string.IsNullOrEmpty(Model.WatermarkedImagePath))
+                            {
+                                <div class="mt-2" id="currentWatermarkedPreview">
+                                    <small class="text-muted">الصورة الحالية:</small>
+                                    <div class="mt-1">
+                                        <img src="@Model.WatermarkedImagePath" class="img-thumbnail" style="max-width: 150px; max-height: 150px;" alt="الصورة الحالية" />
+                                    </div>
+                                </div>
+                            }
+                            
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>الصورة الرئيسية مطلوبة دائماً
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <!-- Comment -->
+                    <div class="col-md-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2">
+                            <i class="fas fa-comment me-2"></i>بيان إضافي
+                        </h6>
+                        <div class="mb-3">
+                            <label asp-for="Comment" class="form-label">
+                                <i class="fas fa-sticky-note text-secondary me-1"></i>البيان
+                            </label>
+                            <textarea asp-for="Comment" class="form-control" rows="4" 
+                                      placeholder="أدخل أي ملاحظات أو تفاصيل إضافية عن استوديو القماش (اختياري)"></textarea>
+                            <span asp-validation-for="Comment" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div class="row" id="previewSection" style="display: none;">
+                    <div class="col-12 mb-4">
+                        <h6 class="text-info border-bottom pb-2">
+                            <i class="fas fa-eye me-2"></i>معاينة الصور
+                        </h6>
+                        <div class="row" id="imagePreviewContainer">
+                            <!-- Dynamic preview content -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="d-flex gap-2 justify-content-end">
+                            <a href="@Url.Action("Index")" class="btn btn-secondary">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="button" class="btn btn-info" id="previewBtn">
+                                <i class="fas fa-eye me-1"></i>معاينة
+                            </button>
+                            <button type="submit" class="btn @(Model.IsEdit ? "btn-warning" : "btn-primary")" id="saveBtn">
+                                <i class="fas fa-save me-1"></i>
+                                @(Model.IsEdit ? "تحديث الاستوديو" : "حفظ الاستوديو")
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function() {
+            console.log('Fabric Studio Form loaded at 2025-09-02 19:43:07 by Ammar-Yasser8');
+            
+            // Initialize select2
+            $('.form-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return "لا توجد نتائج";
+                    },
+                    searching: function() {
+                        return "جاري البحث...";
+                    }
+                }
+            });
+
+            // Handle status switch change
+            $('#statusSwitch').change(function() {
+                var isActive = $(this).is(':checked');
+                $('.status-label').text(isActive ? 'نشط' : 'غير نشط');
+            });
+
+            // Handle selection type change
+            $('input[name="selectionType"]').change(function() {
+                var selectedType = $(this).val();
+                
+                if (selectedType === 'color') {
+                    $('#colorSelection').show();
+                    $('#designSelection').hide();
+                    $('#DesignId').val('').trigger('change');
+                    updateImageRequirement(false);
+                } else if (selectedType === 'design') {
+                    $('#designSelection').show();
+                    $('#colorSelection').hide();
+                    $('#ColorId').val('').trigger('change');
+                    updateImageRequirement(true);
+                }
+                
+                validateSelection();
+            });
+
+            // Initialize selection visibility
+            function initializeSelectionType() {
+                var hasColor = @Json.Serialize(Model.HasColor);
+                var hasDesign = @Json.Serialize(Model.HasDesign);
+                
+                if (hasColor) {
+                    $('#colorRadio').prop('checked', true);
+                    $('#colorSelection').show();
+                    updateImageRequirement(false);
+                } else if (hasDesign) {
+                    $('#designRadio').prop('checked', true);
+                    $('#designSelection').show();
+                    updateImageRequirement(true);
+                }
+            }
+
+            initializeSelectionType();
+
+            // Update image requirement based on selection
+            function updateImageRequirement(isDesignSelected) {
+                var imageLabel = $('#imageLabel');
+                var imageInput = $('#imageInput');
+                
+                if (isDesignSelected) {
+                    imageLabel.html('<i class="fas fa-upload text-danger me-1"></i>رفع البوستر (مطلوب)');
+                    imageInput.prop('required', !@Json.Serialize(Model.IsEdit) || '@Model.ImagePath' === '');
+                    $('#imageUploadSection').removeClass('text-muted');
+                } else {
+                    imageLabel.html('<i class="fas fa-upload text-secondary me-1"></i>رفع البوستر (اختياري)');
+                    imageInput.prop('required', false);
+                    $('#imageUploadSection').addClass('text-muted');
+                }
+            }
+
+            // Validate selection
+            function validateSelection() {
+                var hasColorSelected = $('#ColorId').val() !== '';
+                var hasDesignSelected = $('#DesignId').val() !== '';
+                var isValid = (hasColorSelected && !hasDesignSelected) || (!hasColorSelected && hasDesignSelected);
+                
+                $('.custom-validation-message').remove();
+                
+                if (!isValid && (hasColorSelected || hasDesignSelected)) {
+                    var message = hasColorSelected && hasDesignSelected ? 
+                        'لا يمكن اختيار اللون والتصميم معاً' : 
+                        'يجب اختيار إما اللون أو التصميم';
+                    
+                    $('<div class="custom-validation-message text-danger small mt-2"><i class="fas fa-exclamation-triangle me-1"></i>' + message + '</div>')
+                        .insertAfter('#designSelection');
+                }
+                
+                return isValid;
+            }
+
+            // Monitor selection changes
+            $('#ColorId, #DesignId').change(validateSelection);
+
+            // Image preview functionality
+            function setupImagePreview(inputId, previewContainerId) {
+                $(inputId).change(function() {
+                    var file = this.files[0];
+                    if (file) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) {
+                            updateImagePreview(previewContainerId, e.target.result, file.name);
+                        };
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            function updateImagePreview(containerId, src, fileName) {
+                $('#previewSection').show();
+                var preview = `
+                    <div class="col-md-6 mb-3">
+                        <div class="card">
+                            <img src="${src}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="${fileName}" />
+                            <div class="card-body p-2">
+                                <small class="text-muted">${fileName}</small>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                $(containerId).html(preview);
+            }
+
+            setupImagePreview('#imageInput', '#imagePreviewContainer');
+            setupImagePreview('#WatermarkedImageFile', '#imagePreviewContainer');
+
+            // Preview functionality
+            $('#previewBtn').click(function() {
+                if (!validateSelection()) {
+                    Swal.fire({
+                        title: 'خطأ في التحقق',
+                        text: 'يرجى تصحيح الأخطاء قبل المعاينة',
+                        icon: 'error'
+                    });
+                    return;
+                }
+
+                var data = {
+                    item: $('#ItemId option:selected').text() || 'غير محدد',
+                    type: $('input[name="selectionType"]:checked').val() === 'color' ? 'لون' : 'تصميم',
+                    colorOrDesign: $('input[name="selectionType"]:checked').val() === 'color' ? 
+                        ($('#ColorId option:selected').text() || 'غير محدد') : 
+                        ($('#DesignId option:selected').text() || 'غير محدد'),
+                    status: $('#statusSwitch').is(':checked') ? 'نشط' : 'غير نشط',
+                    comment: $('#Comment').val() || 'لا يوجد بيان'
+                };
+
+                var isEdit = @Json.Serialize(Model.IsEdit);
+                var preview = `
+                    <div class="text-start">
+                        <p><strong>الصنف:</strong> ${data.item}</p>
+                        <p><strong>النوع:</strong> <span class="badge ${data.type === 'لون' ? 'bg-primary' : 'bg-info'}">${data.type}</span></p>
+                        <p><strong>${data.type}:</strong> ${data.colorOrDesign}</p>
+                        <p><strong>الحالة:</strong> <span class="badge ${data.status === 'نشط' ? 'bg-success' : 'bg-secondary'}">${data.status}</span></p>
+                        <p><strong>البيان:</strong> ${data.comment}</p>
+                    </div>
+                `;
+
+                Swal.fire({
+                    title: isEdit ? 'معاينة تحديث استوديو القماش' : 'معاينة استوديو القماش الجديد',
+                    html: preview,
+                    icon: 'info',
+                    showCancelButton: true,
+                    confirmButtonText: isEdit ? 'تحديث الآن' : 'حفظ الآن',
+                    cancelButtonText: 'تراجع',
+                    confirmButtonColor: isEdit ? '#ffc107' : '#0d6efd'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#fabricStudioForm').submit();
+                    }
+                });
+            });
+
+            // Custom form validation
+            $('#fabricStudioForm').submit(function(e) {
+                if (!validateSelection()) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'خطأ في البيانات',
+                        text: 'يجب اختيار إما اللون أو التصميم، وليس كلاهما',
+                        icon: 'error'
+                    });
+                    return false;
+                }
+
+                var isDesignSelected = $('input[name="selectionType"]:checked').val() === 'design';
+                var hasImageFile = $('#imageInput')[0].files.length > 0;
+                var hasExistingImage = '@Model.ImagePath' !== '';
+                
+                if (isDesignSelected && !hasImageFile && !hasExistingImage) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'صورة البوستر مطلوبة',
+                        text: 'يجب رفع صورة البوستر عند اختيار التصميم',
+                        icon: 'error'
+                    });
+                    return false;
+                }
+
+                $('#saveBtn').prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+            });
+        });
+    </script>
+}

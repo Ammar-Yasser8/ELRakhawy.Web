@@ -42,28 +42,39 @@ namespace ELRakhawy.Web.Controllers
         {
             if (ModelState.IsValid)
             {
-                var stakeholderType = new StakeholderType
+                // Check if stakeholder type with same name exists
+                var existingType = _unitOfWork.Repository<StakeholderType>()
+                    .GetOne(st => st.Type.ToLower() == viewModel.Type.ToLower());
+
+                if (existingType != null)
                 {
-                    Type = viewModel.Type,
-                    Comment = viewModel.Comment,
-                    FinancialTransactionTypeId = viewModel.FinancialTransactionTypeId
-                };
-                _unitOfWork.Repository<StakeholderType>().Add(stakeholderType);
-                _unitOfWork.Complete();
-                // Add selected forms
-                foreach (var formId in viewModel.SelectedFormIds)
-                {
-                    var stakeholderTypeForm = new StakeholderTypeForm
-                    {
-                        StakeholderTypeId = stakeholderType.Id,
-                        FormId = formId
-                    };
-                    _unitOfWork.Repository<StakeholderTypeForm>().Add(stakeholderTypeForm);
+                    ModelState.AddModelError("Type", "A stakeholder type with this name already exists.");
                 }
-                _unitOfWork.Complete();
-                return RedirectToAction(nameof(Index));
+                else
+                {
+                    var stakeholderType = new StakeholderType
+                    {
+                        Type = viewModel.Type,
+                        Comment = viewModel.Comment,
+                        FinancialTransactionTypeId = viewModel.FinancialTransactionTypeId
+                    };
+                    _unitOfWork.Repository<StakeholderType>().Add(stakeholderType);
+                    _unitOfWork.Complete();
+                    // Add selected forms
+                    foreach (var formId in viewModel.SelectedFormIds)
+                    {
+                        var stakeholderTypeForm = new StakeholderTypeForm
+                        {
+                            StakeholderTypeId = stakeholderType.Id,
+                            FormId = formId
+                        };
+                        _unitOfWork.Repository<StakeholderTypeForm>().Add(stakeholderTypeForm);
+                    }
+                    _unitOfWork.Complete();
+                    return RedirectToAction(nameof(Index));
+                }
             }
-            // If model state is invalid, repopulate the view model
+            // If model state is invalid or type exists, repopulate the view model
             viewModel.FinancialTransactionTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().ToList();
             viewModel.AvailableForms = _unitOfWork.Repository<FormStyle>().GetAll().ToList();
             return View(viewModel);

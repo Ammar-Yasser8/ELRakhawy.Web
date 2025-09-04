@@ -416,13 +416,98 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            const CURRENT_TIME = '2025-08-16 19:23:12';
+            const CURRENT_TIME = '2025-09-04 16:29:29';
             const CURRENT_USER = 'Ammar-Yasser8';
 
-            console.log('Enhanced manufacturers page with inline search loaded:', {
+            console.log('Enhanced manufacturers page with Arabic numbers loaded:', {
                 time: CURRENT_TIME,
                 user: CURRENT_USER,
                 manufacturersCount: $('.manufacturer-row').length
+            });
+
+            // Arabic number conversion functions
+            function toArabicDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            }
+
+            function toLatinDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
+
+            function isArabicChar(c) {
+                return /[\u0600-\u06FF]/.test(c);
+            }
+
+            function isEnglishChar(c) {
+                return /[a-zA-Z]/.test(c);
+            }
+
+            function getLastLetter(str) {
+                if (!str || str.trim().length === 0) {
+                    return 'arabic';
+                }
+
+                for (let i = str.length - 1; i >= 0; i--) {
+                    let char = str[i];
+                    if (isArabicChar(char)) {
+                        return 'arabic';
+                    } else if (isEnglishChar(char)) {
+                        return 'english';
+                    }
+                }
+                return 'arabic'; // default is Arabic
+            }
+
+            // Apply Arabic number conversion to inputs
+            function applyNumberConversion($input) {
+                let val = $input.val();
+
+                if (val && val.length > 0) {
+                    let lastLetterLang = getLastLetter(val);
+                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+
+                    if (newVal !== val) {
+                        let cursorPos = $input[0].selectionStart;
+                        $input.val(newVal);
+                        try {
+                            $input[0].setSelectionRange(cursorPos, cursorPos);
+                        } catch (ex) {
+                            $input.focus();
+                        }
+                    }
+                }
+            }
+
+            // Enhanced search and form input event handler with Arabic support
+            $(document).on("input keyup paste", "#searchByName, #searchByComment, #manufacturerName, #manufacturerDescription", function(e) {
+                const $input = $(this);
+                applyNumberConversion($input);
+            });
+
+            // Direct number key conversion for immediate Arabic conversion
+            $(document).on("keypress", "#searchByName, #searchByComment, #manufacturerName, #manufacturerDescription", function(e) {
+                // Convert English digits to Arabic immediately
+                if (e.which >= 48 && e.which <= 57) { // 0-9
+                    e.preventDefault();
+                    let digit = String.fromCharCode(e.which);
+                    let arabicDigit = toArabicDigits(digit);
+
+                    let input = e.target;
+                    let cursorPos = input.selectionStart || 0;
+                    let currentValue = input.value;
+
+                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    input.value = newValue;
+
+                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                    // Trigger appropriate events
+                    if ($(input).attr('id').startsWith('search')) {
+                        $(input).trigger('input');
+                    }
+                }
             });
 
             // Initialize components
@@ -433,10 +518,10 @@
 
             let totalCount = $('.manufacturer-row').length;
 
-            // Character counter for description
+            // Enhanced character counter for description with Arabic numbers
             $('#manufacturerDescription').on('input', function() {
                 const count = $(this).val().length;
-                $('#charCount').text(count);
+                $('#charCount').text(toArabicDigits(count.toString()));
 
                 if (count > 900) {
                     $('#charCount').addClass('text-warning');
@@ -447,10 +532,16 @@
                 }
             });
 
-            // Enhanced search functionality with inline search bars
+            // Enhanced search functionality with Arabic number support
             function performSearch() {
                 const nameSearch = $('#searchByName').val().toLowerCase().trim();
+                const nameSearchLatin = toLatinDigits(nameSearch);
+                const nameSearchArabic = toArabicDigits(nameSearch);
+
                 const commentSearch = $('#searchByComment').val().toLowerCase().trim();
+                const commentSearchLatin = toLatinDigits(commentSearch);
+                const commentSearchArabic = toArabicDigits(commentSearch);
+
                 let visibleCount = 0;
 
                 $('.manufacturer-row').each(function() {
@@ -458,8 +549,16 @@
                     const name = row.find('.manufacturer-name').text().toLowerCase();
                     const description = row.find('.manufacturer-description').text().toLowerCase();
 
-                    const nameMatch = !nameSearch || name.includes(nameSearch);
-                    const commentMatch = !commentSearch || description.includes(commentSearch);
+                    // Enhanced matching with Arabic/English number support
+                    const nameMatch = !nameSearch ||
+                        name.includes(nameSearch) ||
+                        name.includes(nameSearchLatin) ||
+                        name.includes(nameSearchArabic);
+
+                    const commentMatch = !commentSearch ||
+                        description.includes(commentSearch) ||
+                        description.includes(commentSearchLatin) ||
+                        description.includes(commentSearchArabic);
 
                     const shouldShow = nameMatch && commentMatch;
                     row.toggle(shouldShow);
@@ -470,23 +569,18 @@
                 updateSearchInfo(visibleCount, nameSearch, commentSearch);
             }
 
+            // Enhanced updateSearchInfo with Arabic numbers
             function updateSearchInfo(visibleCount, nameSearch, commentSearch) {
-                $('#visibleCount').text(visibleCount);
-                $('#badgeCount').text(visibleCount);
+                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
+                $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
 
                 // Show/hide clear buttons
                 $('#clearNameSearch').toggle(nameSearch.length > 0);
                 $('#clearCommentSearch').toggle(commentSearch.length > 0);
                 $('#clearAllSearch').toggle(nameSearch.length > 0 || commentSearch.length > 0);
 
-                // Show/hide no results
-                if (visibleCount === 0 && (nameSearch || commentSearch)) {
-                    $('#noResultsMessage').show();
-                    $('#manufacturersContainer .section-card').hide();
-                } else {
-                    $('#noResultsMessage').hide();
-                    $('#manufacturersContainer .section-card').show();
-                }
+                // Keep table always visible - no modal overlays
+                $('#manufacturersContainer .section-card').show();
 
                 // Add visual feedback to search inputs
                 $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
@@ -558,11 +652,11 @@
                 $('#loadingOverlay').addClass('d-none');
             }
 
-            // Reset form
+            // Enhanced reset form with Arabic character counter
             function resetForm() {
                 $('#manufacturerForm')[0].reset();
                 $('#manufacturerId').val('');
-                $('#charCount').text('0');
+                $('#charCount').text(toArabicDigits('0'));
                 $('#manufacturerForm .is-invalid').removeClass('is-invalid');
                 $('#manufacturerForm').removeClass('was-validated');
             }
@@ -583,7 +677,7 @@
                 $('#manufacturerId').val(id);
                 $('#manufacturerName').val(name);
                 $('#manufacturerDescription').val(description);
-                $('#charCount').text(description.length);
+                $('#charCount').text(toArabicDigits((description || '').length.toString()));
 
                 $('#manufacturerModalTitle').html('<i class="fas fa-edit text-info me-2"></i>تعديل المصنع');
                 manufacturerModal.show();
@@ -637,7 +731,7 @@
                             } else {
                                 addManufacturerToUI(response.data);
                                 totalCount++;
-                                $('#totalCount').text(totalCount);
+                                $('#totalCount').text(toArabicDigits(totalCount.toString()));
                             }
 
                             manufacturerModal.hide();
@@ -670,7 +764,7 @@
                             showNotification(response.message, 'success');
                             removeManufacturerFromUI(id);
                             totalCount--;
-                            $('#totalCount').text(totalCount);
+                            $('#totalCount').text(toArabicDigits(totalCount.toString()));
                             deleteModal.hide();
                             performSearch(); // Refresh search results
                         } else {
@@ -724,7 +818,7 @@
                                 <div>
                                     <span class="fw-semibold">${name}</span>
                                     <br>
-                                   
+
                                 </div>
                             </div>
                         </td>
@@ -758,7 +852,7 @@
                 });
             }
 
-            // Refresh data
+            // Enhanced refresh data with Arabic counter update
             $('#refreshData').click(function() {
                 const btn = $(this);
                 const originalText = btn.html();
@@ -768,6 +862,16 @@
                     location.reload();
                 }, 1000);
             });
+
+            // Enhanced initial count setup with Arabic numbers
+            function updateInitialCounts() {
+                const currentTotal = $('.manufacturer-row').length;
+                const arabicTotal = toArabicDigits(currentTotal.toString());
+                $('#totalCount').text(arabicTotal);
+                $('#visibleCount').text(arabicTotal);
+                $('#badgeCount').text(arabicTotal);
+            }
+
             // Keyboard shortcuts
             $(document).keydown(function(e) {
                 if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
@@ -784,7 +888,16 @@
                 }
             });
 
-            console.log('Enhanced manufacturers page with inline search initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            // Test number conversion functions
+            console.log('Testing Arabic number conversion:');
+            console.log('123 to Arabic:', toArabicDigits('123'));
+            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
+            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+
+            // Initialize with Arabic numbers
+            updateInitialCounts();
+
+            console.log('Enhanced manufacturers page with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
         });
     </script>
 

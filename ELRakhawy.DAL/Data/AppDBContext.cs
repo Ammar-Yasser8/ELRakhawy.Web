@@ -33,6 +33,10 @@ namespace Elrakhawy.DAL.Data
         public DbSet<RawTransaction> RawTransactions { get; set; }
         public DbSet<FullWarpBeamTransaction> FullWarpBeamTransations { get; set; }  
         public DbSet<FabricItem> FabricItems { get; set; }
+        public DbSet<FabricColor> FabricColors { get; set; }
+        public DbSet<FabricStyle> FabricStyles { get; set; }
+        public DbSet<FabricDesign> FabricDesigns { get; set; }
+        public DbSet<FabricStudio> FabricStudios { get; set; }
         //public DbSet<OriginYarn> OriginYarns { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)

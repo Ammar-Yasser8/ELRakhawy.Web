@@ -30,7 +30,7 @@ namespace ELRakhawy.EL.ViewModels
 
         [Display(Name = "البيان")]
         [MaxLength(1000, ErrorMessage = "البيان يجب ألا يتجاوز 1000 حرف")]
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
         // Dropdown lists
         public List<SelectListItem> AvailableRawItems { get; set; } = new List<SelectListItem>();

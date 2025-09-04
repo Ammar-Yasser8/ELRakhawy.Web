@@ -1,0 +1,36 @@
+﻿@model (string fieldName, string label, bool required, string currentImage, string helpText)
+
+<div class="mb-3">
+    <label for="@Model.fieldName" class="form-label @(Model.required ? "required" : "")">
+        <i class="fas fa-upload me-1"></i>@Model.label
+    </label>
+
+    <input type="file"
+           name="@Model.fieldName"
+           id="@Model.fieldName"
+           class="form-control"
+           accept="image/*"
+           @(Model.required ? "required" : "") />
+
+    @if (!string.IsNullOrEmpty(Model.currentImage))
+    {
+        <div class="mt-2">
+            <small class="text-muted">الصورة الحالية:</small>
+            <div class="mt-1">
+                <img src="@Model.currentImage"
+                     class="img-thumbnail"
+                     style="max-width: 150px; max-height: 150px;"
+                     alt="الصورة الحالية" />
+            </div>
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.helpText))
+    {
+        <div class="form-text">
+            <small class="text-muted">
+                <i class="fas fa-info-circle me-1"></i>@Model.helpText
+            </small>
+        </div>
+    }
+</div>
