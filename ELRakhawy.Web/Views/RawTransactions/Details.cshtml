@@ -2,317 +2,709 @@
 @model RawTransactionDetailsViewModel
 @{
     ViewData["Title"] = $"تفاصيل معاملة رقم {Model.Transaction.TransactionId}";
-    var currentTime = "2025-09-02 13:07:13";
+    var currentTime = "2025-09-04 20:37:37"; // ✅ Updated current time
     var currentUser = "Ammar-Yasser8";
     var hasPositiveBalance = Model.CurrentItemBalance > 0 || Model.CurrentItemCountBalance > 0;
 }
 
-<div class="container-fluid mt-4">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="text-primary mb-1">
-                <i class="fas @Model.Transaction.TransactionTypeIcon me-2"></i>
-                تفاصيل معاملة @Model.Transaction.TransactionType
-            </h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "Home")">الرئيسية</a></li>
-                    <li class="breadcrumb-item"><a href="@Url.Action("Index", "RawItems")">المواد الخام</a></li>
-                    <li class="breadcrumb-item"><a href="@Url.Action("Overview")">عرض المعاملات</a></li>
-                    <li class="breadcrumb-item active">@Model.Transaction.TransactionId</li>
-                </ol>
-            </nav>
-        </div>
-        <div class="text-end">
-            <small class="text-muted d-block">@currentTime</small>
-            <small class="text-muted d-block">@currentUser</small>
-        </div>
-    </div>
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
 
-    <!-- Transaction Details Card -->
-    <div class="card mb-4">
-        <div class="card-header bg-@Model.Transaction.TransactionTypeClass text-white">
-            <h5 class="mb-0">
-                <i class="fas fa-file-alt me-2"></i>بيانات المعاملة
-                <span class="badge bg-light text-dark ms-2">@Model.Transaction.TransactionId</span>
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <!-- Basic Information -->
-                <div class="col-md-6 mb-4">
-                    <h6 class="text-primary border-bottom pb-2">
-                        <i class="fas fa-info-circle me-2"></i>المعلومات الأساسية
-                    </h6>
-                    <table class="table table-borderless">
-                        <tr>
-                            <td class="fw-bold text-muted">رقم الإذن التسلسلي:</td>
-                            <td>@Model.Transaction.TransactionId</td>
-                        </tr>
-                        @if (!string.IsNullOrEmpty(Model.Transaction.InternalId))
-                        {
-                            <tr>
-                                <td class="fw-bold text-muted">رقم الإذن الداخلي:</td>
-                                <td>@Model.Transaction.InternalId</td>
-                            </tr>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.Transaction.ExternalId))
-                        {
-                            <tr>
-                                <td class="fw-bold text-muted">رقم الإذن الخارجي:</td>
-                                <td>@Model.Transaction.ExternalId</td>
-                            </tr>
-                        }
-                        <tr>
-                            <td class="fw-bold text-muted">تاريخ المعاملة:</td>
-                            <td>@Model.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">نوع المعاملة:</td>
-                            <td>
-                                <span class="badge bg-@Model.Transaction.TransactionTypeClass">
-                                    <i class="fas @Model.Transaction.TransactionTypeIcon me-1"></i>
-                                    @Model.Transaction.TransactionType
-                                </span>
-                            </td>
-                        </tr>
-                    </table>
-                </div>
-
-                <!-- Raw Material Information -->
-                <div class="col-md-6 mb-4">
-                    <h6 class="text-primary border-bottom pb-2">
-                        <i class="fas fa-industry me-2"></i>بيانات الصنف الخام
-                    </h6>
-                    <table class="table table-borderless">
-                        <tr>
-                            <td class="fw-bold text-muted">اسم الصنف:</td>
-                            <td>@Model.Transaction.RawItemName</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">السداء:</td>
-                            <td>@Model.WarpDetails</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">اللحمة:</td>
-                            <td>@Model.WeftDetails</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">الجهة:</td>
-                            <td>@Model.Transaction.StakeholderName</td>
-                        </tr>
-                        <tr>
-                            <td class="fw-bold text-muted">نمط التعبئة:</td>
-                            <td>@Model.Transaction.PackagingStyleName</td>
-                        </tr>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Quantities Section -->
-            <div class="row">
-                <div class="col-12 mb-4">
-                    <h6 class="text-primary border-bottom pb-2">
-                        <i class="fas fa-calculator me-2"></i>الكميات والأرصدة
-                    </h6>
-                    <div class="row">
-                        @if (Model.Transaction.IsInbound)
-                        {
-                            <div class="col-md-2">
-                                <div class="card text-center border-success">
-                                    <div class="card-body">
-                                        <h4 class="text-success mb-0">@Model.Transaction.InboundMeters.ToString("N3")</h4>
-                                        <small class="text-muted">وارد (متر)</small>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-2">
-                                <div class="card text-center border-success">
-                                    <div class="card-body">
-                                        <h4 class="text-success mb-0">@Model.Transaction.InboundKg.ToString("N3")</h4>
-                                        <small class="text-muted">وارد (كجم)</small>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="col-md-2">
-                                <div class="card text-center border-warning">
-                                    <div class="card-body">
-                                        <h4 class="text-warning mb-0">@Model.Transaction.Outbound.ToString("N3")</h4>
-                                        <small class="text-muted">صادر</small>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                        <div class="col-md-2">
-                            <div class="card text-center border-info">
-                                <div class="card-body">
-                                    <h4 class="text-info mb-0">@Model.Transaction.Count</h4>
-                                    <small class="text-muted">العدد</small>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center border-primary">
-                                <div class="card-body">
-                                    <h4 class="text-primary mb-0">@Model.CurrentItemBalance.ToString("N3")</h4>
-                                    <small class="text-muted">رصيد الكمية الحالي</small>
-                                    @if (hasPositiveBalance)
-                                    {
-                                        <div class="mt-2">
-                                            <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
-                                                <i class="fas fa-sync-alt me-1"></i>إعادة تعيين
-                                            </button>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="card text-center border-secondary">
-                                <div class="card-body">
-                                    <h4 class="text-secondary mb-0">@Model.CurrentItemCountBalance</h4>
-                                    <small class="text-muted">رصيد العدد الحالي</small>
-                                    @if (hasPositiveBalance)
-                                    {
-                                        <div class="mt-2">
-                                            <small class="text-info">
-                                                <i class="fas fa-info-circle me-1"></i>سيتم تصفير الرصيدين معاً
-                                            </small>
-                                        </div>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Comment Section -->
-            @if (!string.IsNullOrEmpty(Model.Transaction.Comment))
-            {
-                <div class="row">
-                    <div class="col-12">
-                        <h6 class="text-primary border-bottom pb-2">
-                            <i class="fas fa-comment me-2"></i>البيان والملاحظات
-                        </h6>
-                        <div class="alert alert-light">
-                            <p class="mb-0">@Model.Transaction.Comment</p>
-                        </div>
-                    </div>
-                </div>
-            }
-        </div>
-    </div>
-
-    <!-- Related Transactions -->
-    @if (Model.HasRelatedTransactions)
-    {
-        <div class="card mb-4">
-            <div class="card-header bg-info text-white">
-                <h5 class="mb-0">
-                    <i class="fas fa-history me-2"></i>المعاملات ذات الصلة لنفس الصنف
-                    <span class="badge bg-light text-dark ms-2">@Model.RelatedTransactionsCount معاملة</span>
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>رقم الإذن</th>
-                                <th>التاريخ</th>
-                                <th>النوع</th>
-                                <th>الكمية</th>
-                                <th>العدد</th>
-                                <th>رصيد الكمية</th>
-                                <th>رصيد العدد</th>
-                                <th>الجهة</th>
-                                <th>الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var transaction in Model.RelatedTransactions)
-                            {
-                                <tr @(transaction.TransactionId.Contains("ADJ") ? "class=table-warning" : "")>
-                                    <td>
-                                        @transaction.TransactionId
-                                        @if (transaction.TransactionId.Contains("ADJ"))
-                                        {
-                                            <small class="badge bg-warning ms-1">تسوية</small>
-                                        }
-                                    </td>
-                                    <td>@transaction.Date.ToString("yyyy-MM-dd")</td>
-                                    <td>
-                                        <span class="badge bg-@transaction.TransactionTypeClass">
-                                            <i class="fas @transaction.TransactionTypeIcon me-1"></i>
-                                            @transaction.TransactionType
-                                        </span>
-                                    </td>
-                                    <td>
-                                        @if (transaction.IsInbound)
-                                        {
-                                            <span class="text-success">@transaction.TotalInbound.ToString("N3")</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-warning">@transaction.Outbound.ToString("N3")</span>
-                                        }
-                                    </td>
-                                    <td>@transaction.Count</td>
-                                    <td><span class="badge bg-info">@transaction.QuantityBalance.ToString("N3")</span></td>
-                                    <td><span class="badge bg-secondary">@transaction.CountBalance</span></td>
-                                    <td>@transaction.StakeholderName</td>
-                                    <td>
-                                        <a href="@Url.Action("Details", new { id = transaction.Id })"
-                                           class="btn btn-sm btn-outline-primary" title="عرض التفاصيل">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+<style>
+    /* Enhanced styling for transaction details */
+    .details-container {
+        background: linear-gradient(135deg, #f8f9fc 0%, #e3f2fd 100%);
+        min-height: 100vh;
+        padding: 1.5rem 0;
     }
 
-    <!-- Action Buttons -->
-    <div class="row">
-        <div class="col-12">
-            <div class="d-flex gap-2">
-                <a href="@Url.Action("Overview")" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left me-1"></i>العودة للقائمة
-                </a>
-                <a href="@Url.Action("Inbound")" class="btn btn-success">
-                    <i class="fas fa-plus me-1"></i>إضافة وارد جديد
-                </a>
-                <a href="@Url.Action("Outbound")" class="btn btn-warning">
-                    <i class="fas fa-plus me-1"></i>إضافة صادر جديد
-                </a>
-                @if (hasPositiveBalance)
+    .header-section {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+
+        .header-section::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient( 45deg, transparent, transparent 2px, rgba(255,255,255,0.1) 2px, rgba(255,255,255,0.1) 4px );
+            animation: slide 20s linear infinite;
+        }
+
+    @@keyframes slide {
+        0%
+
+    {
+        transform: translateX(-100px);
+    }
+
+    100% {
+        transform: translateX(100px);
+    }
+
+    }
+
+    .details-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+        .details-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .details-card .card-header {
+            border: none;
+            font-weight: 600;
+            padding: 1.25rem 1.5rem;
+        }
+
+    .stats-mini-card {
+        border: none;
+        border-radius: 12px;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        overflow: hidden;
+        position: relative;
+    }
+
+        .stats-mini-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .stats-mini-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--card-gradient);
+        }
+
+        .stats-mini-card.success {
+            --card-gradient: linear-gradient(90deg, #28a745, #52c568);
+        }
+
+        .stats-mini-card.warning {
+            --card-gradient: linear-gradient(90deg, #ffc107, #ffd54f);
+        }
+
+        .stats-mini-card.info {
+            --card-gradient: linear-gradient(90deg, #17a2b8, #4fc3f7);
+        }
+
+        .stats-mini-card.primary {
+            --card-gradient: linear-gradient(90deg, #007bff, #42a5f5);
+        }
+
+        .stats-mini-card.secondary {
+            --card-gradient: linear-gradient(90deg, #6c757d, #9e9e9e);
+        }
+
+    /* Transaction ID styling - keep Latin */
+    .transaction-id {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        padding: 4px 10px;
+        border-radius: 8px;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+        border: 1px dashed rgba(13, 110, 253, 0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
+        color: #0d6efd;
+        display: inline-block;
+        position: relative;
+    }
+
+        .transaction-id:hover {
+            background: linear-gradient(135deg, rgba(13, 110, 253, 0.2), rgba(13, 110, 253, 0.1));
+            border-color: rgba(13, 110, 253, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 110, 253, 0.2);
+        }
+
+        .transaction-id::after {
+            content: '📋';
+            position: absolute;
+            right: -20px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            font-size: 0.8em;
+        }
+
+        .transaction-id:hover::after {
+            opacity: 1;
+        }
+
+    .info-table {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+        .info-table td {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .info-table .fw-bold {
+            color: #495057;
+            font-weight: 600;
+            min-width: 150px;
+        }
+
+    .reset-balance-btn {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        border: none;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    }
+
+        .reset-balance-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(220, 53, 69, 0.4);
+            background: linear-gradient(135deg, #c82333, #bd2130);
+        }
+
+    .related-transactions-table {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+        .related-transactions-table th {
+            background: linear-gradient(135deg, #f8f9fc, #e3f2fd);
+            color: #495057;
+            font-weight: 600;
+            border: none;
+            padding: 1rem 0.75rem;
+        }
+
+        .related-transactions-table td {
+            padding: 0.875rem 0.75rem;
+            border: none;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .related-transactions-table tr:hover {
+            background: rgba(78, 115, 223, 0.05);
+            transform: scale(1.001);
+            transition: all 0.2s ease;
+        }
+
+    .modal-enhanced .modal-content {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-enhanced .modal-header {
+        border-radius: 15px 15px 0 0;
+        border: none;
+    }
+
+    .modal-enhanced .modal-footer {
+        border: none;
+        padding: 1.5rem;
+    }
+
+    .breadcrumb-enhanced {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+        .breadcrumb-enhanced .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+            .breadcrumb-enhanced .breadcrumb-item a:hover {
+                color: white;
+            }
+
+    /* Mobile responsive */
+    @@media (max-width: 768px) {
+        .details-container
+
+    {
+        padding: 1rem 0;
+    }
+
+    .header-section {
+        text-align: center;
+        padding: 1.5rem;
+    }
+
+    .stats-mini-card {
+        margin-bottom: 1rem;
+    }
+
+    .transaction-id::after {
+        display: none;
+    }
+
+    .info-table {
+        font-size: 0.875rem;
+    }
+
+    }
+
+    @@media print {
+        .no-print
+
+    {
+        display: none !important;
+    }
+
+    .transaction-id {
+        background: none !important;
+        border: none !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+
+    .details-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    }
+
+    /* Loading states */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-enhanced {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        padding: 0.625rem 1.25rem;
+    }
+
+        .btn-enhanced:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+</style>
+
+<div class="details-container">
+    <div class="container-fluid">
+        <!-- Enhanced Header -->
+        <div class="header-section">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h2 class="mb-2">
+                        <i class="fas @Model.Transaction.TransactionTypeIcon me-3"></i>
+                        تفاصيل معاملة @Model.Transaction.TransactionType
+                    </h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-enhanced mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Index", "Home")">
+                                    <i class="fas fa-home me-1"></i>الرئيسية
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Index", "RawItems")">
+                                    <i class="fas fa-cube me-1"></i>المواد الخام
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Overview")">
+                                    <i class="fas fa-list me-1"></i>عرض المعاملات
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active text-white">@Model.Transaction.TransactionId</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <div class="d-flex flex-column align-items-md-end">
+                        <small class="opacity-75 mb-1">
+                            <i class="fas fa-clock me-1"></i>
+                            <span id="currentTime">@currentTime</span>
+                        </small>
+                        <small class="opacity-75">
+                            <i class="fas fa-user me-1"></i>@currentUser
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction Details Card -->
+        <div class="details-card">
+            <div class="card-header bg-@Model.Transaction.TransactionTypeClass text-white">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-file-alt me-2"></i>بيانات المعاملة
+                    </h5>
+                    <!-- ✅ Transaction ID preserved in Latin -->
+                    <div class="transaction-id bg-light text-dark" onclick="copyTransactionId('@Model.Transaction.TransactionId')"
+                         title="انقر للنسخ">
+                        @Model.Transaction.TransactionId
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <!-- Basic Information -->
+                    <div class="col-lg-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="fas fa-info-circle me-2"></i>المعلومات الأساسية
+                        </h6>
+                        <table class="table info-table">
+                            <tr>
+                                <td class="fw-bold text-muted">رقم الإذن التسلسلي:</td>
+                                <td>
+                                    <span class="transaction-id-display">@Model.Transaction.TransactionId</span>
+                                </td>
+                            </tr>
+                            @if (!string.IsNullOrEmpty(Model.Transaction.InternalId))
+                            {
+                                <tr>
+                                    <td class="fw-bold text-muted">رقم الإذن الداخلي:</td>
+                                    <td><span class="internal-id-display">@Model.Transaction.InternalId</span></td>
+                                </tr>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.Transaction.ExternalId))
+                            {
+                                <tr>
+                                    <td class="fw-bold text-muted">رقم الإذن الخارجي:</td>
+                                    <td><span class="external-id-display">@Model.Transaction.ExternalId</span></td>
+                                </tr>
+                            }
+                            <tr>
+                                <td class="fw-bold text-muted">تاريخ المعاملة:</td>
+                                <td><span class="transaction-date">@Model.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</span></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">نوع المعاملة:</td>
+                                <td>
+                                    <span class="badge bg-@Model.Transaction.TransactionTypeClass fs-6">
+                                        <i class="fas @Model.Transaction.TransactionTypeIcon me-1"></i>
+                                        @Model.Transaction.TransactionType
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <!-- Raw Material Information -->
+                    <div class="col-lg-6 mb-4">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="fas fa-industry me-2"></i>بيانات الصنف الخام
+                        </h6>
+                        <table class="table info-table">
+                            <tr>
+                                <td class="fw-bold text-muted">اسم الصنف:</td>
+                                <td><strong class="text-primary">@Model.Transaction.RawItemName</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">السداء:</td>
+                                <td><span class="text-info">@Model.WarpDetails</span></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">اللحمة:</td>
+                                <td><span class="text-info">@Model.WeftDetails</span></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">الجهة:</td>
+                                <td><strong>@Model.Transaction.StakeholderName</strong></td>
+                            </tr>
+                            <tr>
+                                <td class="fw-bold text-muted">نمط التعبئة:</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border">
+                                        <i class="fas fa-cube me-1"></i>@Model.Transaction.PackagingStyleName
+                                    </span>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Quantities Section -->
+                <div class="row">
+                    <div class="col-12 mb-4">
+                        <h6 class="text-primary border-bottom pb-2 mb-3">
+                            <i class="fas fa-calculator me-2"></i>الكميات والأرصدة
+                        </h6>
+                        <div class="row">
+                            @if (Model.Transaction.IsInbound)
+                            {
+                                <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                    <div class="stats-mini-card success text-center">
+                                        <div class="card-body">
+                                            <i class="fas fa-ruler fa-2x text-success mb-2"></i>
+                                            <h4 class="text-success mb-1 inbound-meters">@Model.Transaction.InboundMeters.ToString("N3")</h4>
+                                            <small class="text-muted">وارد (متر)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                    <div class="stats-mini-card success text-center">
+                                        <div class="card-body">
+                                            <i class="fas fa-weight fa-2x text-success mb-2"></i>
+                                            <h4 class="text-success mb-1 inbound-kg">@Model.Transaction.InboundKg.ToString("N3")</h4>
+                                            <small class="text-muted">وارد (كجم)</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                    <div class="stats-mini-card warning text-center">
+                                        <div class="card-body">
+                                            <i class="fas fa-arrow-up fa-2x text-warning mb-2"></i>
+                                            <h4 class="text-warning mb-1 outbound-quantity">@Model.Transaction.Outbound.ToString("N3")</h4>
+                                            <small class="text-muted">صادر</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            <div class="col-lg-2 col-md-4 col-sm-6 mb-3">
+                                <div class="stats-mini-card info text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-sort-numeric-up fa-2x text-info mb-2"></i>
+                                        <h4 class="text-info mb-1 transaction-count">@Model.Transaction.Count</h4>
+                                        <small class="text-muted">العدد</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="stats-mini-card primary text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-balance-scale fa-2x text-primary mb-2"></i>
+                                        <h4 class="text-primary mb-1 current-balance">@Model.CurrentItemBalance.ToString("N3")</h4>
+                                        <small class="text-muted">رصيد الكمية الحالي</small>
+                                        @if (hasPositiveBalance)
+                                        {
+                                            <div class="mt-2">
+                                                <button type="button" class="btn btn-outline-danger btn-sm"
+                                                        data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
+                                                    <i class="fas fa-sync-alt me-1"></i>إعادة تعيين
+                                                </button>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <div class="stats-mini-card secondary text-center">
+                                    <div class="card-body">
+                                        <i class="fas fa-calculator fa-2x text-secondary mb-2"></i>
+                                        <h4 class="text-secondary mb-1 current-count-balance">@Model.CurrentItemCountBalance</h4>
+                                        <small class="text-muted">رصيد العدد الحالي</small>
+                                        @if (hasPositiveBalance)
+                                        {
+                                            <div class="mt-2">
+                                                <small class="text-info">
+                                                    <i class="fas fa-info-circle me-1"></i>سيتم تصفير الرصيدين معاً
+                                                </small>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comment Section -->
+                @if (!string.IsNullOrEmpty(Model.Transaction.Comment))
                 {
-                    <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
-                        <i class="fas fa-sync-alt me-1"></i>إعادة تعيين الرصيد
-                    </button>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-primary border-bottom pb-2 mb-3">
+                                <i class="fas fa-comment me-2"></i>البيان والملاحظات
+                            </h6>
+                            <div class="alert alert-light border-start border-4 border-info">
+                                <i class="fas fa-quote-left text-info me-2"></i>
+                                <span class="fs-6">@Model.Transaction.Comment</span>
+                            </div>
+                        </div>
+                    </div>
                 }
+            </div>
+        </div>
+
+        <!-- Related Transactions -->
+        @if (Model.HasRelatedTransactions)
+        {
+            <div class="details-card">
+                <div class="card-header bg-info text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2"></i>المعاملات ذات الصلة لنفس الصنف
+                        </h5>
+                        <span class="badge bg-light text-dark fs-6" id="relatedTransactionsCount">@Model.RelatedTransactionsCount معاملة</span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table related-transactions-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th><i class="fas fa-hashtag me-1"></i>رقم الإذن</th>
+                                    <th><i class="fas fa-calendar me-1"></i>التاريخ</th>
+                                    <th><i class="fas fa-tag me-1"></i>النوع</th>
+                                    <th><i class="fas fa-calculator me-1"></i>الكمية</th>
+                                    <th><i class="fas fa-sort-numeric-up me-1"></i>العدد</th>
+                                    <th><i class="fas fa-balance-scale me-1"></i>رصيد الكمية</th>
+                                    <th><i class="fas fa-calculator me-1"></i>رصيد العدد</th>
+                                    <th><i class="fas fa-building me-1"></i>الجهة</th>
+                                    <th><i class="fas fa-cog me-1"></i>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var transaction in Model.RelatedTransactions)
+                                {
+                                    <tr @(transaction.TransactionId.Contains("ADJ") ? "class=\"table-warning\"" : "")>
+                                        <td>
+                                            <!-- ✅ Transaction ID preserved in Latin -->
+                                            <div class="transaction-id" onclick="copyTransactionId('@transaction.TransactionId')"
+                                                 title="انقر للنسخ">
+                                                @transaction.TransactionId
+                                            </div>
+                                            @if (transaction.TransactionId.Contains("ADJ"))
+                                            {
+                                                <small class="badge bg-warning ms-1">تسوية</small>
+                                            }
+                                        </td>
+                                        <td><span class="related-transaction-date">@transaction.Date.ToString("yyyy-MM-dd")</span></td>
+                                        <td>
+                                            <span class="badge bg-@transaction.TransactionTypeClass fs-6">
+                                                <i class="fas @transaction.TransactionTypeIcon me-1"></i>
+                                                @transaction.TransactionType
+                                            </span>
+                                        </td>
+                                        <td>
+                                            @if (transaction.IsInbound)
+                                            {
+                                                <span class="text-success fw-bold related-inbound">@transaction.TotalInbound.ToString("N3")</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-warning fw-bold related-outbound">@transaction.Outbound.ToString("N3")</span>
+                                            }
+                                        </td>
+                                        <td><span class="fw-bold related-count">@transaction.Count</span></td>
+                                        <td>
+                                            <span class="badge bg-info fs-6 related-quantity-balance">
+                                                @transaction.QuantityBalance.ToString("N3")
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary fs-6 related-count-balance">
+                                                @transaction.CountBalance
+                                            </span>
+                                        </td>
+                                        <td><strong>@transaction.StakeholderName</strong></td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="@Url.Action("Details", new { id = transaction.Id })"
+                                                   class="btn btn-outline-primary" title="عرض التفاصيل">
+                                                    <i class="fas fa-eye"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-outline-info"
+                                                        title="نسخ رقم المعاملة"
+                                                        onclick="copyTransactionId('@transaction.TransactionId')">
+                                                    <i class="fas fa-copy"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Enhanced Action Buttons -->
+        <div class="row">
+            <div class="col-12">
+                <div class="d-flex gap-3 flex-wrap justify-content-center">
+                    <a href="@Url.Action("Overview")" class="btn btn-secondary btn-enhanced">
+                        <i class="fas fa-arrow-left me-2"></i>العودة للقائمة
+                    </a>
+                    <a href="@Url.Action("Inbound")" class="btn btn-success btn-enhanced">
+                        <i class="fas fa-plus-circle me-2"></i>إضافة وارد جديد
+                    </a>
+                    <a href="@Url.Action("Outbound")" class="btn btn-warning btn-enhanced">
+                        <i class="fas fa-plus-circle me-2"></i>إضافة صادر جديد
+                    </a>
+                    @if (hasPositiveBalance)
+                    {
+                        <button type="button" class="btn btn-danger btn-enhanced"
+                                data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
+                            <i class="fas fa-sync-alt me-2"></i>إعادة تعيين الرصيد
+                        </button>
+                    }
+                    <button type="button" class="btn btn-info btn-enhanced no-print" onclick="printDetails()">
+                        <i class="fas fa-print me-2"></i>طباعة
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-enhanced no-print" onclick="shareDetails()">
+                        <i class="fas fa-share-alt me-2"></i>مشاركة
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Reset Balance Modal -->
-<!-- Reset Balance Modal -->
+<!-- Enhanced Reset Balance Modal -->
 @if (hasPositiveBalance)
 {
-    <div class="modal fade" id="resetBalanceModal" tabindex="-1" aria-labelledby="resetBalanceModalLabel" aria-hidden="true">
+    <div class="modal fade modal-enhanced" id="resetBalanceModal" tabindex="-1" aria-labelledby="resetBalanceModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-                <form method="post" action="@Url.Action("ResetBalance")">
+                <form method="post" action="@Url.Action("ResetBalance")" id="resetBalanceForm">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="transactionId" value="@Model.Transaction.Id" />
 
@@ -324,66 +716,106 @@
                     </div>
 
                     <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <strong>تحذير:</strong> سيؤدي هذا الإجراء إلى إعادة تعيين رصيد الصنف الخام إلى صفر نهائياً.
+                        <div class="alert alert-warning border-0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+                                <div>
+                                    <h6 class="mb-1"><strong>تحذير مهم</strong></h6>
+                                    <p class="mb-0">سيؤدي هذا الإجراء إلى إعادة تعيين رصيد الصنف الخام إلى صفر نهائياً.</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <div class="row mb-3">
+                        <div class="row mb-4">
                             <div class="col-md-6">
-                                <h6 class="text-primary">الرصيد الحالي:</h6>
-                                <ul class="list-unstyled">
-                                    <li><strong>الكمية:</strong> <span class="text-danger">@Model.CurrentItemBalance.ToString("N3")</span> كجم/متر</li>
-                                    <li><strong>العدد:</strong> <span class="text-danger">@Model.CurrentItemCountBalance</span> قطعة</li>
-                                </ul>
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white text-center">
+                                        <h6 class="mb-0"><i class="fas fa-minus-circle me-1"></i>الرصيد الحالي</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="mb-2">
+                                            <strong>الكمية:</strong>
+                                            <span class="text-danger fs-5 fw-bold current-balance-display">
+                                                @Model.CurrentItemBalance.ToString("N3")
+                                            </span> متر/كجم
+                                        </div>
+                                        <div>
+                                            <strong>العدد:</strong>
+                                            <span class="text-danger fs-5 fw-bold current-count-balance-display">
+                                                @Model.CurrentItemCountBalance
+                                            </span> قطعة
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <h6 class="text-success">الرصيد بعد التسوية:</h6>
-                                <ul class="list-unstyled">
-                                    <li><strong>الكمية:</strong> <span class="text-success">0.000</span> كجم/متر</li>
-                                    <li><strong>العدد:</strong> <span class="text-success">0</span> قطعة</li>
-                                </ul>
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white text-center">
+                                        <h6 class="mb-0"><i class="fas fa-check-circle me-1"></i>الرصيد بعد التسوية</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="mb-2">
+                                            <strong>الكمية:</strong>
+                                            <span class="text-success fs-5 fw-bold">٠.٠٠٠</span> متر/كجم
+                                        </div>
+                                        <div>
+                                            <strong>العدد:</strong>
+                                            <span class="text-success fs-5 fw-bold">٠</span> قطعة
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <div class="mb-3">
-                            <h6 class="text-info">تفاصيل الصنف الخام:</h6>
-                            <ul class="list-unstyled">
-                                <li><strong>الصنف:</strong> @Model.Transaction.RawItemName</li>
-                                <li><strong>السداء:</strong> @Model.WarpDetails</li>
-                                <li><strong>اللحمة:</strong> @Model.WeftDetails</li>
-                            </ul>
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <h6 class="text-info mb-2">
+                                        <i class="fas fa-info-circle me-1"></i>تفاصيل الصنف الخام
+                                    </h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>الصنف:</strong> @Model.Transaction.RawItemName</li>
+                                        <li><strong>السداء:</strong> @Model.WarpDetails</li>
+                                        <li><strong>اللحمة:</strong> @Model.WeftDetails</li>
+                                    </ul>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="resetReason" class="form-label">
-                                <i class="fas fa-comment me-1"></i>سبب إعادة التعيين (اختياري):
+                            <label for="resetReason" class="form-label fw-bold">
+                                <i class="fas fa-comment me-1 text-primary"></i>سبب إعادة التعيين (اختياري):
                             </label>
                             <textarea id="resetReason" name="reason" class="form-control" rows="3"
                                   placeholder="أدخل سبب إعادة تعيين الرصيد (مثل: جرد سنوي، تسوية مخزون، خطأ في الإدخال...)"></textarea>
                         </div>
 
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle me-2"></i>
-                            <strong>ملاحظة:</strong> سيتم إنشاء معاملة تسوية جديدة برقم إذن يبدأ بـ RAW-ADJ وسيتم تسجيل جميع التفاصيل للمراجعة المستقبلية.
+                        <div class="alert alert-info border-0">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-lightbulb fa-2x text-info me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1"><strong>ملاحظة مهمة</strong></h6>
+                                    <p class="mb-0">سيتم إنشاء معاملة تسوية جديدة برقم إذن يبدأ بـ RAW-ADJ وسيتم تسجيل جميع التفاصيل للمراجعة المستقبلية.</p>
+                                </div>
+                            </div>
                         </div>
 
-                        <!-- Debug Information (remove in production) -->
+                        <!-- Debug Information -->
                         <div class="alert alert-secondary small">
-                            <strong>معلومات المطور:</strong><br>
+                            <strong>معلومات النظام:</strong><br>
                             معرف المعاملة: @Model.Transaction.Id<br>
-                            الرصيد المعروض: @Model.CurrentItemBalance.ToString("N3")<br>
-                            رصيد العدد: @Model.CurrentItemCountBalance<br>
-                            وقت الطلب: 2025-09-02 13:13:22<br>
-                            المستخدم: Ammar-Yasser8
+                            الرصيد المعروض: <span class="debug-balance">@Model.CurrentItemBalance.ToString("N3")</span><br>
+                            رصيد العدد: <span class="debug-count-balance">@Model.CurrentItemCountBalance</span><br>
+                            وقت الطلب: <span class="debug-time">2025-09-04 20:37:37</span><br>
+                            المستخدم: @currentUser
                         </div>
                     </div>
 
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-secondary btn-enhanced" data-bs-dismiss="modal">
                             <i class="fas fa-times me-1"></i>إلغاء
                         </button>
-                        <button type="submit" class="btn btn-danger" onclick="return confirm('هل أنت متأكد من إعادة تعيين الرصيد إلى صفر؟\n\nالرصيد الحالي: @Model.CurrentItemBalance.ToString("N3") كمية، @Model.CurrentItemCountBalance عدد')">
+                        <button type="submit" class="btn btn-danger btn-enhanced" id="confirmResetBtn">
                             <i class="fas fa-sync-alt me-1"></i>تأكيد إعادة التعيين
                         </button>
                     </div>
@@ -392,26 +824,243 @@
         </div>
     </div>
 }
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="text-center">
+        <div class="spinner-border text-light mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        <h6 class="text-white">جاري معالجة الطلب...</h6>
+    </div>
+</div>
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
         $(document).ready(function() {
-            console.log('Raw Transaction Details loaded at 2025-09-02 13:07:13 by Ammar-Yasser8');
+            const CURRENT_TIME = '2025-09-04 20:37:37';
+            const CURRENT_USER = 'Ammar-Yasser8';
+
+            console.log('🏭 Raw Transaction Details initialized at', CURRENT_TIME, 'by', CURRENT_USER);
+
+            // ✅ Convert numbers to Arabic while preserving Transaction IDs
+            convertNumbersToArabic();
+
+            // Real-time clock update
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
+                $('#currentTime').text(toArabicDigits(timeString));
+            }
+            setInterval(updateClock, 1000);
 
             // Handle reset balance form submission
-            $('#resetBalanceModal form').on('submit', function(e) {
-                var reason = $('#resetReason').val().trim();
-                if (reason === '') {
-                    if (!confirm('لم تقم بإدخال سبب إعادة التعيين. هل تريد المتابعة بدون سبب؟')) {
-                        e.preventDefault();
-                        return false;
-                    }
-                }
+            $('#resetBalanceForm').on('submit', function(e) {
+                e.preventDefault();
 
-                // Show loading state
-                $(this).find('button[type="submit"]')
-                    .prop('disabled', true)
-                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التسوية...');
+                const reason = $('#resetReason').val().trim();
+
+                Swal.fire({
+                    title: 'تأكيد إعادة التعيين',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>هل أنت متأكد من إعادة تعيين الرصيد إلى صفر؟</strong></p>
+                            <ul class="list-unstyled">
+                                <li>• الرصيد الحالي: <span class="text-danger">${toArabicDigits('@Model.CurrentItemBalance.ToString("N3")')} كمية</span></li>
+                                <li>• العدد الحالي: <span class="text-danger">${toArabicDigits('@Model.CurrentItemCountBalance.ToString()')} وحدة</span></li>
+                                <li>• سيتم إنشاء معاملة تسوية</li>
+                            </ul>
+                            ${reason ? '<p><strong>السبب:</strong> ' + reason + '</p>' : ''}
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-sync-alt me-1"></i>تأكيد التسوية',
+                    cancelButtonText: '<i class="fas fa-times me-1"></i>إلغاء',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    customClass: {
+                        confirmButton: 'btn btn-danger',
+                        cancelButton: 'btn btn-secondary'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        showLoading();
+
+                        // Show loading state on button
+                        $('#confirmResetBtn')
+                            .prop('disabled', true)
+                            .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التسوية...');
+
+                        // Submit the form
+                        this.submit();
+                    }
+                });
             });
+
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            console.log('✅ Raw Transaction Details ready');
         });
+
+        // ✅ Arabic/Latin conversion functions
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        function isTransactionId(str) {
+            if (typeof str !== 'string') return false;
+
+            var transactionIdPatterns = [
+                /^[A-Z]{2,4}-\d{8}-\d{4}$/,
+                /^[A-Z]{3}-\d{8}-\d{4}$/,
+                /^[A-Z]{2}-\d{8}-\d{4}$/,
+                /^\d{8}-\d{4}$/,
+                /^R\d{10,}$/,
+                /^RAW\d{8,}$/,
+                /^MTR-\d{8}-\d{4}$/,
+                /^RAW-ADJ-\d{8}-\d{4}$/
+            ];
+
+            return transactionIdPatterns.some(pattern => pattern.test(str));
+        }
+
+        function toArabicDigitsExceptTransactionId(str) {
+            if (typeof str !== 'string') str = str.toString();
+
+            if (isTransactionId(str)) {
+                return str;
+            }
+
+            return toArabicDigits(str);
+        }
+
+        // ✅ Convert numbers to Arabic while preserving Transaction IDs
+        function convertNumbersToArabic() {
+            console.log('🔄 Converting numbers to Arabic at 2025-09-04 20:37:37');
+
+            // Convert current time in header
+            $('#currentTime').text(toArabicDigits($('#currentTime').text()));
+
+            // Convert quantities
+            $('.inbound-meters, .inbound-kg, .outbound-quantity').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.transaction-count').text(toArabicDigits($('.transaction-count').text()));
+            $('.current-balance').text(toArabicDigits($('.current-balance').text()));
+            $('.current-count-balance').text(toArabicDigits($('.current-count-balance').text()));
+
+            // Convert dates
+            $('.transaction-date').text(toArabicDigits($('.transaction-date').text()));
+            $('.related-transaction-date').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            // Convert related transactions
+            $('.related-inbound, .related-outbound').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.related-count').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.related-quantity-balance, .related-count-balance').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            // Convert modal debug info
+            $('.debug-balance').text(toArabicDigits($('.debug-balance').text()));
+            $('.debug-count-balance').text(toArabicDigits($('.debug-count-balance').text()));
+            $('.debug-time').text(toArabicDigits($('.debug-time').text()));
+            $('.current-balance-display').text(toArabicDigits($('.current-balance-display').text()));
+            $('.current-count-balance-display').text(toArabicDigits($('.current-count-balance-display').text()));
+
+            // Convert related transactions count
+            $('#relatedTransactionsCount').text(toArabicDigits($('#relatedTransactionsCount').text()));
+
+            // Convert internal/external IDs only if they're not transaction IDs
+            $('.internal-id-display, .external-id-display').each(function() {
+                var text = $(this).text();
+                $(this).text(toArabicDigitsExceptTransactionId(text));
+            });
+
+            // Transaction IDs are NOT converted - they stay in Latin
+            console.log('✅ Numbers converted to Arabic (Transaction IDs preserved)');
+        }
+
+        // ✅ Copy Transaction ID functionality
+        function copyTransactionId(transactionId) {
+            try {
+                const tempInput = document.createElement('input');
+                tempInput.value = transactionId;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم النسخ',
+                    text: `رقم المعاملة: ${transactionId}`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+
+                console.log('✅ Transaction ID copied:', transactionId, 'at 2025-09-04 20:37:37');
+            } catch (error) {
+                console.error('❌ Error copying transaction ID:', error);
+                prompt('انسخ رقم المعاملة من هنا:', transactionId);
+            }
+        }
+
+        // Utility functions
+        function showLoading() {
+            $('#loadingOverlay').css('display', 'flex');
+        }
+
+        function hideLoading() {
+            $('#loadingOverlay').hide();
+        }
+
+        function printDetails() {
+            window.print();
+        }
+
+        function shareDetails() {
+            const transactionId = '@Model.Transaction.TransactionId';
+            const transactionType = '@Model.Transaction.TransactionType';
+            const rawItemName = '@Model.Transaction.RawItemName';
+            const currentBalance = '@Model.CurrentItemBalance.ToString("N3")';
+
+            const shareText = `تفاصيل معاملة ${transactionType}\n` +
+                             `رقم المعاملة: ${transactionId}\n` +
+                             `الصنف: ${rawItemName}\n` +
+                             `الرصيد الحالي: ${toArabicDigits(currentBalance)} متر\n` +
+                             `التاريخ: ${toArabicDigits('2025-09-04 20:37:37')}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'تفاصيل معاملة المواد الخام',
+                    text: shareText
+                });
+            } else {
+                copyTransactionId(shareText);
+            }
+        }
+
+        console.log('✅ Raw Transaction Details scripts loaded at 2025-09-04 20:37:37 by Ammar-Yasser8');
     </script>
 }

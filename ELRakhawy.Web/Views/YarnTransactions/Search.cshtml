@@ -4,190 +4,231 @@
 @{
     ViewData["Title"] = "البحث في معاملات الغزل";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var currentTime = "2025-09-01 12:10:10";
+    var currentTime = "2025-09-04 20:06:09"; // ✅ Updated current time
     var currentUser = "Ammar-Yasser8";
 }
 
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/@@ttskch/select2-bootstrap4-theme/dist/select2-bootstrap4.min.css" rel="stylesheet" />
-    <style>
-        :root {
-            --primary-color: #4e73df;
-            --success-color: #1cc88a;
-            --info-color: #36b9cc;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --light-color: #f8f9fc;
-            --transition: all 0.3s ease;
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/@@ttskch/select2-bootstrap4-theme/dist/select2-bootstrap4.min.css" rel="stylesheet" />
+<style>
+    :root {
+        --primary-color: #4e73df;
+        --success-color: #1cc88a;
+        --info-color: #36b9cc;
+        --warning-color: #f6c23e;
+        --danger-color: #e74a3b;
+        --light-color: #f8f9fc;
+        --transition: all 0.3s ease;
+    }
+
+    .search-container {
+        background: var(--light-color);
+        min-height: 100vh;
+        padding: 1.5rem 0;
+    }
+
+    .session-info {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    }
+
+    .search-card {
+        border: none;
+        border-radius: 1rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        overflow: hidden;
+    }
+
+    .search-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
+        color: white;
+        padding: 1.5rem;
+    }
+
+    .filter-section {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d3e2;
+        transition: var(--transition);
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
         }
 
-        .search-container {
-            background: var(--light-color);
-            min-height: 100vh;
-            padding: 1.5rem 0;
+    .btn {
+        border-radius: 0.5rem;
+        transition: var(--transition);
+    }
+
+        .btn:hover {
+            transform: translateY(-1px);
         }
 
-        .session-info {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
-            color: white;
-            padding: 1rem 1.5rem;
-            border-radius: 1rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    .stats-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        transition: var(--transition);
+    }
+
+        .stats-card:hover {
+            transform: translateY(-2px);
         }
 
-        .search-card {
-            border: none;
-            border-radius: 1rem;
-            box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            overflow: hidden;
+    .stat-item {
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 0.25rem;
+    }
+
+    .results-table {
+        background: white;
+        border-radius: 1rem;
+        overflow: hidden;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .table th {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+
+    .table td {
+        border-color: #e3e6f0;
+        vertical-align: middle;
+    }
+
+    .select2-container--bootstrap4 .select2-selection {
+        border-radius: 0.5rem;
+        border: 1px solid #d1d3e2;
+    }
+
+    .select2-container--bootstrap4 .select2-selection--single {
+        height: calc(2.25rem + 2px);
+    }
+
+    .toast {
+        border-radius: 0.75rem;
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    }
+
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        z-index: 9999;
+    }
+
+    .loading-spinner {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: white;
+    }
+
+    /* ✅ Transaction ID styling - make them copyable and keep Latin */
+    .transaction-id {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background-color: rgba(13, 110, 253, 0.1);
+        border: 1px dashed rgba(13, 110, 253, 0.3);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        letter-spacing: 0.5px;
+        color: #0d6efd;
+    }
+
+        .transaction-id:hover {
+            background-color: rgba(13, 110, 253, 0.2);
+            border-color: rgba(13, 110, 253, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
 
-        .search-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
-            color: white;
-            padding: 1.5rem;
+        .transaction-id::after {
+            content: ' 📋';
+            opacity: 0;
+            transition: opacity 0.2s ease;
         }
 
-        .filter-section {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        .transaction-id:hover::after {
+            opacity: 1;
         }
 
-        .form-control, .form-select {
-            border-radius: 0.5rem;
-            border: 1px solid #d1d3e2;
-            transition: var(--transition);
-        }
+    @@media (max-width: 768px) {
+        .search-container
 
-            .form-control:focus, .form-select:focus {
-                border-color: var(--primary-color);
-                box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
-            }
+    {
+        padding: 1rem 0;
+    }
 
-        .btn {
-            border-radius: 0.5rem;
-            transition: var(--transition);
-        }
+    .session-info {
+        text-align: center;
+    }
 
-            .btn:hover {
-                transform: translateY(-1px);
-            }
+    .filter-section {
+        padding: 1rem;
+    }
 
-        .stats-card {
-            background: white;
-            border-radius: 1rem;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-            transition: var(--transition);
-        }
+    .table {
+        font-size: 0.875rem;
+    }
 
-            .stats-card:hover {
-                transform: translateY(-2px);
-            }
+    .stat-item {
+        margin-bottom: 1rem;
+    }
 
-        .stat-item {
-            text-align: center;
-            padding: 1rem;
-        }
+    .transaction-id::after {
+        display: none;
+    }
 
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 0.25rem;
-        }
+    }
 
-        .results-table {
-            background: white;
-            border-radius: 1rem;
-            overflow: hidden;
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        }
+    @@media print {
+        .no-print
 
-        .table th {
-            background: var(--primary-color);
-            color: white;
-            border: none;
-            font-weight: 600;
-        }
+    {
+        display: none !important;
+    }
 
-        .table td {
-            border-color: #e3e6f0;
-            vertical-align: middle;
-        }
+    .search-card {
+        box-shadow: none;
+    }
 
-        .select2-container--bootstrap4 .select2-selection {
-            border-radius: 0.5rem;
-            border: 1px solid #d1d3e2;
-        }
+    .transaction-id {
+        background: none !important;
+        border: none !important;
+        color: black !important;
+    }
 
-        .select2-container--bootstrap4 .select2-selection--single {
-            height: calc(2.25rem + 2px);
-        }
-
-        .toast {
-            border-radius: 0.75rem;
-            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-        }
-
-        .loading-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            z-index: 9999;
-        }
-
-        .loading-spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-        }
-
-        @@media (max-width: 768px) {
-            .search-container
-
-        {
-            padding: 1rem 0;
-        }
-
-        .session-info {
-            text-align: center;
-        }
-
-        .filter-section {
-            padding: 1rem;
-        }
-
-        .table {
-            font-size: 0.875rem;
-        }
-
-        .stat-item {
-            margin-bottom: 1rem;
-        }
-
-        }
-
-        @@media print {
-            .no-print
-
-        {
-            display: none !important;
-        }
-
-        .search-card {
-            box-shadow: none;
-        }
-
-        }</style>
+    }</style>
 
 <div class="search-container">
     <div class="container-fluid">
@@ -293,7 +334,7 @@
                                 <i class="fas fa-hashtag text-primary me-1"></i>رقم المعاملة
                             </label>
                             @Html.TextBoxFor(m => m.TransactionId, new {
-                                                        @class = "form-control",
+                                                        @class = "form-control transaction-id-input",
                                                         @placeholder = "أدخل رقم المعاملة",
                                                         @id = "TransactionId"
                                                         })
@@ -383,7 +424,7 @@
                             <div class="col-md-3 col-sm-6">
                                 <div class="stats-card p-3">
                                     <div class="stat-item">
-                                        <div class="stat-value text-primary">@Model.TotalTransactions</div>
+                                        <div class="stat-value text-primary" id="totalTransactions">@Model.TotalTransactions</div>
                                         <div class="text-muted small">إجمالي المعاملات</div>
                                     </div>
                                 </div>
@@ -391,7 +432,7 @@
                             <div class="col-md-3 col-sm-6">
                                 <div class="stats-card p-3">
                                     <div class="stat-item">
-                                        <div class="stat-value text-success">@Model.TotalInbound.ToString("N2")</div>
+                                        <div class="stat-value text-success" id="totalInbound">@Model.TotalInbound.ToString("N2")</div>
                                         <div class="text-muted small">إجمالي الوارد (كجم)</div>
                                     </div>
                                 </div>
@@ -399,7 +440,7 @@
                             <div class="col-md-3 col-sm-6">
                                 <div class="stats-card p-3">
                                     <div class="stat-item">
-                                        <div class="stat-value text-danger">@Model.TotalOutbound.ToString("N2")</div>
+                                        <div class="stat-value text-danger" id="totalOutbound">@Model.TotalOutbound.ToString("N2")</div>
                                         <div class="text-muted small">إجمالي الصادر (كجم)</div>
                                     </div>
                                 </div>
@@ -407,7 +448,7 @@
                             <div class="col-md-3 col-sm-6">
                                 <div class="stats-card p-3">
                                     <div class="stat-item">
-                                        <div class="stat-value @(Model.NetBalance >= 0 ? "text-success" : "text-danger")">
+                                        <div class="stat-value @(Model.NetBalance >= 0 ? "text-success" : "text-danger")" id="netBalance">
                                             @Model.NetBalance.ToString("N2")
                                         </div>
                                         <div class="text-muted small">الرصيد الصافي (كجم)</div>
@@ -443,19 +484,22 @@
                                             {
                                                 <tr>
                                                     <td>
-                                                        <div class="fw-bold">@item.TransactionId</div>
+                                                        <!-- ✅ Transaction ID stays in Latin and is copyable -->
+                                                        <div class="transaction-id" onclick="copyTransactionId('@item.TransactionId')" title="انقر للنسخ">
+                                                            @item.TransactionId
+                                                        </div>
                                                         @if (!string.IsNullOrEmpty(item.InternalId))
                                                         {
-                                                            <small class="text-muted d-block">داخلي: @item.InternalId</small>
+                                                            <small class="text-muted d-block internal-id">داخلي: @item.InternalId</small>
                                                         }
                                                         @if (!string.IsNullOrEmpty(item.ExternalId))
                                                         {
-                                                            <small class="text-muted d-block">خارجي: @item.ExternalId</small>
+                                                            <small class="text-muted d-block external-id">خارجي: @item.ExternalId</small>
                                                         }
                                                     </td>
                                                     <td>
-                                                        <span class="fw-bold">@item.Date.ToString("dd/MM/yyyy")</span>
-                                                        <small class="text-muted d-block">@item.Date.ToString("HH:mm")</small>
+                                                        <span class="fw-bold transaction-date">@item.Date.ToString("dd/MM/yyyy")</span>
+                                                        <small class="text-muted d-block transaction-time">@item.Date.ToString("HH:mm")</small>
                                                     </td>
                                                     <td>
                                                         <span class="fw-bold text-primary">@item.YarnItemName</span>
@@ -477,18 +521,18 @@
                                                             </span>
                                                         }
                                                     </td>
-                                                    <td class="@(item.IsInbound ? "text-success" : "text-danger") fw-bold">
+                                                    <td class="@(item.IsInbound ? "text-success" : "text-danger") fw-bold quantity-value">
                                                         @item.Quantity.ToString("N2")
                                                     </td>
-                                                    <td class="fw-bold">@item.Count</td>
+                                                    <td class="fw-bold count-value">@item.Count</td>
                                                     <td>
                                                         <span class="badge bg-info rounded-pill">@item.StakeholderTypeName</span>
                                                     </td>
                                                     <td>
                                                         <span class="fw-bold">@item.StakeholderName</span>
                                                     </td>
-                                                    <td class="fw-bold">@item.QuantityBalance.ToString("N2")</td>
-                                                    <td class="fw-bold">@item.CountBalance</td>
+                                                    <td class="fw-bold balance-quantity">@item.QuantityBalance.ToString("N2")</td>
+                                                    <td class="fw-bold balance-count">@item.CountBalance</td>
                                                     <td>
                                                         @if (!string.IsNullOrEmpty(item.Comment))
                                                         {
@@ -512,7 +556,7 @@
                                     <div class="d-flex justify-content-between align-items-center">
                                         <div class="text-muted">
                                             <i class="fas fa-info-circle me-1"></i>
-                                            عرض @Model.Results.Count() من إجمالي @Model.TotalTransactions معاملة
+                                            عرض <span id="resultsCount">@Model.Results.Count()</span> من إجمالي <span id="totalCount">@Model.TotalTransactions</span> معاملة
                                         </div>
                                         <div class="d-flex gap-2">
                                             <button type="button" class="btn btn-success btn-sm" onclick="exportToExcel()">
@@ -568,6 +612,8 @@
             const CURRENT_USER = '@currentUser';
             const CURRENT_TIME = '@currentTime';
 
+            console.log('🔍 Search page initialized at', CURRENT_TIME, 'by', CURRENT_USER);
+
             // Initialize Select2
             $('.select2-yarn, .select2-type, .select2-stakeholder').select2({
                 theme: 'bootstrap4',
@@ -576,11 +622,14 @@
                 width: '100%'
             });
 
+            // ✅ Convert numbers to Arabic while preserving Transaction IDs
+            convertNumbersToArabic();
+
             // Real-time clock update
             function updateClock() {
                 const now = new Date();
                 const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
-                $('#currentTime').text(timeString);
+                $('#currentTime').text(toArabicDigits(timeString));
             }
             setInterval(updateClock, 1000);
 
@@ -646,7 +695,120 @@
                     updateClock();
                 }, 300000); // 5 minutes
             }
+
+            console.log('✅ Search page ready');
         });
+
+        // ✅ Arabic/Latin conversion functions
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        function isTransactionId(str) {
+            if (typeof str !== 'string') return false;
+
+            var transactionIdPatterns = [
+                /^[A-Z]{2,4}-\d{8}-\d{4}$/,  // TXN-20250904-0001
+                /^[A-Z]{3}-\d{8}-\d{4}$/,    // OUT-20250904-0001
+                /^[A-Z]{2}-\d{8}-\d{4}$/,    // IN-20250904-0001
+                /^\d{8}-\d{4}$/,             // 20250904-0001
+                /^T\d{10,}$/,                // T1725476398001
+                /^TXN\d{8,}$/,               // TXN20250904001
+                /^RST-\d{8}-\d{4}$/          // RST-20250904-0001
+            ];
+
+            return transactionIdPatterns.some(pattern => pattern.test(str));
+        }
+
+        function toArabicDigitsExceptTransactionId(str) {
+            if (typeof str !== 'string') str = str.toString();
+
+            if (isTransactionId(str)) {
+                return str; // Keep Transaction IDs in Latin
+            }
+
+            return toArabicDigits(str);
+        }
+
+        // ✅ Convert numbers to Arabic while preserving Transaction IDs
+        function convertNumbersToArabic() {
+            console.log('🔄 Converting numbers to Arabic at', CURRENT_TIME);
+
+            // Convert statistics
+            $('#totalTransactions').text(toArabicDigits($('#totalTransactions').text()));
+            $('#totalInbound').text(toArabicDigits($('#totalInbound').text()));
+            $('#totalOutbound').text(toArabicDigits($('#totalOutbound').text()));
+            $('#netBalance').text(toArabicDigits($('#netBalance').text()));
+            $('#resultsCount').text(toArabicDigits($('#resultsCount').text()));
+            $('#totalCount').text(toArabicDigits($('#totalCount').text()));
+
+            // Convert current time in header
+            $('#currentTime').text(toArabicDigits($('#currentTime').text()));
+
+            // Convert table values BUT preserve Transaction IDs
+            $('.transaction-date').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.transaction-time').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.quantity-value').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.count-value').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.balance-quantity').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.balance-count').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            // Convert internal/external IDs only if they're not transaction IDs
+            $('.internal-id, .external-id').each(function() {
+                var text = $(this).text();
+                // Extract the ID part after "داخلي: " or "خارجي: "
+                var parts = text.split(': ');
+                if (parts.length === 2) {
+                    var idPart = parts[1];
+                    var convertedId = toArabicDigitsExceptTransactionId(idPart);
+                    $(this).text(parts[0] + ': ' + convertedId);
+                }
+            });
+
+            // Transaction IDs are NOT converted - they stay in Latin (handled by CSS class .transaction-id)
+            console.log('✅ Numbers converted to Arabic (Transaction IDs preserved)');
+        }
+
+        // ✅ Copy Transaction ID functionality
+        function copyTransactionId(transactionId) {
+            try {
+                const tempInput = document.createElement('input');
+                tempInput.value = transactionId;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+
+                showToast('success', 'تم النسخ', `رقم المعاملة: ${transactionId}`);
+                console.log('✅ Transaction ID copied:', transactionId, 'at', CURRENT_TIME);
+            } catch (error) {
+                console.error('❌ Error copying transaction ID:', error);
+                prompt('انسخ رقم المعاملة من هنا:', transactionId);
+            }
+        }
 
         // Utility functions
         function showLoading() {
@@ -778,9 +940,16 @@
             window.getSelection().removeAllRanges();
         }
 
+        // Keep Transaction ID input in Latin
+        $('#TransactionId').on('input', function() {
+            // Don't convert Transaction ID search input - keep it Latin for searching
+        });
+
         // Hide loading on page load
         $(window).on('load', function() {
             hideLoading();
         });
+
+        console.log('✅ Search page scripts loaded at', CURRENT_TIME, 'by', CURRENT_USER);
     </script>
 }

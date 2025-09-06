@@ -247,7 +247,6 @@
         </div>
     </div>
 </div>
-
 @section Scripts {
     <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
@@ -296,27 +295,196 @@
                 }
             })();
 
-            // Initialize Arabic date picker (Flatpickr) on #Date
-            if (window.flatpickr) {
-                flatpickr.localize(flatpickr.l10ns.ar);
-                flatpickr('#Date', {
-                    dateFormat: 'Y-m-d',
-                    locale: 'ar',
-                    allowInput: true,
-                    disableMobile: false,
-                    onReady: function(selectedDates, dateStr, instance) {
-                        $('#Date').val(toArabicDigits($('#Date').val()));
-                    },
-                    onChange: function(selectedDates, dateStr, instance) {
-                        $('#Date').val(toArabicDigits(dateStr));
-                        validateDateImmediate();
-                    },
-                    onValueUpdate: function(selectedDates, dateStr) {
-                        $('#Date').val(toArabicDigits(dateStr));
-                        validateDateImmediate();
-                    }
-                });
+                    // Initialize Arabic date picker (Flatpickr) on #Date
+        if (window.flatpickr) {
+            flatpickr.localize(flatpickr.l10ns.ar);
+
+            // Get initial date value and convert to Latin for Flatpickr
+            var initialDate = toLatinDigits($('#Date').val() || '');
+            if (!initialDate || !isValidDate(initialDate)) {
+                var today = new Date();
+                initialDate = today.getFullYear() + '-' +
+                             String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                             String(today.getDate()).padStart(2, '0');
+                $('#Date').val(toArabicDigits(initialDate));
             }
+
+            // Store the current date value before initializing Flatpickr
+            var currentDateValue = $('#Date').val();
+
+            var datePicker = flatpickr('#Date', {
+                dateFormat: 'Y-m-d',
+                locale: 'ar',
+                allowInput: true,
+                clickOpens: true,
+                disableMobile: true,
+                defaultDate: initialDate,
+
+                onReady: function(selectedDates, dateStr, instance) {
+                    // Ensure the input value is maintained
+                    $('#Date').val(currentDateValue);
+                    validateDateImmediate();
+                },
+
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Convert to Arabic digits for display
+                    var arabicDate = toArabicDigits(dateStr);
+                    $('#Date').val(arabicDate);
+                    validateDateImmediate();
+                },
+
+                onValueUpdate: function(selectedDates, dateStr, instance) {
+                    // Convert to Arabic digits for display
+                    var arabicDate = toArabicDigits(dateStr);
+                    $('#Date').val(arabicDate);
+                    validateDateImmediate();
+                },
+
+                onClose: function(selectedDates, dateStr, instance) {
+                    // Ensure the value is maintained when calendar closes
+                    if (!dateStr && $('#Date').val() === '') {
+                        $('#Date').val(currentDateValue);
+                    } else if (dateStr) {
+                        var arabicDate = toArabicDigits(dateStr);
+                        $('#Date').val(arabicDate);
+                    }
+                    validateDateImmediate();
+                },
+
+                onDestroy: function(selectedDates, dateStr, instance) {
+                    // Backup mechanism to preserve value
+                    if ($('#Date').val() === '' && currentDateValue) {
+                        $('#Date').val(currentDateValue);
+                    }
+                }
+            });
+
+            // Add click handler to the document to detect clicks outside
+            $(document).on('click', function(e) {
+                // If click is outside the date input and calendar
+                if (!$(e.target).closest('#Date, .flatpickr-calendar').length) {
+                    // Validate but don't clear the field
+                    validateDateImmediate();
+
+                    // If the field is empty but we have a previous value, restore it
+                    if ($('#Date').val() === '' && currentDateValue) {
+                        $('#Date').val(currentDateValue);
+                    }
+                }
+            });
+
+            // Also handle the calendar icon separately
+            $('.calendar-icon').on('click', function(e) {
+                e.preventDefault();
+                datePicker.open();
+            });
+        }
+
+            // Handle numeric input conversion (quantity, length) - show Arabic, store Latin
+            $(document).on("input", "#Quantity, #Length", function() {
+                let input = this;
+                let val = input.value;
+
+                if (val.length > 0) {
+                    // Convert any Arabic digits to Latin for processing
+                    let latinVal = toLatinDigits(val);
+
+                    // Only allow numbers and decimal point (for quantity)
+                    if (input.id === 'Quantity') {
+                        latinVal = latinVal.replace(/[^\d.]/g, '');
+
+                        // Ensure only one decimal point
+                        let parts = latinVal.split('.');
+                        if (parts.length > 2) {
+                            latinVal = parts[0] + '.' + parts.slice(1).join('');
+                        }
+                    } else {
+                        // For length, only allow integers
+                        latinVal = latinVal.replace(/[^\d]/g, '');
+                    }
+
+                    // Convert back to Arabic for display
+                    let arabicVal = toArabicDigits(latinVal);
+
+                    if (arabicVal !== val) {
+                        let cursorPos = input.selectionStart;
+                        input.value = arabicVal;
+                        // Adjust cursor position for any changes
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    }
+                }
+            });
+
+            // Handle date input with better preservation
+        $(document).on("input blur", "#Date", function(e) {
+            let input = this;
+            let val = input.value;
+
+            // If it's a blur event and the field is empty, restore previous value
+            if (e.type === 'blur' && val === '' && currentDateValue) {
+                input.value = currentDateValue;
+                return;
+            }
+
+            if (val.length > 0) {
+                // Convert any Arabic digits to Latin but keep the date format
+                let latinVal = toLatinDigits(val);
+
+                // Only allow numbers and hyphens
+                latinVal = latinVal.replace(/[^\d-]/g, '');
+
+                // Auto-insert hyphens in the right places (yyyy-mm-dd format)
+                if (latinVal.length > 4 && latinVal.charAt(4) !== '-') {
+                    latinVal = latinVal.substring(0, 4) + '-' + latinVal.substring(4);
+                }
+                if (latinVal.length > 7 && latinVal.charAt(7) !== '-') {
+                    latinVal = latinVal.substring(0, 7) + '-' + latinVal.substring(7);
+                }
+
+                // Limit to 10 characters (yyyy-mm-dd)
+                if (latinVal.length > 10) {
+                    latinVal = latinVal.substring(0, 10);
+                }
+
+                // Convert back to Arabic for display but keep the format
+                let arabicVal = toArabicDigits(latinVal);
+
+                if (arabicVal !== val) {
+                    let cursorPos = input.selectionStart;
+                    input.value = arabicVal;
+                    // Adjust cursor position for any changes
+                    input.setSelectionRange(cursorPos, cursorPos);
+                }
+
+                // Update the stored value
+                currentDateValue = input.value;
+            }
+
+            // Validate after input
+            setTimeout(function() {
+                validateDateImmediate();
+            }, 100);
+        });
+
+            // Handle date field blur - don't clear on blur, just validate
+            $(document).on('blur', '#Date', function() {
+                // Don't clear the field, just validate
+                validateDateImmediate();
+            });
+
+            // For other text inputs (not date or numeric), convert to Arabic
+            $(document).on("input", "#fullWarpBeamTransactionForm input[type='text']:not(#Date, #Quantity, #Length), #fullWarpBeamTransactionForm textarea", function() {
+                let input = this;
+                let val = input.value;
+                if (val.length > 0) {
+                    let newVal = toArabicDigits(val);
+                    if (newVal !== val) {
+                        let cursorPos = input.selectionStart;
+                        input.value = newVal;
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    }
+                }
+            });
 
             // Handle full warp beam item selection change
             $('#FullWarpBeamItemId').on('change', function () {
@@ -367,11 +535,11 @@
                     },
                     success: function(response) {
                         console.log('Balance response:', response);
-                        
+
                         if (response && response.success) {
                             var quantityBalance = response.quantityBalance || 0;
                             var lengthBalance = response.lengthBalance || 0;
-                            
+
                             // Format balances using Arabic digits
                             var quantityBalanceAr = toArabicDigits(quantityBalance.toFixed(3).toString());
                             var lengthBalanceAr = toArabicDigits(lengthBalance.toString());
@@ -417,7 +585,7 @@
                 var lBalAr = toArabicDigits((data.lengthBalance || 0).toString());
                 var tCountAr = toArabicDigits((data.transactionCount || 0).toString());
                 var lastDateAr = toArabicDigits((data.lastTransactionDate || '').toString());
-                
+
                 var infoHtml = `
                     <div class="row">
                         <div class="col-md-3">
@@ -456,7 +624,7 @@
                         </div>
                     </div>
                 `;
-                
+
                 $('#balanceInfo').html(infoHtml);
                 $('#balanceInfoCard').fadeIn();
             }
@@ -533,28 +701,41 @@
 
             // Form submission handler
             $('#fullWarpBeamTransactionForm').on('submit', function(e) {
-                // Convert Arabic numbers to Latin before submission
-                var qtyLatin = toLatinDigits($('#Quantity').val() || '0');
-                var lengthLatin = toLatinDigits($('#Length').val() || '0');
-                var dateLatin = toLatinDigits($('#Date').val() || '');
-                
-                console.log('Form submission - converting values:', {
-                    quantityOriginal: $('#Quantity').val(),
-                    quantityLatin: qtyLatin,
-                    lengthOriginal: $('#Length').val(),
-                    lengthLatin: lengthLatin
-                });
-                
-                $('#Quantity').val(qtyLatin);
-                $('#Length').val(lengthLatin);
-                $('#Date').val(dateLatin);
+                // Convert Arabic digits to Latin for processing before submission
+                $('#Quantity').val(toLatinDigits($('#Quantity').val() || ''));
+                $('#Length').val(toLatinDigits($('#Length').val() || ''));
+
+                // Date is already in Latin format (yyyy-mm-dd) from our input handler
+                // No need to convert it
 
                 var validation = validateForm();
-                
+
                 if (!validation.isValid) {
                     e.preventDefault();
                     showValidationErrors(validation.errors);
                     return false;
+                }
+
+                // Check balance for outbound transactions
+                if (!IS_INBOUND) {
+                    var quantity = parseFloat(toLatinDigits($('#Quantity').val())) || 0;
+                    var currentBalanceText = $('#currentBalanceDisplay').text();
+                    // accept Arabic or Latin digits
+                    var balanceMatch = toLatinDigits(currentBalanceText).match(/(\d+\.?\d*)\s*كجم/);
+
+                    if (balanceMatch) {
+                        var currentBalance = parseFloat(balanceMatch[1]);
+                        if (quantity > currentBalance) {
+                            e.preventDefault();
+                            Swal.fire({
+                                title: 'تحذير',
+                                text: `الكمية المطلوبة (${toArabicDigits(quantity.toFixed(3))} كجم) أكبر من الرصيد المتاح (${toArabicDigits(currentBalance.toFixed(3))} كجم)`,
+                                icon: 'warning',
+                                confirmButtonText: 'موافق'
+                            });
+                            return false;
+                        }
+                    }
                 }
 
                 // Show loading state
@@ -586,7 +767,7 @@
                         </div>
                         <div class="col-md-6">
                             <p><strong>الجهة:</strong> ${data.stakeholder}</p>
-                            <p><strong>التاريخ:</strong> ${toArabicDigits((data.date || '').toString())}</p>
+                            <p><strong>التاريخ:</strong> ${toArabicDigits((data.date || '').toString().replace(/-/g, '-'))}</p>
                             <p><strong>رقم الإذن الداخلي:</strong> ${data.internalId}</p>
                             <p><strong>رقم الإذن الخارجي:</strong> ${data.externalId}</p>
                         </div>
@@ -616,6 +797,9 @@
             if (initialItemId) {
                 fetchFullWarpBeamItemBalance(parseInt(initialItemId));
             }
+
+            // Auto-hide alerts
+            $('.alert').delay(5000).fadeOut(350);
 
             console.log('Full warp beam transaction form initialized successfully');
         });
@@ -668,97 +852,146 @@
             $('html, body').animate({ scrollTop: 0 }, 500);
         }
 
-        // Function to convert to Arabic digits
+        // دالة لتحويل الأرقام للغة العربية
         function toArabicDigits(str) {
-            if (!str) return str;
+            if (!str) return '';
             return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
         }
 
-        // Function to convert to Latin digits
+        // دالة لتحويل الأرقام للاتينية
         function toLatinDigits(str) {
-            if (!str) return str;
+            if (!str) return '';
             return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
         }
 
-        // Function to detect Arabic character
-        function isArabicChar(c) {
-            return /[\u0600-\u06FF]/.test(c);
+        // Check if a date string is valid
+        function isValidDate(dateString) {
+            var regex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!regex.test(dateString)) return false;
+
+            var parts = dateString.split('-');
+            var year = parseInt(parts[0], 10);
+            var month = parseInt(parts[1], 10);
+            var day = parseInt(parts[2], 10);
+
+            if (month < 1 || month > 12) return false;
+
+            var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            var maxDay = daysInMonth[month - 1];
+
+            if (day < 1 || day > maxDay) return false;
+
+            var dateObj = new Date(year, month - 1, day);
+            return !isNaN(dateObj.getTime()) &&
+                   dateObj.getFullYear() === year &&
+                   dateObj.getMonth() + 1 === month &&
+                   dateObj.getDate() === day;
         }
 
-        // Function to detect English character
-        function isEnglishChar(c) {
-            return /[a-zA-Z]/.test(c);
-        }
-
-        // Validate date immediately
+               // Validate date immediately - handles both Arabic and Latin digits
         function validateDateImmediate() {
             var $date = $('#Date');
             var $msg = $("span[data-valmsg-for='Date']");
-            var valueAr = ($date.val() || '').trim();
-            var value = toLatinDigits(valueAr);
+            var value = ($date.val() || '').trim();
 
-            // Basic format check
-            var match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (!match) {
-                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd');
-                $date.addClass('is-invalid');
+            // If empty but we have a stored value, restore it
+            if (!value && currentDateValue) {
+                $date.val(currentDateValue);
+                value = currentDateValue;
+            }
+
+            // Check if empty
+            if (!value) {
+                $msg.text('يجب تحديد تاريخ المعاملة');
+                $date.removeClass('is-valid').addClass('is-invalid');
                 return false;
             }
 
+            // Convert Arabic digits to Latin for validation
+            var latinValue = toLatinDigits(value);
+
+            // Basic format check (yyyy-mm-dd)
+            var regex = /^(\d{4})-(\d{2})-(\d{2})$/;
+            var match = regex.exec(latinValue);
+
+            if (!match) {
+                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd (مثال: ٢٠٢٣-١٢-٣١)');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                return false;
+            }
+
+            // Extract year, month, day from the match groups
             var year = parseInt(match[1], 10);
             var month = parseInt(match[2], 10);
             var day = parseInt(match[3], 10);
 
+            // Validate month range
             if (month < 1 || month > 12) {
-                $msg.text('الشهر غير صحيح (1-12)');
-                $date.addClass('is-invalid');
+                $msg.text('الشهر غير صحيح (١-١٢)');
+                $date.removeClass('is-valid').addClass('is-invalid');
                 return false;
             }
 
+            // Validate day range based on month
             var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
             var maxDay = daysInMonth[month - 1];
 
             if (day < 1 || day > maxDay) {
                 $msg.text('اليوم غير صحيح لهذا الشهر');
-                $date.addClass('is-invalid');
+                $date.removeClass('is-valid').addClass('is-invalid');
                 return false;
             }
 
+            // Final validation using Date object
+            var dateObj = new Date(year, month - 1, day);
+            if (isNaN(dateObj.getTime()) ||
+                dateObj.getFullYear() !== year ||
+                dateObj.getMonth() + 1 !== month ||
+                dateObj.getDate() !== day) {
+                $msg.text('تاريخ غير صحيح');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                return false;
+            }
+
+            // Update stored value
+            currentDateValue = value;
+
             $msg.text('');
-            $date.removeClass('is-invalid');
+            $date.removeClass('is-invalid').addClass('is-valid');
             return true;
         }
-
+        // Check if a year is a leap year
         function isLeapYear(y) {
             return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
         }
 
-        // Handle Arabic number input in real-time
-        $(document).on("input", "#Quantity, #Length", function() {
-            let input = this;
-            let val = input.value;
-            
-            // Allow users to type Arabic numbers, but don't convert until submission
-            console.log('Input changed:', { field: input.id, value: val });
-        });
-
-        // Auto-convert all text inputs and textareas to Arabic digits (except numeric calculation fields)
-        $(document).on("input", "#fullWarpBeamTransactionForm input[type='text']:not(#Quantity):not(#Length), #fullWarpBeamTransactionForm textarea", function() {
-            let input = this;
-            let val = input.value;
-            if (val.length > 0) {
-                let newVal = toArabicDigits(val);
-                if (newVal !== val) {
-                    let cursorPos = input.selectionStart;
-                    input.value = newVal;
-                    input.setSelectionRange(cursorPos, cursorPos);
-                }
-            }
-        });
-
         // Validate date on input/blur/change
-        $(document).on('input blur change', '#Date', function() {
+        $(document).on('input change', '#Date', function() {
             validateDateImmediate();
         });
     </script>
+    <style>
+        /* Add these styles to your CSS */
+        .flatpickr-calendar {
+            z-index: 10000; /* Ensure calendar appears above other elements */
+        }
+
+        #Date.is-valid {
+            border-color: #28a745;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+
+        #Date.is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+    </style>
 }

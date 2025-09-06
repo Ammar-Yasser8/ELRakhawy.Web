@@ -354,7 +354,55 @@
         const pageSize = 10;
         const CURRENT_TIME = '2025-09-04 19:04:16';
         const CURRENT_USER = 'Ammar-Yasser8';
+        convertNumbersToArabic();
+                    // ✅ Update convertNumbersToArabic function in Overview page
+            function convertNumbersToArabic() {
+                // Convert statistics cards
+                $('#totalItemsDisplay').text(toArabicDigits($('#totalItemsDisplay').text()));
+                $('#availableItemsDisplay').text(toArabicDigits($('#availableItemsDisplay').text()));
+                $('#totalQuantityDisplay').text(toArabicDigits($('#totalQuantityDisplay').text()));
+                $('#totalCountDisplay').text(toArabicDigits($('#totalCountDisplay').text()));
+                $('#percentageDisplay').text(toArabicDigits($('#percentageDisplay').text()));
+                $('#lastUpdatedDisplay').text(toArabicDigits($('#lastUpdatedDisplay').text()));
 
+                // ✅ Convert table numbers BUT preserve Transaction IDs
+                $('.quantity-balance').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.transaction-count').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.inbound-count').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.outbound-count').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.last-transaction-date').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.days-since').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                // ✅ NEW: Handle Transaction IDs specifically - keep them in Latin
+                $('.transaction-id').each(function() {
+                    var text = $(this).text();
+                    if (isTransactionId(text)) {
+                        // Keep Transaction ID in Latin digits for easy copying
+                        $(this).text(text);
+                        // Add a class to indicate this is a copyable ID
+                        $(this).addClass('copyable-id');
+                    } else {
+                        $(this).text(toArabicDigitsExceptTransactionId(text));
+                    }
+                });
+            }
         $(document).ready(function() {
             console.log('🚀 Yarn Overview initialized at', CURRENT_TIME, 'by', CURRENT_USER);
 

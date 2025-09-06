@@ -7,16 +7,6 @@
     var formName = Model.IsInbound ? "اضافة وارد خام" : "اضافة صادر خام";
 }
 
-<script>
-    window.rawTransactionFormConfig = {
-        formName: '@Html.Raw(formName)',
-        isInbound: @Json.Serialize(Model.IsInbound),
-        currentTime: '@currentTime',
-        currentUser: '@currentUser',
-        formType: 'rawTransaction'
-    };
-</script>
-
 <div class="container-fluid mt-4 raw-transaction-form-container">
     <!-- Header Card -->
     <div class="card mb-4 border-0 shadow-sm">
@@ -202,7 +192,6 @@
                             </div>
                         </div>
                     </div>
-
                     <!-- Date Section -->
                     <div class="col-12 mb-4">
                         <h6 class="text-primary border-bottom pb-2">
@@ -213,8 +202,17 @@
                                 <label for="Date" class="form-label required">
                                     <i class="fas fa-calendar-alt text-warning me-1"></i>تاريخ المعاملة
                                 </label>
-                                <input type="text" id="Date" name="Date"
-                                       value="@(Model.Date.ToString("yyyy-MM-dd"))" class="form-control" placeholder="yyyy-MM-dd" />
+                                <div class="calendar-container position-relative">
+                                    <input type="text" id="Date" name="Date"
+                                           value="@(Model.Date.ToString("yyyy-MM-dd"))"
+                                           class="form-control text-center arabic-digit"
+                                           placeholder="yyyy-mm-dd"
+                                           style="padding-left: 40px;" />
+                                    <span class="calendar-icon position-absolute" style="left: 12px; top: 50%; transform: translateY(-50%);">
+                                        <i class="fas fa-calendar-alt text-muted"></i>
+                                    </span>
+                                </div>
+                              
                                 <span class="text-danger" data-valmsg-for="Date"></span>
                             </div>
                         </div>
@@ -321,27 +319,193 @@
                 }
             })();
 
-            // Initialize Arabic date picker (Flatpickr) on #Date
-            if (window.flatpickr) {
-                flatpickr.localize(flatpickr.l10ns.ar);
-                flatpickr('#Date', {
-                    dateFormat: 'Y-m-d',
-                    locale: 'ar',
-                    allowInput: true,
-                    disableMobile: false,
-                    onReady: function(selectedDates, dateStr, instance) {
-                        $('#Date').val(toArabicDigits($('#Date').val()));
-                    },
-                    onChange: function(selectedDates, dateStr, instance) {
-                        $('#Date').val(toArabicDigits(dateStr));
-                        validateDateImmediate();
-                    },
-                    onValueUpdate: function(selectedDates, dateStr) {
-                        $('#Date').val(toArabicDigits(dateStr));
-                        validateDateImmediate();
-                    }
-                });
+                    // Store the current date value for preservation
+        var currentDateValue = $('#Date').val();
+
+        // Initialize Arabic date picker (Flatpickr) on #Date
+        if (window.flatpickr) {
+            flatpickr.localize(flatpickr.l10ns.ar);
+
+            // Get initial date value and convert to Latin for Flatpickr
+            var initialDate = toLatinDigits($('#Date').val() || '');
+            if (!initialDate || !isValidDate(initialDate)) {
+                var today = new Date();
+                initialDate = today.getFullYear() + '-' +
+                             String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                             String(today.getDate()).padStart(2, '0');
+                $('#Date').val(toArabicDigits(initialDate));
+                currentDateValue = $('#Date').val();
+                $('#selectedDateDisplay strong').text(toArabicDigits(initialDate));
             }
+
+            var datePicker = flatpickr('#Date', {
+                dateFormat: 'Y-m-d',
+                locale: 'ar',
+                allowInput: true,
+                clickOpens: true,
+                disableMobile: true,
+                defaultDate: initialDate,
+
+                onReady: function(selectedDates, dateStr, instance) {
+                    // Ensure the input value is maintained
+                    $('#Date').val(currentDateValue);
+                    validateDateImmediate();
+                },
+
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Convert to Arabic digits for display
+                    var arabicDate = toArabicDigits(dateStr);
+                    $('#Date').val(arabicDate);
+                    $('#selectedDateDisplay strong').text(arabicDate);
+                    currentDateValue = arabicDate;
+                    validateDateImmediate();
+                },
+
+                onValueUpdate: function(selectedDates, dateStr, instance) {
+                    // Convert to Arabic digits for display
+                    var arabicDate = toArabicDigits(dateStr);
+                    $('#Date').val(arabicDate);
+                    $('#selectedDateDisplay strong').text(arabicDate);
+                    currentDateValue = arabicDate;
+                    validateDateImmediate();
+                },
+
+                onClose: function(selectedDates, dateStr, instance) {
+                    // Ensure the value is maintained when calendar closes
+                    if (!dateStr && $('#Date').val() === '') {
+                        $('#Date').val(currentDateValue);
+                        $('#selectedDateDisplay strong').text(currentDateValue);
+                    } else if (dateStr) {
+                        var arabicDate = toArabicDigits(dateStr);
+                        $('#Date').val(arabicDate);
+                        $('#selectedDateDisplay strong').text(arabicDate);
+                        currentDateValue = arabicDate;
+                    }
+                    validateDateImmediate();
+                }
+            });
+
+            // Add click handler to the document to detect clicks outside
+            $(document).on('click', function(e) {
+                // If click is outside the date input and calendar
+                if (!$(e.target).closest('#Date, .flatpickr-calendar').length) {
+                    // Validate but don't clear the field
+                    validateDateImmediate();
+
+                    // If the field is empty but we have a previous value, restore it
+                    if ($('#Date').val() === '' && currentDateValue) {
+                        $('#Date').val(currentDateValue);
+                        $('#selectedDateDisplay strong').text(currentDateValue);
+                    }
+                }
+            });
+        }
+
+        // Handle date input with better preservation
+        $(document).on("input blur", "#Date", function(e) {
+            let input = this;
+            let val = input.value;
+
+            // If it's a blur event and the field is empty, restore previous value
+            if (e.type === 'blur' && val === '' && currentDateValue) {
+                input.value = currentDateValue;
+                $('#selectedDateDisplay strong').text(currentDateValue);
+                return;
+            }
+
+            if (val.length > 0) {
+                // Convert any Arabic digits to Latin but keep the date format
+                let latinVal = toLatinDigits(val);
+
+                // Only allow numbers and hyphens
+                latinVal = latinVal.replace(/[^\d-]/g, '');
+
+                // Auto-insert hyphens in the right places (yyyy-mm-dd format)
+                if (latinVal.length > 4 && latinVal.charAt(4) !== '-') {
+                    latinVal = latinVal.substring(0, 4) + '-' + latinVal.substring(4);
+                }
+                if (latinVal.length > 7 && latinVal.charAt(7) !== '-') {
+                    latinVal = latinVal.substring(0, 7) + '-' + latinVal.substring(7);
+                }
+
+                // Limit to 10 characters (yyyy-mm-dd)
+                if (latinVal.length > 10) {
+                    latinVal = latinVal.substring(0, 10);
+                }
+
+                // Convert back to Arabic for display but keep the format
+                let arabicVal = toArabicDigits(latinVal);
+
+                if (arabicVal !== val) {
+                    let cursorPos = input.selectionStart;
+                    input.value = arabicVal;
+                    // Adjust cursor position for any changes
+                    input.setSelectionRange(cursorPos, cursorPos);
+                }
+
+                // Update the stored value and display
+                currentDateValue = input.value;
+                $('#selectedDateDisplay strong').text(currentDateValue);
+            }
+
+            // Validate after input
+            setTimeout(function() {
+                validateDateImmediate();
+            }, 100);
+        });
+
+            
+
+            // Handle date input with better preservation
+            $(document).on("input blur", "#Date", function(e) {
+                let input = this;
+                let val = input.value;
+
+                // If it's a blur event and the field is empty, restore previous value
+                if (e.type === 'blur' && val === '' && currentDateValue) {
+                    input.value = currentDateValue;
+                    return;
+                }
+
+                if (val.length > 0) {
+                    // Convert any Arabic digits to Latin but keep the date format
+                    let latinVal = toLatinDigits(val);
+
+                    // Only allow numbers and hyphens
+                    latinVal = latinVal.replace(/[^\d-]/g, '');
+
+                    // Auto-insert hyphens in the right places (yyyy-mm-dd format)
+                    if (latinVal.length > 4 && latinVal.charAt(4) !== '-') {
+                        latinVal = latinVal.substring(0, 4) + '-' + latinVal.substring(4);
+                    }
+                    if (latinVal.length > 7 && latinVal.charAt(7) !== '-') {
+                        latinVal = latinVal.substring(0, 7) + '-' + latinVal.substring(7);
+                    }
+
+                    // Limit to 10 characters (yyyy-mm-dd)
+                    if (latinVal.length > 10) {
+                        latinVal = latinVal.substring(0, 10);
+                    }
+
+                    // Convert back to Arabic for display but keep the format
+                    let arabicVal = toArabicDigits(latinVal);
+
+                    if (arabicVal !== val) {
+                        let cursorPos = input.selectionStart;
+                        input.value = arabicVal;
+                        // Adjust cursor position for any changes
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    }
+
+                    // Update the stored value
+                    currentDateValue = input.value;
+                }
+
+                // Validate after input
+                setTimeout(function() {
+                    validateDateImmediate();
+                }, 100);
+            });
 
             // Handle raw item selection change
             $('#RawItemId').on('change', function () {
@@ -396,7 +560,7 @@
             // Function to fetch raw item balance
             function fetchRawItemBalance(rawItemId) {
                 console.log('Fetching balance for raw item ID:', rawItemId);
-                
+
                 $.ajax({
                     url: '@Url.Action("GetRawItemBalance", "RawTransactions")',
                     type: 'GET',
@@ -407,11 +571,11 @@
                     },
                     success: function(response) {
                         console.log('Balance response received:', response);
-                        
+
                         if (response && response.success) {
                             var quantityBalance = response.quantityBalance || 0;
                             var countBalance = response.countBalance || 0;
-                            
+
                             // Format balances using Arabic digits
                             var quantityBalanceAr = toArabicDigits(quantityBalance.toFixed(3).toString());
                             var countBalanceAr = toArabicDigits(countBalance.toString());
@@ -453,7 +617,7 @@
             function showBalanceInfo(data) {
                 var qBalAr = toArabicDigits(data.quantityBalance.toFixed(3).toString());
                 var cBalAr = toArabicDigits((data.countBalance || 0).toString());
-                
+
                 var infoHtml = `
                     <div class="row">
                         <div class="col-md-4">
@@ -485,7 +649,7 @@
                         </div>
                     </div>
                 `;
-                
+
                 $('#balanceInfo').html(infoHtml);
                 $('#balanceInfoCard').fadeIn();
             }
@@ -529,7 +693,7 @@
             // Function to fetch stakeholders by form name
             function fetchStakeholdersByForm(formName, $select) {
                 console.log('Fetching stakeholders for form:', formName);
-                
+
                 $.ajax({
                     url: '@Url.Action("GetStakeholdersByForm", "RawTransactions")',
                     type: 'GET',
@@ -544,7 +708,7 @@
                     },
                     success: function(response) {
                         console.log('Stakeholders response received:', response);
-                        
+
                         $select
                             .empty()
                             .append('<option value="">-- اختر الجهة --</option>')
@@ -569,13 +733,13 @@
                             url: '@Url.Action("GetStakeholdersByForm", "RawTransactions")',
                             formName: formName
                         });
-                        
+
                         $select
                             .empty()
                             .append('<option value="">-- اختر الجهة --</option>')
                             .append('<option value="" disabled>خطأ في تحميل الجهات</option>')
                             .prop('disabled', false);
-                            
+
                         alert('حدث خطأ أثناء تحميل بيانات الجهات: ' + error);
                     },
                     complete: function() {
@@ -595,7 +759,7 @@
             // Function to fetch packaging styles by form name
             function fetchPackagingStylesByForm(formName, $select) {
                 console.log('Fetching packaging styles for form:', formName);
-                
+
                 $.ajax({
                     url: '@Url.Action("GetPackagingStylesByForm", "RawTransactions")',
                     type: 'GET',
@@ -610,7 +774,7 @@
                     },
                     success: function(response) {
                         console.log('Packaging styles response received:', response);
-                        
+
                         $select
                             .empty()
                             .append('<option value="">-- اختر نمط التعبئة --</option>')
@@ -635,13 +799,13 @@
                             url: '@Url.Action("GetPackagingStylesByForm", "RawTransactions")',
                             formName: formName
                         });
-                        
+
                         $select
                             .empty()
                             .append('<option value="">-- اختر نمط التعبئة --</option>')
                             .append('<option value="" disabled>خطأ في تحميل أنماط التعبئة</option>')
                             .prop('disabled', false);
-                            
+
                         alert('حدث خطأ أثناء تحميل أنماط التعبئة: ' + error);
                     },
                     complete: function() {
@@ -660,24 +824,24 @@
 
             // Form submission handler
             $('#rawTransactionForm').on('submit', function(e) {
-                // Convert Arabic numbers to Latin before submission
+                // Convert Arabic numbers to Latin for processing before submission
                 var qtyLatin = toLatinDigits($('#Quantity').val() || '0');
                 var weightLatin = toLatinDigits($('#Weight').val() || '0');
                 var dateLatin = toLatinDigits($('#Date').val() || '');
-                
+
                 console.log('Form submission - converting values:', {
                     quantityOriginal: $('#Quantity').val(),
                     quantityLatin: qtyLatin,
                     weightOriginal: $('#Weight').val(),
                     weightLatin: weightLatin
                 });
-                
+
                 $('#Quantity').val(qtyLatin);
                 $('#Weight').val(weightLatin);
                 $('#Date').val(dateLatin);
 
                 var validation = validateForm();
-                
+
                 if (!validation.isValid) {
                     e.preventDefault();
                     showValidationErrors(validation.errors);
@@ -812,57 +976,123 @@
             $('html, body').animate({ scrollTop: 0 }, 500);
         }
 
-        // Function to convert to Arabic digits
+        // دالة لتحويل الأرقام للغة العربية
         function toArabicDigits(str) {
-            if (!str) return str;
+            if (!str) return '';
             return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
         }
 
-        // Function to convert to Latin digits
+        // دالة لتحويل الأرقام للاتينية
         function toLatinDigits(str) {
-            if (!str) return str;
+            if (!str) return '';
             return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
         }
 
-        // Validate date immediately
+        // Check if a date string is valid
+        function isValidDate(dateString) {
+            var regex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!regex.test(dateString)) return false;
+
+            var parts = dateString.split('-');
+            var year = parseInt(parts[0], 10);
+            var month = parseInt(parts[1], 10);
+            var day = parseInt(parts[2], 10);
+
+            if (month < 1 || month > 12) return false;
+
+            var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+            var maxDay = daysInMonth[month - 1];
+
+            if (day < 1 || day > maxDay) return false;
+
+            var dateObj = new Date(year, month - 1, day);
+            return !isNaN(dateObj.getTime()) &&
+                   dateObj.getFullYear() === year &&
+                   dateObj.getMonth() + 1 === month &&
+                   dateObj.getDate() === day;
+        }
+
+                // Validate date immediately - handles both Arabic and Latin digits
         function validateDateImmediate() {
             var $date = $('#Date');
             var $msg = $("span[data-valmsg-for='Date']");
-            var valueAr = ($date.val() || '').trim();
-            var value = toLatinDigits(valueAr);
+            var value = ($date.val() || '').trim();
 
-            // Basic format check
-            var match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (!match) {
-                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd');
-                $date.addClass('is-invalid');
+            // If empty but we have a stored value, restore it
+            if (!value && currentDateValue) {
+                $date.val(currentDateValue);
+                $('#selectedDateDisplay strong').text(currentDateValue);
+                value = currentDateValue;
+            }
+
+            // Check if empty
+            if (!value) {
+                $msg.text('يجب تحديد تاريخ المعاملة');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                $('#selectedDateDisplay').hide();
                 return false;
             }
 
+            // Convert Arabic digits to Latin for validation
+            var latinValue = toLatinDigits(value);
+
+            // Basic format check (yyyy-mm-dd)
+            var regex = /^(\d{4})-(\d{2})-(\d{2})$/;
+            var match = regex.exec(latinValue);
+
+            if (!match) {
+                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd (مثال: ٢٠٢٣-١٢-٣١)');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                $('#selectedDateDisplay').hide();
+                return false;
+            }
+
+            // Extract year, month, day from the match groups
             var year = parseInt(match[1], 10);
             var month = parseInt(match[2], 10);
             var day = parseInt(match[3], 10);
 
+            // Validate month range
             if (month < 1 || month > 12) {
-                $msg.text('الشهر غير صحيح (1-12)');
-                $date.addClass('is-invalid');
+                $msg.text('الشهر غير صحيح (١-١٢)');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                $('#selectedDateDisplay').hide();
                 return false;
             }
 
+            // Validate day range based on month
             var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
             var maxDay = daysInMonth[month - 1];
 
             if (day < 1 || day > maxDay) {
                 $msg.text('اليوم غير صحيح لهذا الشهر');
-                $date.addClass('is-invalid');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                $('#selectedDateDisplay').hide();
                 return false;
             }
 
+            // Final validation using Date object
+            var dateObj = new Date(year, month - 1, day);
+            if (isNaN(dateObj.getTime()) ||
+                dateObj.getFullYear() !== year ||
+                dateObj.getMonth() + 1 !== month ||
+                dateObj.getDate() !== day) {
+                $msg.text('تاريخ غير صحيح');
+                $date.removeClass('is-valid').addClass('is-invalid');
+                $('#selectedDateDisplay').hide();
+                return false;
+            }
+
+            // Update stored value and show display
+            currentDateValue = value;
+            $('#selectedDateDisplay strong').text(value);
+            $('#selectedDateDisplay').show();
+
             $msg.text('');
-            $date.removeClass('is-invalid');
+            $date.removeClass('is-invalid').addClass('is-valid');
             return true;
         }
-
+        // Check if a year is a leap year
         function isLeapYear(y) {
             return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
         }
@@ -881,9 +1111,46 @@
             }
         });
 
-        // Validate date on input/blur/change
-        $(document).on('input blur change', '#Date', function() {
+        // Validate date on input/change
+        $(document).on('input change', '#Date', function() {
             validateDateImmediate();
         });
     </script>
+    <style>
+        .calendar-container {
+            position: relative;
+        }
+
+        .calendar-icon {
+            color: #6c757d;
+            pointer-events: none;
+        }
+
+        .arabic-digit {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        .selected-date-display {
+            border-right: 3px solid #28a745;
+            background-color: #f8fff9 !important;
+        }
+
+        #Date.is-valid {
+            border-color: #28a745;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2328a745' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+
+        #Date.is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+            padding-right: calc(1.5em + 0.75rem);
+        }
+    </style>
 }

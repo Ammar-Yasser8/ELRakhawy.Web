@@ -2,197 +2,1127 @@
 @model FullWarpBeamTransactionDetailsViewModel
 @{
     ViewData["Title"] = $"تفاصيل المعاملة - {Model.Transaction.TransactionId}";
-    var currentTime = "2025-09-01 15:16:06";
+    var currentTime = "2025-09-04 21:03:59"; // ✅ Updated current time
     var currentUser = "Ammar-Yasser8";
+    var hasPositiveBalance = Model.CurrentItemBalance > 0 || Model.CurrentItemLengthBalance > 0;
 }
 
-<div class="container-fluid">
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h2 class="text-primary mb-1">
-                <i class="fas fa-file-alt me-2"></i>تفاصيل المعاملة
-            </h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="@Url.Action("Overview")">معاملات السداة الكاملة</a>
-                    </li>
-                    <li class="breadcrumb-item active">@Model.Transaction.TransactionId</li>
-                </ol>
-            </nav>
-        </div>
-        <a href="@Url.Action("Overview")" class="btn btn-secondary">
-            <i class="fas fa-arrow-left me-1"></i>العودة للقائمة
-        </a>
-    </div>
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css" rel="stylesheet">
 
-    <div class="row">
-        <!-- Transaction Details -->
-        <div class="col-lg-8">
-            <div class="card transaction-details">
-                <div class="card-header bg-@Model.Transaction.TransactionTypeClass text-white">
-                    <h5 class="mb-0">
-                        <i class="fas fa-arrow-@(Model.Transaction.IsInbound ? "down" : "up") me-2"></i>
-                        معاملة @Model.Transaction.TransactionType - @Model.Transaction.TransactionId
-                    </h5>
+<style>
+    /* Enhanced styling for Full Warp Beam transaction details */
+    .warp-beam-details-container {
+        background: linear-gradient(135deg, #f8f9fc 0%, #e8f4fd 100%);
+        min-height: 100vh;
+        padding: 2rem 0;
+    }
+
+    .hero-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2.5rem 2rem;
+        border-radius: 20px;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 15px 40px rgba(102, 126, 234, 0.2);
+    }
+
+        .hero-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: repeating-linear-gradient( 45deg, transparent, transparent 3px, rgba(255,255,255,0.1) 3px, rgba(255,255,255,0.1) 6px );
+            animation: drift 30s linear infinite;
+        }
+
+    @@keyframes drift {
+        0%
+
+    {
+        transform: translateX(-100px) rotate(0deg);
+    }
+
+    100% {
+        transform: translateX(100px) rotate(360deg);
+    }
+
+    }
+
+    .breadcrumb-enhanced {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border-radius: 25px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.75rem 1.5rem;
+    }
+
+        .breadcrumb-enhanced .breadcrumb-item a {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+
+            .breadcrumb-enhanced .breadcrumb-item a:hover {
+                color: white;
+            }
+
+        .breadcrumb-enhanced .breadcrumb-item.active {
+            color: white;
+            font-weight: 600;
+        }
+
+    .details-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+        .details-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .details-card .card-header {
+            border: none;
+            font-weight: 700;
+            padding: 1.5rem 2rem;
+            position: relative;
+        }
+
+            .details-card .card-header::before {
+                content: '';
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: linear-gradient(90deg, rgba(255,255,255,0.3), transparent);
+            }
+
+    .info-table {
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+
+        .info-table td {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            vertical-align: middle;
+        }
+
+        .info-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .info-table td:first-child {
+            background: rgba(78, 115, 223, 0.05);
+            color: #495057;
+            font-weight: 600;
+            width: 40%;
+        }
+
+    /* Transaction ID styling - keep Latin */
+    .transaction-id {
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        padding: 6px 12px;
+        border-radius: 10px;
+        background: linear-gradient(135deg, rgba(13, 110, 253, 0.1), rgba(13, 110, 253, 0.05));
+        border: 1px dashed rgba(13, 110, 253, 0.3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        letter-spacing: 0.5px;
+        color: #0d6efd;
+        display: inline-block;
+        position: relative;
+    }
+
+        .transaction-id:hover {
+            background: linear-gradient(135deg, rgba(13, 110, 253, 0.2), rgba(13, 110, 253, 0.1));
+            border-color: rgba(13, 110, 253, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(13, 110, 253, 0.3);
+        }
+
+        .transaction-id::after {
+            content: '📋';
+            position: absolute;
+            right: -25px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .transaction-id:hover::after {
+            opacity: 1;
+        }
+
+    .balance-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .balance-card {
+        background: white;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        transition: all 0.4s ease;
+        overflow: hidden;
+        position: relative;
+    }
+
+        .balance-card:hover {
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .balance-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: var(--card-gradient);
+        }
+
+        .balance-card.quantity {
+            --card-gradient: linear-gradient(90deg, #28a745, #34ce57);
+        }
+
+        .balance-card.length {
+            --card-gradient: linear-gradient(90deg, #17a2b8, #20c997);
+        }
+
+        .balance-card.current {
+            --card-gradient: linear-gradient(90deg, #007bff, #0056b3);
+        }
+
+        .balance-card .card-body {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+    .balance-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .balance-value {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        background: var(--card-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .balance-label {
+        color: #6c757d;
+        font-weight: 500;
+        font-size: 0.9rem;
+    }
+
+    .related-transactions-card {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        height: fit-content;
+        position: sticky;
+        top: 2rem;
+    }
+
+        .related-transactions-card .card-header {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            border: none;
+            padding: 1.25rem 1.5rem;
+            border-radius: 20px 20px 0 0;
+        }
+
+    .related-transaction-item {
+        border: none;
+        border-bottom: 1px solid #f0f0f0;
+        padding: 1rem 1.5rem;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+
+        .related-transaction-item:hover {
+            background: linear-gradient(135deg, rgba(78, 115, 223, 0.05), rgba(102, 126, 234, 0.05));
+            transform: translateX(5px);
+        }
+
+        .related-transaction-item:last-child {
+            border-bottom: none;
+        }
+
+    .reset-balance-btn {
+        background: linear-gradient(135deg, #dc3545, #c82333);
+        border: none;
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        color: white;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+        .reset-balance-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+            background: linear-gradient(135deg, #c82333, #bd2130);
+        }
+
+    .enhanced-badge {
+        padding: 0.5rem 0.75rem;
+        border-radius: 8px;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+    }
+
+    .modal-enhanced .modal-content {
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal-enhanced .modal-header {
+        border-radius: 20px 20px 0 0;
+        border: none;
+    }
+
+    .modal-enhanced .modal-footer {
+        border: none;
+        padding: 1.5rem 2rem;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 2rem;
+    }
+
+    .btn-enhanced {
+        border-radius: 12px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        transition: all 0.3s ease;
+        border: none;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .btn-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn-enhanced:hover::before {
+            left: 100%;
+        }
+
+        .btn-enhanced:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: #6c757d;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    /* Loading states */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: none;
+        z-index: 9999;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 768px) {
+        .warp-beam-details-container
+
+    {
+        padding: 1rem 0;
+    }
+
+    .hero-header {
+        padding: 1.5rem;
+        text-align: center;
+    }
+
+    .balance-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .transaction-id::after {
+        display: none;
+    }
+
+    .info-table {
+        font-size: 0.875rem;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    }
+
+    @@media print {
+        .no-print
+
+    {
+        display: none !important;
+    }
+
+    .transaction-id {
+        background: none !important;
+        border: none !important;
+        color: black !important;
+        box-shadow: none !important;
+    }
+
+    .details-card, .balance-card, .related-transactions-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+    }
+
+    }
+
+    /* Animations */
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+</style>
+
+<div class="warp-beam-details-container">
+    <div class="container-fluid">
+        <!-- Enhanced Hero Header -->
+        <div class="hero-header animate-fade-in">
+            <div class="row align-items-center">
+                <div class="col-lg-8">
+                    <h1 class="display-6 fw-bold mb-3">
+                        <i class="fas fa-file-alt me-3"></i>
+                        تفاصيل معاملة خيوط السداة الكاملة
+                    </h1>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb breadcrumb-enhanced mb-0">
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Index", "Home")">
+                                    <i class="fas fa-home me-1"></i>الرئيسية
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item">
+                                <a href="@Url.Action("Overview")">
+                                    <i class="fas fa-list me-1"></i>معاملات السداة الكاملة
+                                </a>
+                            </li>
+                            <li class="breadcrumb-item active">@Model.Transaction.TransactionId</li>
+                        </ol>
+                    </nav>
                 </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">معلومات المعاملة</h6>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>رقم الإذن:</strong></td>
-                                    <td>@Model.Transaction.TransactionId</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>الرقم الداخلي:</strong></td>
-                                    <td>@(Model.Transaction.InternalId ?? "غير محدد")</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>الرقم الخارجي:</strong></td>
-                                    <td>@(Model.Transaction.ExternalId ?? "غير محدد")</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>التاريخ:</strong></td>
-                                    <td>@Model.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>النوع:</strong></td>
-                                    <td>
-                                        <span class="badge bg-@Model.Transaction.TransactionTypeClass">
-                                            @Model.Transaction.TransactionType
-                                        </span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">معلومات الكمية</h6>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>الكمية:</strong></td>
-                                    <td>@Model.Transaction.Quantity.ToString("N3") كجم</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>الطول:</strong></td>
-                                    <td>@Model.Transaction.Length متر</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>رصيد الكمية:</strong></td>
-                                    <td><strong>@Model.Transaction.QuantityBalance.ToString("N3") كجم</strong></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>رصيد العدد:</strong></td>
-                                    <td><strong>@Model.Transaction.CountBalance وحدة</strong></td>
-                                </tr>
-                                <tr>
-                                    <td><strong>الرصيد الحالي:</strong></td>
-                                    <td>
-                                        <span class="text-success">@Model.CurrentItemBalance.ToString("N3") كجم</span>
-                                        <br>
-                                        <span class="text-info">@Model.CurrentItemLengthBalance متر</span>
-                                    </td>
-                                </tr>
-                            </table>
-                        </div>
+                <div class="col-lg-4 text-lg-end">
+                    <div class="d-flex flex-column align-items-lg-end">
+                        <small class="opacity-75 mb-2">
+                            <i class="fas fa-clock me-1"></i>
+                            <span id="currentTime">@currentTime</span>
+                        </small>
+                        <small class="opacity-75 mb-3">
+                            <i class="fas fa-user me-1"></i>@currentUser
+                        </small>
+                        <a href="@Url.Action("Overview")" class="btn btn-light btn-enhanced">
+                            <i class="fas fa-arrow-left me-2"></i>العودة للقائمة
+                        </a>
                     </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">معلومات الصنف</h6>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>الصنف:</strong></td>
-                                    <td>@Model.Transaction.FullWarpBeamItemName</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>الغزل الأصلي:</strong></td>
-                                    <td>@Model.OriginYarnName</td>
-                                </tr>
-                            </table>
-                        </div>
-                        <div class="col-md-6">
-                            <h6 class="text-primary border-bottom pb-2">معلومات الجهة</h6>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>اسم الجهة:</strong></td>
-                                    <td>@Model.Transaction.StakeholderName</td>
-                                </tr>
-                               
-                            </table>
-                        </div>
-                    </div>
-
-                    @if (!string.IsNullOrEmpty(Model.Transaction.Comment))
-                    {
-                        <div class="row mt-3">
-                            <div class="col-12">
-                                <h6 class="text-primary border-bottom pb-2">البيان</h6>
-                                <div class="alert alert-light">
-                                    @Model.Transaction.Comment
-                                </div>
-                            </div>
-                        </div>
-                    }
                 </div>
             </div>
         </div>
 
-        <!-- Related Transactions -->
-        <div class="col-lg-4">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">
-                        <i class="fas fa-history me-2"></i>معاملات مرتبطة لنفس الصنف
-                    </h6>
-                </div>
-                <div class="card-body p-0">
-                    @if (Model.RelatedTransactions.Any())
-                    {
-                        <div class="list-group list-group-flush">
-                            @foreach (var related in Model.RelatedTransactions)
+        <div class="row">
+            <!-- Main Transaction Details -->
+            <div class="col-lg-8">
+                <!-- Balance Cards -->
+                <div class="balance-cards animate-fade-in">
+                    <div class="balance-card quantity">
+                        <div class="card-body">
+                            <i class="fas fa-weight balance-icon text-success"></i>
+                            <div class="balance-value" id="transactionQuantity">@Model.Transaction.Quantity.ToString("N3")</div>
+                            <div class="balance-label">كمية المعاملة (كجم)</div>
+                        </div>
+                    </div>
+
+                    <div class="balance-card length">
+                        <div class="card-body">
+                            <i class="fas fa-ruler balance-icon text-info"></i>
+                            <div class="balance-value" id="transactionLength">@Model.Transaction.Length</div>
+                            <div class="balance-label">طول المعاملة (متر)</div>
+                        </div>
+                    </div>
+
+                    <div class="balance-card current">
+                        <div class="card-body">
+                            <i class="fas fa-balance-scale balance-icon text-primary"></i>
+                            <div class="balance-value" id="currentBalance">@Model.CurrentItemBalance.ToString("N3")</div>
+                            <div class="balance-label">الرصيد الحالي (كجم)</div>
+                            <div class="mt-2">
+                                <small class="text-info" id="currentLengthBalance">@Model.CurrentItemLengthBalance متر</small>
+                            </div>
+                            @if (hasPositiveBalance)
                             {
-                                <div class="list-group-item">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <div class="flex-grow-1">
-                                            <h6 class="mb-1">
-                                                <a href="@Url.Action("Details", new { id = related.Id })"
-                                                   class="text-decoration-none">
-                                                    @related.TransactionId
-                                                </a>
-                                            </h6>
-                                            <p class="mb-1 small">@related.StakeholderName</p>
-                                            <small class="text-muted">@related.Date.ToString("yyyy-MM-dd")</small>
-                                        </div>
-                                        <div class="text-end">
-                                            <span class="badge bg-@related.TransactionTypeClass">
-                                                @related.Quantity.ToString("N3")
-                                            </span>
-                                            <br>
-                                            <small class="text-muted">@related.Length م</small>
-                                        </div>
-                                    </div>
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
+                                        <i class="fas fa-sync-alt me-1"></i>إعادة تعيين الرصيد
+                                    </button>
                                 </div>
                             }
                         </div>
-                    }
-                    else
-                    {
-                        <div class="text-center py-3">
-                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
-                            <p class="text-muted mb-0">لا توجد معاملات مرتبطة</p>
+                    </div>
+                </div>
+
+                <!-- Transaction Details Card -->
+                <div class="details-card transaction-details animate-fade-in">
+                    <div class="card-header bg-@Model.Transaction.TransactionTypeClass text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0">
+                                <i class="fas fa-arrow-@(Model.Transaction.IsInbound ? "down" : "up") me-2"></i>
+                                معاملة @Model.Transaction.TransactionType
+                            </h5>
+                            <!-- ✅ Transaction ID preserved in Latin -->
+                            <div class="transaction-id bg-light text-dark" onclick="copyTransactionId('@Model.Transaction.TransactionId')"
+                                 title="انقر للنسخ">
+                                @Model.Transaction.TransactionId
+                            </div>
                         </div>
-                    }
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-info-circle me-2"></i>معلومات المعاملة
+                                </h6>
+                                <table class="info-table">
+                                    <tr>
+                                        <td>رقم الإذن:</td>
+                                        <td>
+                                            <span class="transaction-id-display">@Model.Transaction.TransactionId</span>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>الرقم الداخلي:</td>
+                                        <td><span class="internal-id-display">@(Model.Transaction.InternalId ?? "غير محدد")</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>الرقم الخارجي:</td>
+                                        <td><span class="external-id-display">@(Model.Transaction.ExternalId ?? "غير محدد")</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>التاريخ:</td>
+                                        <td><span class="transaction-date">@Model.Transaction.Date.ToString("yyyy-MM-dd HH:mm")</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>النوع:</td>
+                                        <td>
+                                            <span class="badge enhanced-badge bg-@Model.Transaction.TransactionTypeClass">
+                                                <i class="fas fa-arrow-@(Model.Transaction.IsInbound ? "down" : "up") me-1"></i>
+                                                @Model.Transaction.TransactionType
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-calculator me-2"></i>معلومات الكمية والرصيد
+                                </h6>
+                                <table class="info-table">
+                                    <tr>
+                                        <td>الكمية:</td>
+                                        <td><span class="fw-bold text-success quantity-display">@Model.Transaction.Quantity.ToString("N3")</span> كجم</td>
+                                    </tr>
+                                    <tr>
+                                        <td>الطول:</td>
+                                        <td><span class="fw-bold text-info length-display">@Model.Transaction.Length</span> متر</td>
+                                    </tr>
+                                    <tr>
+                                        <td>رصيد الكمية بعد المعاملة:</td>
+                                        <td><span class="fw-bold text-primary balance-display">@Model.Transaction.QuantityBalance.ToString("N3")</span> كجم</td>
+                                    </tr>
+                                    <tr>
+                                        <td>رصيد العدد بعد المعاملة:</td>
+                                        <td><span class="fw-bold text-secondary count-balance-display">@Model.Transaction.CountBalance</span> وحدة</td>
+                                    </tr>
+                                    <tr>
+                                        <td>الرصيد الحالي للصنف:</td>
+                                        <td>
+                                            <div><span class="fw-bold text-success current-item-balance">@Model.CurrentItemBalance.ToString("N3")</span> كجم</div>
+                                            <div><span class="text-info current-length-balance">@Model.CurrentItemLengthBalance</span> متر</div>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="row mt-4">
+                            <div class="col-md-6">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-cube me-2"></i>معلومات الصنف
+                                </h6>
+                                <table class="info-table">
+                                    <tr>
+                                        <td>الصنف:</td>
+                                        <td><strong class="text-primary">@Model.Transaction.FullWarpBeamItemName</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>الغزل الأصلي:</td>
+                                        <td><span class="text-info">@Model.OriginYarnName</span></td>
+                                    </tr>
+                                </table>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-primary border-bottom pb-2 mb-3">
+                                    <i class="fas fa-building me-2"></i>معلومات الجهة
+                                </h6>
+                                <table class="info-table">
+                                    <tr>
+                                        <td>اسم الجهة:</td>
+                                        <td><strong>@Model.Transaction.StakeholderName</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Model.Transaction.Comment))
+                        {
+                            <div class="row mt-4">
+                                <div class="col-12">
+                                    <h6 class="text-primary border-bottom pb-2 mb-3">
+                                        <i class="fas fa-comment me-2"></i>البيان والملاحظات
+                                    </h6>
+                                    <div class="alert alert-light border-start border-4 border-info">
+                                        <i class="fas fa-quote-left text-info me-2"></i>
+                                        <span>@Model.Transaction.Comment</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
                 </div>
             </div>
+
+            <!-- Related Transactions Sidebar -->
+            <div class="col-lg-4">
+                <div class="related-transactions-card animate-fade-in">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i class="fas fa-history me-2"></i>معاملات مرتبطة لنفس الصنف
+                            @if (Model.RelatedTransactions.Any())
+                            {
+                                <span class="badge bg-light text-dark ms-2" id="relatedCount">@Model.RelatedTransactions.Count()</span>
+                            }
+                        </h6>
+                    </div>
+                    <div class="card-body p-0">
+                        @if (Model.RelatedTransactions.Any())
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var related in Model.RelatedTransactions)
+                                {
+                                    <div class="related-transaction-item">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="transaction-id small mb-1"
+                                                     onclick="copyTransactionId('@related.TransactionId')"
+                                                     title="انقر للنسخ">
+                                                    @related.TransactionId
+                                                </div>
+                                                <p class="mb-1 small text-muted">@related.StakeholderName</p>
+                                                <small class="text-muted related-date">@related.Date.ToString("yyyy-MM-dd")</small>
+                                            </div>
+                                            <div class="text-end">
+                                                <span class="badge enhanced-badge bg-@related.TransactionTypeClass small">
+                                                    <span class="related-quantity">@related.Quantity.ToString("N3")</span>
+                                                </span>
+                                                <br>
+                                                <small class="text-muted related-length">@related.Length م</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="empty-state">
+                                <i class="fas fa-inbox empty-state-icon"></i>
+                                <h6 class="text-muted">لا توجد معاملات مرتبطة</h6>
+                                <p class="text-muted small mb-0">لم يتم العثور على معاملات أخرى لنفس الصنف</p>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Enhanced Action Buttons -->
+        <div class="action-buttons no-print">
+            <a href="@Url.Action("Overview")" class="btn btn-secondary btn-enhanced">
+                <i class="fas fa-arrow-left me-2"></i>العودة للقائمة
+            </a>
+            <a href="@Url.Action("Inbound", "FullWarpBeamTransactions")" class="btn btn-success btn-enhanced">
+                <i class="fas fa-plus-circle me-2"></i>إضافة وارد جديد
+            </a>
+            <a href="@Url.Action("Outbound", "FullWarpBeamTransactions")" class="btn btn-warning btn-enhanced">
+                <i class="fas fa-plus-circle me-2"></i>إضافة صادر جديد
+            </a>
+            @if (hasPositiveBalance)
+            {
+                <button type="button" class="btn btn-danger btn-enhanced"
+                        data-bs-toggle="modal" data-bs-target="#resetBalanceModal">
+                    <i class="fas fa-sync-alt me-2"></i>إعادة تعيين الرصيد
+                </button>
+            }
+            <button type="button" class="btn btn-info btn-enhanced" onclick="printDetails()">
+                <i class="fas fa-print me-2"></i>طباعة
+            </button>
+            <button type="button" class="btn btn-outline-primary btn-enhanced" onclick="shareDetails()">
+                <i class="fas fa-share-alt me-2"></i>مشاركة
+            </button>
         </div>
     </div>
 </div>
 
+<!-- Enhanced Reset Balance Modal -->
+@if (hasPositiveBalance)
+{
+    <div class="modal fade modal-enhanced" id="resetBalanceModal" tabindex="-1" aria-labelledby="resetBalanceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <form method="post" action="@Url.Action("ResetBalance")" id="resetBalanceForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="transactionId" value="@Model.Transaction.Id" />
+
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title" id="resetBalanceModalLabel">
+                            <i class="fas fa-exclamation-triangle me-2"></i>إعادة تعيين رصيد خيوط السداة الكاملة
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="alert alert-warning border-0">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-exclamation-triangle fa-2x text-warning me-3"></i>
+                                <div>
+                                    <h6 class="mb-1"><strong>تحذير مهم</strong></h6>
+                                    <p class="mb-0">سيؤدي هذا الإجراء إلى إعادة تعيين رصيد الصنف إلى صفر نهائياً (الكمية والطول معاً).</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card border-danger">
+                                    <div class="card-header bg-danger text-white text-center">
+                                        <h6 class="mb-0"><i class="fas fa-minus-circle me-1"></i>الرصيد الحالي</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="mb-2">
+                                            <strong>الكمية:</strong>
+                                            <span class="text-danger fs-5 fw-bold current-balance-modal">
+                                                @Model.CurrentItemBalance.ToString("N3")
+                                            </span> كجم
+                                        </div>
+                                        <div>
+                                            <strong>الطول:</strong>
+                                            <span class="text-danger fs-5 fw-bold current-length-modal">
+                                                @Model.CurrentItemLengthBalance
+                                            </span> متر
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card border-success">
+                                    <div class="card-header bg-success text-white text-center">
+                                        <h6 class="mb-0"><i class="fas fa-check-circle me-1"></i>الرصيد بعد التسوية</h6>
+                                    </div>
+                                    <div class="card-body text-center">
+                                        <div class="mb-2">
+                                            <strong>الكمية:</strong>
+                                            <span class="text-success fs-5 fw-bold">٠.٠٠٠</span> كجم
+                                        </div>
+                                        <div>
+                                            <strong>الطول:</strong>
+                                            <span class="text-success fs-5 fw-bold">٠</span> متر
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="card bg-light border-0">
+                                <div class="card-body">
+                                    <h6 class="text-info mb-2">
+                                        <i class="fas fa-info-circle me-1"></i>تفاصيل الصنف
+                                    </h6>
+                                    <ul class="list-unstyled mb-0">
+                                        <li><strong>الصنف:</strong> @Model.Transaction.FullWarpBeamItemName</li>
+                                        <li><strong>الغزل الأصلي:</strong> @Model.OriginYarnName</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="resetReason" class="form-label fw-bold">
+                                <i class="fas fa-comment me-1 text-primary"></i>سبب إعادة التعيين (اختياري):
+                            </label>
+                            <textarea id="resetReason" name="reason" class="form-control" rows="3"
+                                  placeholder="أدخل سبب إعادة تعيين الرصيد (مثل: جرد سنوي، تسوية مخزون، خطأ في الإدخال...)"></textarea>
+                        </div>
+
+                        <div class="alert alert-info border-0">
+                            <div class="d-flex align-items-start">
+                                <i class="fas fa-lightbulb fa-2x text-info me-3 mt-1"></i>
+                                <div>
+                                    <h6 class="mb-1"><strong>ملاحظة مهمة</strong></h6>
+                                    <p class="mb-0">سيتم إنشاء معاملة تسوية جديدة برقم إذن يبدأ بـ FWB-ADJ وسيتم تسجيل جميع التفاصيل للمراجعة المستقبلية.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Debug Information -->
+                        <div class="alert alert-secondary small">
+                            <strong>معلومات النظام:</strong><br>
+                            معرف المعاملة: @Model.Transaction.Id<br>
+                            الرصيد المعروض: <span class="debug-balance">@Model.CurrentItemBalance.ToString("N3")</span> كجم<br>
+                            رصيد الطول: <span class="debug-length">@Model.CurrentItemLengthBalance</span> متر<br>
+                            وقت الطلب: <span class="debug-time">2025-09-04 21:03:59</span><br>
+                            المستخدم: @currentUser
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary btn-enhanced" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>إلغاء
+                        </button>
+                        <button type="submit" class="btn btn-danger btn-enhanced" id="confirmResetBtn">
+                            <i class="fas fa-sync-alt me-1"></i>تأكيد إعادة التعيين
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="text-center">
+        <div class="spinner-border text-light mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">جاري التحميل...</span>
+        </div>
+        <h6 class="text-white">جاري معالجة الطلب...</h6>
+    </div>
+</div>
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-        console.log('Transaction details page loaded at @currentTime by @currentUser for transaction: @Model.Transaction.TransactionId');
+        $(document).ready(function() {
+            const CURRENT_TIME = '2025-09-04 21:03:59';
+            const CURRENT_USER = 'Ammar-Yasser8';
+
+            console.log('🚀 Full Warp Beam Transaction Details initialized at', CURRENT_TIME, 'by', CURRENT_USER);
+
+            // ✅ Convert numbers to Arabic while preserving Transaction IDs
+            convertNumbersToArabic();
+
+            // Real-time clock update
+            function updateClock() {
+                const now = new Date();
+                const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
+                $('#currentTime').text(toArabicDigits(timeString));
+            }
+            setInterval(updateClock, 1000);
+
+            // Handle reset balance form submission
+            $('#resetBalanceForm').on('submit', function(e) {
+                e.preventDefault();
+
+                const reason = $('#resetReason').val().trim();
+
+                Swal.fire({
+                    title: 'تأكيد إعادة التعيين',
+                    html: `
+                        <div class="text-start">
+                            <p><strong>هل أنت متأكد من إعادة تعيين الرصيد إلى صفر؟</strong></p>
+                            <ul class="list-unstyled">
+                                <li>• الرصيد الحالي: <span class="text-danger">${toArabicDigits('@Model.CurrentItemBalance.ToString("N3")')} كجم</span></li>
+                                <li>• الطول الحالي: <span class="text-danger">${toArabicDigits('@Model.CurrentItemLengthBalance.ToString()')} متر</span></li>
+                                <li>• سيتم إنشاء معاملة تسوية</li>
+                            </ul>
+                            ${reason ? '<p><strong>السبب:</strong> ' + reason + '</p>' : ''}
+                        </div>
+                    `,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-sync-alt me-1"></i>تأكيد التسوية',
+                    cancelButtonText: '<i class="fas fa-times me-1"></i>إلغاء',
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    customClass: {
+                        confirmButton: 'btn btn-danger',
+                        cancelButton: 'btn btn-secondary'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        showLoading();
+
+                        // Show loading state on button
+                        $('#confirmResetBtn')
+                            .prop('disabled', true)
+                            .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التسوية...');
+
+                        // Submit the form
+                        this.submit();
+                    }
+                });
+            });
+
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            console.log('✅ Full Warp Beam Transaction Details ready');
+        });
+
+        // ✅ Arabic/Latin conversion functions
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        function isTransactionId(str) {
+            if (typeof str !== 'string') return false;
+
+            var transactionIdPatterns = [
+                /^[A-Z]{2,4}-\d{8}-\d{4}$/,
+                /^[A-Z]{3}-\d{8}-\d{4}$/,
+                /^[A-Z]{2}-\d{8}-\d{4}$/,
+                /^\d{8}-\d{4}$/,
+                /^F\d{10,}$/,
+                /^FWB\d{8,}$/,
+                /^WARP-\d{8}-\d{4}$/,
+                /^FWB-ADJ-\d{8}-\d{4}$/
+            ];
+
+            return transactionIdPatterns.some(pattern => pattern.test(str));
+        }
+
+        function toArabicDigitsExceptTransactionId(str) {
+            if (typeof str !== 'string') str = str.toString();
+
+            if (isTransactionId(str)) {
+                return str;
+            }
+
+            return toArabicDigits(str);
+        }
+
+        // ✅ Convert numbers to Arabic while preserving Transaction IDs
+        function convertNumbersToArabic() {
+            console.log('🔄 Converting numbers to Arabic at 2025-09-04 21:03:59');
+
+            // Convert current time in header
+            $('#currentTime').text(toArabicDigits($('#currentTime').text()));
+
+            // Convert balance cards
+            $('#transactionQuantity').text(toArabicDigits($('#transactionQuantity').text()));
+            $('#transactionLength').text(toArabicDigits($('#transactionLength').text()));
+            $('#currentBalance').text(toArabicDigits($('#currentBalance').text()));
+            $('#currentLengthBalance').text(toArabicDigits($('#currentLengthBalance').text()));
+            $('#relatedCount').text(toArabicDigits($('#relatedCount').text()));
+
+            // Convert info table values
+            $('.quantity-display, .length-display, .balance-display').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.count-balance-display, .current-item-balance, .current-length-balance').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            // Convert dates
+            $('.transaction-date').text(toArabicDigits($('.transaction-date').text()));
+            $('.related-date').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            // Convert related transactions
+            $('.related-quantity, .related-length').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            // Convert modal values
+            $('.current-balance-modal, .current-length-modal').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.debug-balance, .debug-length').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+
+            $('.debug-time').text(toArabicDigits($('.debug-time').text()));
+
+            // Convert internal/external IDs only if they're not transaction IDs
+            $('.internal-id-display, .external-id-display').each(function() {
+                var text = $(this).text();
+                if (text !== "غير محدد") {
+                    $(this).text(toArabicDigitsExceptTransactionId(text));
+                }
+            });
+
+            // Transaction IDs are NOT converted - they stay in Latin
+            console.log('✅ Numbers converted to Arabic (Transaction IDs preserved)');
+        }
+
+        // ✅ Copy Transaction ID functionality
+        function copyTransactionId(transactionId) {
+            try {
+                const tempInput = document.createElement('input');
+                tempInput.value = transactionId;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                document.execCommand('copy');
+                document.body.removeChild(tempInput);
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم النسخ',
+                    text: `رقم المعاملة: ${transactionId}`,
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
+
+                console.log('✅ Transaction ID copied:', transactionId, 'at 2025-09-04 21:03:59');
+            } catch (error) {
+                console.error('❌ Error copying transaction ID:', error);
+                prompt('انسخ رقم المعاملة من هنا:', transactionId);
+            }
+        }
+
+        // Utility functions
+        function showLoading() {
+            $('#loadingOverlay').css('display', 'flex');
+        }
+
+        function hideLoading() {
+            $('#loadingOverlay').hide();
+        }
+
+        function printDetails() {
+            window.print();
+        }
+
+        function shareDetails() {
+            const transactionId = '@Model.Transaction.TransactionId';
+            const transactionType = '@Model.Transaction.TransactionType';
+            const itemName = '@Model.Transaction.FullWarpBeamItemName';
+            const currentBalance = '@Model.CurrentItemBalance.ToString("N3")';
+            const currentLength = '@Model.CurrentItemLengthBalance';
+
+            const shareText = `تفاصيل معاملة خيوط السداة الكاملة\n` +
+                             `النوع: ${transactionType}\n` +
+                             `رقم المعاملة: ${transactionId}\n` +
+                             `الصنف: ${itemName}\n` +
+                             `الرصيد الحالي: ${toArabicDigits(currentBalance)} كجم\n` +
+                             `الطول الحالي: ${toArabicDigits(currentLength)} متر\n` +
+                             `التاريخ: ${toArabicDigits('2025-09-04 21:03:59')}`;
+
+            if (navigator.share) {
+                navigator.share({
+                    title: 'تفاصيل معاملة خيوط السداة الكاملة',
+                    text: shareText
+                });
+            } else {
+                copyTransactionId(shareText);
+            }
+        }
+
+        console.log('✅ Full Warp Beam Transaction Details scripts loaded at 2025-09-04 21:03:59 by Ammar-Yasser8');
     </script>
 }

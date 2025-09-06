@@ -33,11 +33,7 @@
                         @(Model.IsInbound ? "تسجيل كمية غزل واردة للمخزن" : "تسجيل كمية غزل صادرة من المخزن")
                     </p>
                 </div>
-                <div class="col-auto">
-                    <div class="text-end">
-                        <small class="d-block" id="headerDate">@currentTime.Split(' ')[0]</small>
-                        <small class="d-block" id="headerUser">@currentUser</small>
-                    </div>
+                
                 </div>
             </div>
         </div>
@@ -209,10 +205,25 @@
                                 <label for="Date" class="form-label required">
                                     <i class="fas fa-calendar-alt text-warning me-1"></i>تاريخ المعاملة
                                 </label>
-                                <input type="text" id="Date" name="Date"
-                                       value="@(Model.Date.ToString("yyyy-MM-dd"))" class="form-control" placeholder="yyyy-MM-dd" />
+                                <div class="input-group" dir="ltr">
+                                    <input type="text" id="Date" name="Date"
+                                           value="@(Model.Date.ToString("yyyy-MM-dd"))"
+                                           class="form-control text-end"
+                                           placeholder="yyyy-MM-dd"
+                                           pattern="\d{4}-\d{2}-\d{2}"
+                                           maxlength="10"
+                                           data-date-format="yyyy-MM-dd"
+                                           data-input
+                                           autocomplete="off" />
+                                    <span class="input-group-text">
+                                        <i class="fas fa-calendar"></i>
+                                    </span>
+                                </div>
                                 <span class="text-danger" data-valmsg-for="Date"></span>
-                            </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle"></i>
+                                    صيغة التاريخ المطلوبة: yyyy-MM-dd (مثال: ٢٠٢٣-١٢-٣١)
+                                </small>
                         </div>
                     </div>
 
@@ -324,30 +335,36 @@
                 if (v) $(this).val(toArabicDigits(v.toString()));
             });
 
-            // Initialize Arabic date picker (Flatpickr) on #Date
-            if (window.flatpickr) {
-                flatpickr.localize(flatpickr.l10ns.ar);
-                flatpickr('#Date', {
-                    dateFormat: 'Y-m-d',
-                    locale: 'ar',
-                    allowInput: true,
-                    disableMobile: false,
-                    onReady: function(selectedDates, dateStr, instance) {
-                        // convert initial to Arabic digits
-                        $('#Date').val(toArabicDigits($('#Date').val()));
-                    },
-                    onChange: function(selectedDates, dateStr, instance) {
-                        // keep Arabic display
-                        $('#Date').val(toArabicDigits(dateStr));
-                        validateDateImmediate();
-                    },
-                    onValueUpdate: function(selectedDates, dateStr) {
-                        $('#Date').val(toArabicDigits(dateStr));
-                        validateDateImmediate();
-                    }
-                });
-            }
+                     // Initialize Arabic date picker (Flatpickr)
+        if (window.flatpickr) {
+            // Configure Arabic locale
+            flatpickr.localize(flatpickr.l10ns.ar);
 
+            flatpickr('#Date', {
+                dateFormat: 'Y-m-d',
+                locale: 'ar',
+                allowInput: true,
+                disableMobile: true,
+                defaultDate: $('#Date').val() || new Date(),
+
+                // Format display on initialization
+                onReady: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        $('#Date').val(dateStr); // Don't convert to Arabic digits here
+                    }
+                },
+
+                // Handle date selection
+                onChange: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        $('#Date').val(dateStr); // Keep in Latin format for processing
+                    }
+                }
+            });
+
+            // Remove the manual input handler that converts to Arabic digits
+            // This was causing the format issues
+        }
             // Handle yarn item selection change
             $('#YarnItemId').on('change', function () {
                 var selectedItemId = $(this).val();
@@ -674,7 +691,10 @@
                 // normalize Quantity, Count, Date to Latin for parsing
                 var qtyLatin = toLatinDigits($('#Quantity').val() || '');
                 var cntLatin = toLatinDigits($('#Count').val() || '');
-                var dateLatin = toLatinDigits($('#Date').val() || '');
+                    var dateValue = $('#Date').val();
+
+        $('#Quantity').val(qtyLatin);
+        $('#Count').val(cntLatin);
                 $('#Quantity').val(qtyLatin);
                 $('#Count').val(cntLatin);
                 $('#Date').val(dateLatin);
@@ -740,7 +760,8 @@
                             <p><strong>نوع الجهة:</strong> ${data.stakeholderType}</p>
                             <p><strong>الجهة:</strong> ${data.stakeholder}</p>
                             <p><strong>التعبئة:</strong> ${data.packaging}</p>
-                            <p><strong>التاريخ:</strong> ${toArabicDigits((data.date || '').toString())}</p>
+                                    // In the preview functionality, change the date display:
+        <p><strong>التاريخ:</strong> ${toArabicDigits((data.date || '').toString().replace(/-/g, '-'))}</p>
                         </div>
                         <div class="col-12">
                             <p><strong>البيان:</strong> ${data.comment}</p>
@@ -876,36 +897,24 @@
             return 'arabic'; // default is Arabic
         }
 
-        // Validate date immediately (format yyyy-MM-dd, correct month/day including leap years)
+               // Validate date immediately
         function validateDateImmediate() {
             var $date = $('#Date');
             var $msg = $("span[data-valmsg-for='Date']");
-            var valueAr = ($date.val() || '').trim();
-            var value = toLatinDigits(valueAr);
+            var value = ($date.val() || '').trim();
 
-            // Basic format check
-            var match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-            if (!match) {
-                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd');
+            // Basic format check (yyyy-mm-dd)
+            var regex = /^\d{4}-\d{2}-\d{2}$/;
+            if (!regex.test(value)) {
+                $msg.text('صيغة التاريخ يجب أن تكون yyyy-MM-dd (مثال: 2023-12-31)');
                 $date.addClass('is-invalid');
                 return false;
             }
 
-            var year = parseInt(match[1], 10);
-            var month = parseInt(match[2], 10);
-            var day = parseInt(match[3], 10);
-
-            if (month < 1 || month > 12) {
-                $msg.text('الشهر غير صحيح (1-12)');
-                $date.addClass('is-invalid');
-                return false;
-            }
-
-            var daysInMonth = [31, (isLeapYear(year) ? 29 : 28), 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
-            var maxDay = daysInMonth[month - 1];
-
-            if (day < 1 || day > maxDay) {
-                $msg.text('اليوم غير صحيح لهذا الشهر');
+            // Check if it's a valid date
+            var dateObj = new Date(value);
+            if (isNaN(dateObj.getTime())) {
+                $msg.text('تاريخ غير صحيح');
                 $date.addClass('is-invalid');
                 return false;
             }
@@ -915,12 +924,24 @@
             return true;
         }
 
-        function isLeapYear(y) {
-            return (y % 4 === 0 && y % 100 !== 0) || (y % 400 === 0);
-        }
-
-        // تطبيق التحويل: جميع الأرقام تعرض بالعربية في الحقول النصية وTextarea
+                // Remove or comment out this problematic handler:
+        /*
         $(document).on("input", "#yarnTransactionForm input[type='text'], #yarnTransactionForm textarea", function() {
+            let input = this;
+            let val = input.value;
+            if (val.length > 0) {
+                let newVal = toArabicDigits(val);
+                if (newVal !== val) {
+                    let cursorPos = input.selectionStart;
+                    input.value = newVal;
+                    input.setSelectionRange(cursorPos, cursorPos);
+                }
+            }
+        });
+        */
+
+        // Instead, add a specific handler that excludes the date field
+        $(document).on("input", "#yarnTransactionForm input[type='text']:not(#Date), #yarnTransactionForm textarea", function() {
             let input = this;
             let val = input.value;
             if (val.length > 0) {

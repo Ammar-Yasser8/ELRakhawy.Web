@@ -155,8 +155,48 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
-
-        // Overview of transactions
+        // Reset balance for a specific FullWarpBeam item
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult ResetBalance(int fullWarpBeamItemId)
+        {
+            try
+            {
+                var item = _unitOfWork.Repository<FullWarpBeam>()
+                    .GetAll()
+                    .FirstOrDefault(i => i.Id == fullWarpBeamItemId);
+                if (item == null)
+                {
+                    TempData["Error"] = "الصنف غير موجود";
+                    return RedirectToAction("Overview");
+                }
+                // Delete all transactions for this item
+                var transactions = _unitOfWork.Repository<FullWarpBeamTransaction>()
+                    .GetAll(t => t.FullWarpBeamItemId == fullWarpBeamItemId)
+                    .ToList();
+                if (!transactions.Any())
+                {
+                    TempData["Info"] = "لا توجد معاملات لإعادة تعيين الرصيد لها";
+                    return RedirectToAction("Overview");
+                }
+                foreach (var transaction in transactions)
+                {
+                    _unitOfWork.Repository<FullWarpBeamTransaction>().Remove(transaction);
+                }
+                _unitOfWork.Complete();
+                _logger.LogInformation("Balance reset for full warp beam item {ItemId} by {User} at {Time}",
+                    fullWarpBeamItemId, "Ammar-Yasser8", "2025-09-01 14:34:10");
+                TempData["Success"] = $"تمت إعادة تعيين رصيد السداة الكاملة للصنف: {item.Item} بنجاح";
+                return RedirectToAction("Overview");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resetting balance for full warp beam item {ItemId} by {User} at {Time}",
+                    fullWarpBeamItemId, "Ammar-Yasser8", "2025-09-01 14:34:10");
+                TempData["Error"] = "حدث خطأ أثناء إعادة تعيين الرصيد";
+                return RedirectToAction("Overview");
+            }
+        }
 
         // GET: FullWarpBeamTransactions/Overview
         public IActionResult Overview(FullWarpBeamTransactionOverviewViewModel filters = null)

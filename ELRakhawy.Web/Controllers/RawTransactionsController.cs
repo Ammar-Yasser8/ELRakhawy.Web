@@ -68,13 +68,18 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
-        // POST: RawTransactions/SaveTransaction
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult SaveTransaction(RawTransactionViewModel model)
         {
             try
             {
+                var currentTime = "2025-09-06 17:35:01";
+                var currentUser = "Ammar-Yasser8";
+
+                _logger.LogInformation("🆕 Starting raw transaction save: Type={Type}, RawItemId={ItemId}, Quantity={Quantity}, Weight={Weight}, Count={Count} by {User} at {Time}",
+                    model.IsInbound ? "Inbound" : "Outbound", model.RawItemId, model.Quantity, model.Weight, model.Count, currentUser, currentTime);
+
                 // Remove server-side populated fields from validation
                 ModelState.Remove("TransactionId");
                 ModelState.Remove("RawItemName");
@@ -86,47 +91,92 @@ namespace ELRakhawy.Web.Controllers
 
                 if (!ModelState.IsValid)
                 {
+                    _logger.LogWarning("⚠️ Model validation failed for raw transaction by {User} at {Time}. Errors: {Errors}",
+                        currentUser, currentTime, string.Join(", ", ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage)));
+
                     model.AvailableItems = GetActiveRawItems();
                     return View("TransactionForm", model);
                 }
 
-                // Calculate current balance for validation
+                // ✅ Calculate current balance for validation ONLY (not for corrupting data!)
                 var currentBalance = CalculateCurrentBalance(model.RawItemId.Value);
 
-                // Check if outbound quantity exceeds available balance
+                _logger.LogInformation("📊 Current balance for validation: Quantity={Quantity:N3}, Count={Count} by {User} at {Time}",
+                    currentBalance.QuantityBalance, currentBalance.CountBalance, currentUser, currentTime);
+
+                // Validate outbound transactions against available balance
                 if (!model.IsInbound)
                 {
                     var totalOutbound = model.Quantity + model.Weight;
+
                     if (totalOutbound > currentBalance.QuantityBalance)
                     {
-                        ModelState.AddModelError("Quantity",
-                            $"الكمية المطلوبة ({totalOutbound:N3}) أكبر من الرصيد المتاح ({currentBalance.QuantityBalance:N3})");
+                        var errorMsg = $"الكمية المطلوبة ({totalOutbound:N3}) أكبر من الرصيد المتاح ({currentBalance.QuantityBalance:N3})";
+                        _logger.LogWarning("⚠️ Insufficient quantity balance: {Error} by {User} at {Time}", errorMsg, currentUser, currentTime);
+
+                        ModelState.AddModelError("Quantity", errorMsg);
                         model.AvailableItems = GetActiveRawItems();
                         return View("TransactionForm", model);
                     }
 
-                    // Check count balance for outbound
                     if (model.Count > currentBalance.CountBalance)
                     {
-                        ModelState.AddModelError("Count",
-                            $"العدد المطلوب ({model.Count}) أكبر من رصيد العدد المتاح ({currentBalance.CountBalance})");
+                        var errorMsg = $"العدد المطلوب ({model.Count}) أكبر من رصيد العدد المتاح ({currentBalance.CountBalance})";
+                        _logger.LogWarning("⚠️ Insufficient count balance: {Error} by {User} at {Time}", errorMsg, currentUser, currentTime);
+
+                        ModelState.AddModelError("Count", errorMsg);
                         model.AvailableItems = GetActiveRawItems();
                         return View("TransactionForm", model);
                     }
                 }
 
+                // Validate positive quantities
+                if (model.Quantity < 0 || model.Weight < 0)
+                {
+                    ModelState.AddModelError("Quantity", "الكمية والوزن يجب أن تكون أكبر من أو تساوي الصفر");
+                    model.AvailableItems = GetActiveRawItems();
+                    return View("TransactionForm", model);
+                }
+
+                if (model.Count <= 0)
+                {
+                    ModelState.AddModelError("Count", "العدد يجب أن يكون أكبر من الصفر");
+                    model.AvailableItems = GetActiveRawItems();
+                    return View("TransactionForm", model);
+                }
+
                 // Verify stakeholder exists
                 var stakeholder = _unitOfWork.Repository<StakeholdersInfo>()
-                                .GetOne(s => s.Id == model.StakeholderId.Value);
+                    .GetOne(s => s.Id == model.StakeholderId.Value);
 
                 if (stakeholder == null)
                 {
+                    _logger.LogWarning("⚠️ Stakeholder not found: {StakeholderId} by {User} at {Time}",
+                        model.StakeholderId.Value, currentUser, currentTime);
+
                     ModelState.AddModelError("StakeholderId", "الجهة المحددة غير موجودة");
                     model.AvailableItems = GetActiveRawItems();
                     return View("TransactionForm", model);
                 }
 
-                // Create transaction (NO StakeholderType logic)
+                // Verify packaging style exists (if required)
+                if (model.PackagingStyleId.HasValue)
+                {
+                    var packagingStyle = _unitOfWork.Repository<PackagingStyles>()
+                        .GetOne(p => p.Id == model.PackagingStyleId.Value);
+
+                    if (packagingStyle == null)
+                    {
+                        _logger.LogWarning("⚠️ Packaging style not found: {PackagingStyleId} by {User} at {Time}",
+                            model.PackagingStyleId.Value, currentUser, currentTime);
+
+                        ModelState.AddModelError("PackagingStyleId", "نمط التعبئة المحدد غير موجود");
+                        model.AvailableItems = GetActiveRawItems();
+                        return View("TransactionForm", model);
+                    }
+                }
+
+                // Create new transaction
                 var transaction = new RawTransaction
                 {
                     TransactionId = GenerateTransactionId(),
@@ -138,30 +188,53 @@ namespace ELRakhawy.Web.Controllers
                     Outbound = model.IsInbound ? 0 : (model.Quantity + model.Weight),
                     Count = model.Count,
                     StakeholderId = model.StakeholderId.Value,
-                    PackagingStyleId = model.PackagingStyleId.Value,
+                    // Update the property to be nullable
+                    PackagingStyleId = (int)model.PackagingStyleId, // Direct assignment since it's an int
                     Date = model.Date,
+                  
                     Comment = model.Comment?.Trim()
                 };
 
-                // Update balances
+                _logger.LogInformation("📝 Created transaction object: ID={TransactionId}, InboundMeter={InboundMeter}, InboundKg={InboundKg}, Outbound={Outbound}, Count={Count} by {User} at {Time}",
+                    transaction.TransactionId, transaction.InboundMeter, transaction.InboundKg, transaction.Outbound, transaction.Count, currentUser, currentTime);
+
+                // ✅ CORRECT: Update balances for the NEW transaction
                 transaction.UpdateBalances(currentBalance.QuantityBalance, currentBalance.CountBalance);
+
+                _logger.LogInformation("📈 New transaction balance calculated: Quantity={Quantity:N3}, Count={Count} by {User} at {Time}",
+                    transaction.QuantityBalance, transaction.CountBalance, currentUser, currentTime);
 
                 // Add to database
                 _unitOfWork.Repository<RawTransaction>().Add(transaction);
                 _unitOfWork.Complete();
 
-                _logger.LogInformation("Raw transaction {TransactionId} saved successfully - {Type} by {User} at {Time}",
-                    transaction.TransactionId, model.IsInbound ? "وارد" : "صادر", "Ammar-Yasser8", "2025-09-01 23:05:34");
+                _logger.LogInformation("✅ Raw transaction {TransactionId} saved successfully - {Type}, Final Balance: {FinalQuantity:N3}/{FinalCount} by {User} at {Time}",
+                    transaction.TransactionId,
+                    model.IsInbound ? "وارد" : "صادر",
+                    transaction.QuantityBalance,
+                    transaction.CountBalance,
+                    currentUser,
+                    currentTime);
 
                 TempData["Success"] = $"تم تسجيل {(model.IsInbound ? "وارد" : "صادر")} الخام بنجاح - رقم الإذن: {transaction.TransactionId}";
-                return RedirectToAction("Index", "RawItems");
+                return RedirectToAction("Details", "RawTransactions", new { id = transaction.Id });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error saving raw transaction by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-09-01 23:05:34");
+                _logger.LogError(ex, "❌ Error saving raw transaction by {User} at {Time}. Model: {@Model}",
+                    "Ammar-Yasser8", "2025-09-06 17:35:01", new
+                    {
+                        model.IsInbound,
+                        model.RawItemId,
+                        model.Quantity,
+                        model.Weight,
+                        model.Count,
+                        model.StakeholderId,
+                        model.PackagingStyleId,
+                        model.Date
+                    });
 
-                ModelState.AddModelError("", "حدث خطأ أثناء حفظ المعاملة");
+                ModelState.AddModelError("", "حدث خطأ أثناء حفظ المعاملة. يرجى المحاولة مرة أخرى.");
                 model.AvailableItems = GetActiveRawItems();
                 return View("TransactionForm", model);
             }
@@ -395,6 +468,9 @@ namespace ELRakhawy.Web.Controllers
         {
             try
             {
+                var currentTime = "2025-09-04 20:37:37";
+                var currentUser = "Ammar-Yasser8";
+
                 // Get the transaction first to find the raw item
                 var sourceTransaction = _unitOfWork.Repository<RawTransaction>()
                     .GetAll(t => t.Id == transactionId, includeEntities: "RawItem,RawItem.Warp,RawItem.Weft")
@@ -408,13 +484,13 @@ namespace ELRakhawy.Web.Controllers
 
                 var rawItemId = sourceTransaction.RawItemId;
 
-                _logger.LogInformation("Reset balance requested for transaction {TransactionId}, raw item {RawItemId} by {User} at {Time}",
-                    transactionId, rawItemId, "Ammar-Yasser8", "2025-09-02 13:28:08");
+                _logger.LogInformation("🔄 Reset balance requested for transaction {TransactionId}, raw item {RawItemId} by {User} at {Time}",
+                    transactionId, rawItemId, currentUser, currentTime);
 
                 // Calculate current balance for the raw item
                 var currentBalance = CalculateCurrentBalance(rawItemId);
 
-                _logger.LogInformation("Current balance calculated: Quantity={Quantity}, Count={Count} for raw item {RawItemId}",
+                _logger.LogInformation("📊 Current balance calculated: Quantity={Quantity}, Count={Count} for raw item {RawItemId}",
                     currentBalance.QuantityBalance, currentBalance.CountBalance, rawItemId);
 
                 if (currentBalance.QuantityBalance == 0 && currentBalance.CountBalance == 0)
@@ -430,18 +506,16 @@ namespace ELRakhawy.Web.Controllers
 
                 if (adjustmentStakeholder == null)
                 {
-                    // Create default adjustment stakeholder if not exists
                     adjustmentStakeholder = new StakeholdersInfo
                     {
                         Name = "تسوية أرصدة المخزن",
                         Status = true,
-                        
                     };
                     _unitOfWork.Repository<StakeholdersInfo>().Add(adjustmentStakeholder);
                     _unitOfWork.Complete();
 
-                    _logger.LogInformation("Created adjustment stakeholder with ID {StakeholderId} by {User} at {Time}",
-                        adjustmentStakeholder.Id, "Ammar-Yasser8", "2025-09-02 13:28:08");
+                    _logger.LogInformation("✅ Created adjustment stakeholder with ID {StakeholderId} by {User} at {Time}",
+                        adjustmentStakeholder.Id, currentUser, currentTime);
                 }
 
                 // Get or create default packaging style for adjustments
@@ -451,17 +525,15 @@ namespace ELRakhawy.Web.Controllers
 
                 if (adjustmentPackaging == null)
                 {
-                    // Create default adjustment packaging style
                     adjustmentPackaging = new PackagingStyles
                     {
                         StyleName = "تسوية المخزن",
-                        
                     };
                     _unitOfWork.Repository<PackagingStyles>().Add(adjustmentPackaging);
                     _unitOfWork.Complete();
 
-                    _logger.LogInformation("Created adjustment packaging style with ID {PackagingId} by {User} at {Time}",
-                        adjustmentPackaging.Id, "Ammar-Yasser8", "2025-09-02 13:28:08");
+                    _logger.LogInformation("✅ Created adjustment packaging style with ID {PackagingId} by {User} at {Time}",
+                        adjustmentPackaging.Id, currentUser, currentTime);
                 }
 
                 // Create adjustment transaction to reset balance to zero
@@ -478,13 +550,13 @@ namespace ELRakhawy.Web.Controllers
                     StakeholderId = adjustmentStakeholder.Id,
                     PackagingStyleId = adjustmentPackaging.Id,
                     Date = DateTime.Now,
-                    Comment = $"تسوية رصيد - إعادة تعيين الرصيد إلى صفر. الصنف: {sourceTransaction.RawItem?.Item}. السبب: {(string.IsNullOrEmpty(reason) ? "تسوية إدارية" : reason)}. الرصيد السابق: {currentBalance.QuantityBalance:N3} كمية، {currentBalance.CountBalance} عدد. المعاملة المرجعية: {sourceTransaction.TransactionId}. تم بواسطة: Ammar-Yasser8 في 2025-09-02 13:28:08"
+                    Comment = $"تسوية رصيد - إعادة تعيين الرصيد إلى صفر. الصنف: {sourceTransaction.RawItem?.Item}. السبب: {(string.IsNullOrEmpty(reason) ? "تسوية إدارية" : reason)}. الرصيد السابق: {currentBalance.QuantityBalance:N3} كمية، {currentBalance.CountBalance} عدد. المعاملة المرجعية: {sourceTransaction.TransactionId}. تم بواسطة: {currentUser} في {currentTime}"
                 };
 
                 // Update balances (should result in zero)
                 adjustmentTransaction.UpdateBalances(currentBalance.QuantityBalance, currentBalance.CountBalance);
 
-                _logger.LogInformation("Adjustment transaction created: ID={TransactionId}, Outbound={Outbound}, Count={Count}, FinalBalance={FinalQuantity}/{FinalCount}",
+                _logger.LogInformation("📋 Adjustment transaction created: ID={TransactionId}, Outbound={Outbound}, Count={Count}, FinalBalance={FinalQuantity}/{FinalCount}",
                     adjustmentTransaction.TransactionId, adjustmentTransaction.Outbound, adjustmentTransaction.Count,
                     adjustmentTransaction.QuantityBalance, adjustmentTransaction.CountBalance);
 
@@ -492,8 +564,8 @@ namespace ELRakhawy.Web.Controllers
                 _unitOfWork.Repository<RawTransaction>().Add(adjustmentTransaction);
                 _unitOfWork.Complete();
 
-                _logger.LogInformation("Balance reset completed for raw item {RawItemId} - Transaction {TransactionId} created by {User} at {Time}. Previous balance: {PreviousQuantity}/{PreviousCount}",
-                    rawItemId, adjustmentTransaction.TransactionId, "Ammar-Yasser8", "2025-09-02 13:28:08",
+                _logger.LogInformation("✅ Balance reset completed for raw item {RawItemId} - Transaction {TransactionId} created by {User} at {Time}. Previous balance: {PreviousQuantity}/{PreviousCount}",
+                    rawItemId, adjustmentTransaction.TransactionId, currentUser, currentTime,
                     currentBalance.QuantityBalance, currentBalance.CountBalance);
 
                 TempData["Success"] = $"تم إعادة تعيين الرصيد بنجاح - رقم معاملة التسوية: {adjustmentTransaction.TransactionId}";
@@ -501,13 +573,12 @@ namespace ELRakhawy.Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error resetting balance for transaction {TransactionId} by {User} at {Time}",
-                    transactionId, "Ammar-Yasser8", "2025-09-02 13:28:08");
+                _logger.LogError(ex, "❌ Error resetting balance for transaction {TransactionId} by {User} at {Time}",
+                    transactionId, "Ammar-Yasser8", "2025-09-04 20:37:37");
                 TempData["Error"] = "حدث خطأ أثناء إعادة تعيين الرصيد";
                 return RedirectToAction("Details", new { id = transactionId });
             }
         }
-
         #region Helper Methods and AJAX Endpoints
 
         // Get list of active raw items for dropdown
@@ -651,8 +722,6 @@ namespace ELRakhawy.Web.Controllers
                 return Json(new { success = false, error = "حدث خطأ أثناء تحميل الأرصدة" });
             }
         }
-
-        // Calculate current balance for a raw item
         private (double QuantityBalance, int CountBalance) CalculateCurrentBalance(int rawItemId)
         {
             try
@@ -660,24 +729,54 @@ namespace ELRakhawy.Web.Controllers
                 var transactions = _unitOfWork.Repository<RawTransaction>()
                     .GetAll(t => t.RawItemId == rawItemId)
                     .OrderBy(t => t.Date)
+                    .ThenBy(t => t.Id) // Add secondary sort for consistency
                     .ToList();
 
                 double quantityBalance = 0;
                 int countBalance = 0;
 
+                _logger.LogDebug("📊 Calculating balance for {TransactionCount} transactions of raw item {RawItemId} by {User} at {Time}",
+                    transactions.Count, rawItemId, "Ammar-Yasser8", "2025-09-06 17:35:01");
+
+                // ✅ CALCULATE balance WITHOUT modifying existing transactions
                 foreach (var transaction in transactions)
                 {
-                    transaction.UpdateBalances(quantityBalance, countBalance);
-                    quantityBalance = transaction.QuantityBalance;
-                    countBalance = transaction.CountBalance;
+                    if (transaction.InboundMeter > 0 || transaction.InboundKg > 0)
+                    {
+                        // Inbound: Add to balance
+                        quantityBalance += transaction.InboundMeter + transaction.InboundKg;
+                        countBalance += transaction.Count;
+
+                        _logger.LogTrace("➕ Inbound: +{Meters}m +{Kg}kg +{Count}count = Balance: {QBalance:N3}/{CBalance}",
+                            transaction.InboundMeter, transaction.InboundKg, transaction.Count, quantityBalance, countBalance);
+                    }
+                    else if (transaction.Outbound > 0)
+                    {
+                        // Outbound: Subtract from balance
+                        quantityBalance -= transaction.Outbound;
+                        countBalance -= transaction.Count;
+
+                        _logger.LogTrace("➖ Outbound: -{Outbound:N3} -{Count}count = Balance: {QBalance:N3}/{CBalance}",
+                            transaction.Outbound, transaction.Count, quantityBalance, countBalance);
+                    }
+
+                    // ❗ CRITICAL: DON'T call transaction.UpdateBalances() here!
+                    // That was corrupting your data!
                 }
+
+                // Ensure no negative balances
+                quantityBalance = Math.Max(0, quantityBalance);
+                countBalance = Math.Max(0, countBalance);
+
+                _logger.LogInformation("💰 Final calculated balance for raw item {RawItemId}: Quantity={Quantity:N3}, Count={Count} by {User} at {Time}",
+                    rawItemId, quantityBalance, countBalance, "Ammar-Yasser8", "2025-09-06 17:35:01");
 
                 return (quantityBalance, countBalance);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error calculating balance for raw item {RawItemId} by {User} at {Time}",
-                    rawItemId, "Ammar-Yasser8", "2025-09-01 22:38:16");
+                _logger.LogError(ex, "❌ Error calculating balance for raw item {RawItemId} by {User} at {Time}",
+                    rawItemId, "Ammar-Yasser8", "2025-09-06 17:35:01");
                 return (0, 0);
             }
         }
@@ -829,25 +928,59 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
+        /// <summary>
+        /// Calculate balances for multiple transactions (for batch operations)
+        /// Fixed at 2025-09-06 17:32:56 by Ammar-Yasser8
+        /// </summary>
+        /// <summary>
+        /// Calculate balances for multiple transactions (use for data repair/migration)
+        /// Updated at 2025-09-06 17:35:01 by Ammar-Yasser8
+        /// </summary>
         private void CalculateBalancesForTransactions(List<RawTransaction> transactions)
         {
-            if (!transactions.Any()) return;
-
-            // Group by RawItemId to calculate balances separately for each item
-            var itemGroups = transactions.GroupBy(t => t.RawItemId);
-
-            foreach (var group in itemGroups)
+            try
             {
-                var itemTransactions = group.OrderBy(t => t.Date).ToList();
-                double quantityBalance = 0;
-                int countBalance = 0;
-
-                foreach (var transaction in itemTransactions)
+                if (!transactions.Any())
                 {
-                    transaction.UpdateBalances(quantityBalance, countBalance);
-                    quantityBalance = transaction.QuantityBalance;
-                    countBalance = transaction.CountBalance;
+                    _logger.LogDebug("📊 No transactions to process by {User} at {Time}",
+                        "Ammar-Yasser8", "2025-09-06 17:35:01");
+                    return;
                 }
+
+                // Group by RawItemId to calculate balances separately for each item
+                var itemGroups = transactions.GroupBy(t => t.RawItemId);
+
+                foreach (var group in itemGroups)
+                {
+                    var itemTransactions = group.OrderBy(t => t.Date).ThenBy(t => t.Id).ToList();
+                    double quantityBalance = 0;
+                    int countBalance = 0;
+
+                    _logger.LogInformation("🔄 Processing {TransactionCount} transactions for raw item {RawItemId} by {User} at {Time}",
+                        itemTransactions.Count, group.Key, "Ammar-Yasser8", "2025-09-06 17:35:01");
+
+                    foreach (var transaction in itemTransactions)
+                    {
+                        // Update balance for this specific transaction
+                        transaction.UpdateBalances(quantityBalance, countBalance);
+
+                        // Use the updated balance for the next transaction
+                        quantityBalance = transaction.QuantityBalance;
+                        countBalance = transaction.CountBalance;
+
+                        _logger.LogTrace("📈 Transaction {TransactionId}: Balance updated to {Quantity:N3}/{Count}",
+                            transaction.TransactionId, quantityBalance, countBalance);
+                    }
+
+                    _logger.LogInformation("✅ Completed balance calculation for raw item {RawItemId}: Final={Quantity:N3}/{Count} by {User} at {Time}",
+                        group.Key, quantityBalance, countBalance, "Ammar-Yasser8", "2025-09-06 17:35:01");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error calculating balances for transactions by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-09-06 17:35:01");
+                throw;
             }
         }
         // Helper method to generate adjustment transaction ID
