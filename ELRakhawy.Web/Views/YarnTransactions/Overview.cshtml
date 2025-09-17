@@ -339,7 +339,7 @@
         </div>
     </div>
 </div>
-
+</div>
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">
     <div class="spinner-border text-primary" role="status">
@@ -609,7 +609,7 @@
 
                 console.log('✅ Modal displayed successfully for yarn item:', yarnItemId);
 
-                // Load details
+                // Load details with performance optimization
                 loadItemDetails();
 
             } catch (error) {
@@ -618,8 +618,17 @@
             }
         }
 
-                       function loadItemDetails() {
-            console.log('🔄 Loading details for yarn item:', currentYarnItemId, 'at 2025-09-04 19:10:25');
+        // ✅ تحسين أداء تحميل البيانات
+        let currentRequest = null;
+
+        function loadItemDetails() {
+            console.log('🔄 Loading details for yarn item:', currentYarnItemId, 'at', new Date().toLocaleString('ar-EG'));
+
+            // إلغاء أي طلب سابق إذا كان قيد التنفيذ
+            if (currentRequest) {
+                currentRequest.abort();
+                console.log('↪ Previous request aborted');
+            }
 
             $('#modalBody').html(`
                 <div class="text-center py-5">
@@ -627,11 +636,17 @@
                         <span class="visually-hidden">جاري التحميل...</span>
                     </div>
                     <h6 class="text-muted">جاري تحميل تفاصيل الصنف...</h6>
+                    <div class="progress mt-3" style="height: 6px; width: 80%; margin: 0 auto;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                    </div>
                     <small class="text-muted d-block mt-2">معرف الصنف: ${toArabicDigits(currentYarnItemId.toString())}</small>
                 </div>
             `);
 
-            $.ajax({
+            // بدء مؤقت لمراقبة الأداء
+            const startTime = performance.now();
+
+            currentRequest = $.ajax({
                 url: '@Url.Action("ItemDetails", "YarnTransactions")',
                 type: 'GET',
                 data: {
@@ -639,9 +654,13 @@
                     page: currentPage,
                     pageSize: pageSize
                 },
-                timeout: 30000,
+                timeout: 15000, // تقليل وقت الانتظار إلى 15 ثانية
+                beforeSend: function() {
+                    console.log('📤 Request sent for yarn item:', currentYarnItemId);
+                },
                 success: function(response) {
-                    console.log('📨 FULL RESPONSE at 2025-09-04 19:10:25:', response);
+                    const endTime = performance.now();
+                    console.log('✅ Request completed in', (endTime - startTime).toFixed(2), 'ms');
 
                     // ✅ Show actual response structure
                     console.log('🔍 RESPONSE STRUCTURE:');
@@ -650,10 +669,6 @@
 
                     if (response.yarnItem) {
                         console.log('  - Object.keys(response.yarnItem):', Object.keys(response.yarnItem || {}));
-                        console.log('  - response.yarnItem properties:');
-                        for (let key in response.yarnItem) {
-                            console.log(`    - ${key}:`, response.yarnItem[key]);
-                        }
                     }
 
                     if (response && response.success && response.yarnItem) {
@@ -664,23 +679,36 @@
                     }
                 },
                 error: function(xhr, status, error) {
+                    const endTime = performance.now();
+
+                    // تجاهل الأخطاء الناتجة عن إلغاء الطلب
+                    if (status === 'abort') {
+                        console.log('Request aborted intentionally');
+                        return;
+                    }
+
                     console.error('❌ AJAX Error:', {
                         status: status,
                         error: error,
-                        responseText: xhr.responseText,
                         statusCode: xhr.status,
                         yarnItemId: currentYarnItemId,
-                        timestamp: '2025-09-04 19:10:25'
+                        duration: (endTime - startTime).toFixed(2) + 'ms'
                     });
 
                     let errorMessage = 'حدث خطأ أثناء تحميل البيانات';
                     if (status === 'timeout') {
                         errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'خطأ في الخادم. يرجى المحاولة لاحقاً.';
                     }
                     showError(errorMessage);
+                },
+                complete: function() {
+                    currentRequest = null;
                 }
             });
         }
+
         // ✅ Add debug function to test database directly
         function debugYarnItem() {
             console.log('🐛 Starting database debug for yarn item:', currentYarnItemId);
@@ -713,9 +741,11 @@
             });
         }
 
-              function renderItemDetails(data) {
+                // ✅ تحديث دالة renderItemDetails لإضافة زر فحص البيانات
+                // ✅ تحسين دالة renderItemDetails لإضافة معلومات تصحيحية
+        function renderItemDetails(data) {
             try {
-                console.log('🎨 Rendering item details at 2025-09-04 19:10:25:', data);
+                console.log('🎨 Rendering item details:', data);
 
                 const yarnItem = data.yarnItem;
                 const transactions = data.transactions || [];
@@ -747,9 +777,14 @@
                                         <h6 class="mb-0">
                                             <i class="fas fa-info me-2"></i>معلومات الصنف
                                         </h6>
-                                        <small class="opacity-75">
-                                            <i class="fas fa-clock me-1"></i>${toArabicDigits('2025-09-04 19:10:25')}
-                                        </small>
+                                        <div>
+                                            <small class="opacity-75 me-3">
+                                                <i class="fas fa-clock me-1"></i>${new Date().toLocaleString('ar-EG')}
+                                            </small>
+                                            <button class="btn btn-sm btn-outline-light" onclick="console.log('Raw data:', ${JSON.stringify(transactions).replace(/"/g, '&quot;')})">
+                                                <i class="fas fa-bug me-1"></i>فحص البيانات
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="card-body">
@@ -831,15 +866,174 @@
                 $('#modalBody').html(html);
                 $('[title]').tooltip();
 
-                console.log('✅ Item details rendered successfully at 2025-09-04 19:10:25');
+                console.log('✅ Item details rendered successfully');
 
             } catch (error) {
-                console.error('❌ Error rendering item details at 2025-09-04 19:10:25:', error);
+                console.error('❌ Error rendering item details:', error);
                 showError('حدث خطأ أثناء عرض البيانات: ' + error.message);
             }
         }
 
+        // ✅ دالة منفصلة لعرض ملخص الصنف
+        function renderItemSummary(yarnItem) {
+            const yarnItemName = yarnItem.itemName || 'غير محدد';
+            const originYarnName = yarnItem.originYarnName || 'غير محدد';
+            const manufacturerName = yarnItem.manufacturerNames || 'غير محدد';
+
+            const summaryHtml = `
+                <!-- Item Summary -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-primary shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info me-2"></i>معلومات الصنف
+                                    </h6>
+                                    <small class="opacity-75">
+                                        <i class="fas fa-clock me-1"></i>${new Date().toLocaleString('ar-EG')}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">اسم الصنف:</label>
+                                            <span class="ms-2 fw-bold text-dark">${yarnItemName}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">الغزل الأصلي:</label>
+                                            <span class="ms-2 text-info fw-bold">${originYarnName}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">الشركة المصنعة:</label>
+                                            <span class="ms-2 text-success">${manufacturerName}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">معرف الصنف:</label>
+                                            <span class="ms-2 text-muted">${toArabicDigits((yarnItem.itemId || 0).toString())}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row text-center">
+                                            <div class="col-6">
+                                                <div class="border-end pe-3">
+                                                    <h4 class="mb-1 ${(yarnItem.quantityBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                        ${toArabicDigits(((yarnItem.quantityBalance || 0).toFixed(3)))}
+                                                    </h4>
+                                                    <small class="text-muted">رصيد الكمية (كجم)</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <h4 class="mb-1 ${(yarnItem.countBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                    ${toArabicDigits((yarnItem.countBalance || 0).toString())}
+                                                </h4>
+                                                <small class="text-muted">رصيد العدد</small>
+                                            </div>
+                                        </div>
+                                        <hr class="my-3">
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <h6 class="text-primary mb-1">${toArabicDigits(((yarnItem.totalInbound || 0).toFixed(3)))}</h6>
+                                                <small class="text-muted">إجمالي الوارد</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h6 class="text-danger mb-1">${toArabicDigits(((yarnItem.totalOutbound || 0).toFixed(3)))}</h6>
+                                                <small class="text-muted">إجمالي الصادر</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h6 class="text-info mb-1">${toArabicDigits((yarnItem.totalTransactions || 0).toString())}</h6>
+                                                <small class="text-muted">المعاملات</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="transactions-container"></div>
+            `;
+
+            $('#modalBody').html(summaryHtml);
+        }
+
+        // ✅ دالة منفصلة لعرض رسالة عدم وجود معاملات
+        function renderNoTransactions() {
+            const noTransactionsHtml = `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info text-center py-4">
+                            <i class="fas fa-info-circle fa-2x mb-3 text-info"></i>
+                            <h6 class="mb-2">لا توجد معاملات</h6>
+                            <p class="mb-0 text-muted small">لم يتم تسجيل أي معاملات لهذا الصنف حتى الآن.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#transactions-container').html(noTransactionsHtml);
+        }
+
+        // ✅ إصلاح دالة معالجة القيم الفارغة
+                // ✅ إصلاح دالة معالجة القيم الفارغة لاستخدام الحقول الصحيحة
+        function handleNullValues(transactions) {
+            if (!transactions || !Array.isArray(transactions)) {
+                console.error('❌ Invalid transactions data:', transactions);
+                return [];
+            }
+
+            return transactions.map((transaction, index) => {
+                // استخدام الحقول الصحيحة من البيانات الواردة
+                return {
+                    TransactionId: transaction.transactionId || `TEMP-${currentYarnItemId}-${index + 1}`,
+                    InternalId: transaction.internalId || '',
+                    Date: transaction.date || transaction.Date || new Date(),
+                    IsInbound: transaction.isInbound || false,
+                    Quantity: parseFloat(transaction.quantity || 0),
+                    Count: parseInt(transaction.count || 0),
+                    StakeholderTypeName: transaction.stakeholderTypeName || 'غير محدد',
+                    StakeholderName: transaction.stakeholderName || 'غير محدد',
+                    QuantityBalance: parseFloat(transaction.quantityBalance || 0),
+                    Comment: transaction.comment || ''
+                };
+            });
+        }
+
+                // ✅ تحسين دالة فحص البيانات الخام
+        function debugRawTransactions(transactions) {
+            console.log('🔍 Raw transactions data:', transactions);
+
+            if (!transactions || !Array.isArray(transactions)) {
+                console.error('❌ Transactions is not an array or is null');
+                return;
+            }
+
+            console.log('📋 Transactions summary:');
+            console.log('   Count:', transactions.length);
+
+            transactions.forEach((transaction, index) => {
+                console.log(`   Transaction ${index}:`);
+                if (transaction) {
+                    console.log('     - transactionId:', transaction.transactionId);
+                    console.log('     - date:', transaction.date);
+                    console.log('     - quantity:', transaction.quantity);
+                    console.log('     - isInbound:', transaction.isInbound);
+                    console.log('     - stakeholderName:', transaction.stakeholderName);
+                    console.log('     - quantityBalance:', transaction.quantityBalance);
+                } else {
+                    console.log(`     Transaction ${index} is null or undefined`);
+                }
+            });
+        }
+
+        // ✅ تعديل دالة renderTransactionsTable لفحص البيانات أولاً
+                // ✅ إصلاح دالة عرض الجدول
         function renderTransactionsTable(transactions, pagination) {
+            // فحص البيانات الخام أولاً
+            debugRawTransactions(transactions);
+
             const safePageInfo = pagination || {
                 CurrentPage: 1,
                 TotalPages: 1,
@@ -848,7 +1042,11 @@
                 HasPreviousPage: false
             };
 
-            console.log('📊 Rendering transactions table with', transactions.length, 'transactions at', CURRENT_TIME);
+            // Handle null values in transactions
+            const safeTransactions = handleNullValues(transactions);
+
+            console.log('📊 Rendering transactions table with', safeTransactions.length, 'transactions at', new Date().toLocaleString('ar-EG'));
+            console.log('📋 Processed transactions:', safeTransactions);
 
             let html = `
                 <div class="row">
@@ -882,18 +1080,21 @@
                                         <tbody>
             `;
 
-            transactions.forEach(function(transaction, index) {
+            safeTransactions.forEach(function(transaction, index) {
                 try {
                     const transactionDate = new Date(transaction.Date);
+                    const isToday = new Date().toDateString() === transactionDate.toDateString();
+
                     html += `
                         <tr>
                             <td>
-                                <div class="fw-bold text-primary small">${transaction.TransactionId || 'غير محدد'}</div>
+                                <div class="fw-bold text-primary small">${transaction.TransactionId}</div>
                                 ${transaction.InternalId ? `<small class="text-muted d-block">داخلي: ${transaction.InternalId}</small>` : ''}
                             </td>
                             <td>
                                 <div class="fw-bold small">${toArabicDigits(transactionDate.toLocaleDateString('ar-EG'))}</div>
                                 <small class="text-muted">${toArabicDigits(transactionDate.toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}))}</small>
+                                ${isToday ? '<span class="badge bg-success ms-1">اليوم</span>' : ''}
                             </td>
                             <td>
                                 <span class="badge rounded-pill ${transaction.IsInbound ? 'bg-success' : 'bg-danger'} small">
@@ -901,14 +1102,13 @@
                                 </span>
                             </td>
                             <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'} fw-bold small">
-                                ${toArabicDigits(((transaction.Quantity || 0).toFixed(3)))}
+                                ${toArabicDigits((transaction.Quantity || 0).toFixed(3))}
                             </td>
                             <td class="fw-bold small">${toArabicDigits((transaction.Count || 0).toString())}</td>
                             <td>
-                                <div class="small text-muted">${transaction.StakeholderTypeName || 'غير محدد'}</div>
-                                <div class="fw-bold small">${transaction.StakeholderName || 'غير محدد'}</div>
+                                <div class="fw-bold small">${transaction.StakeholderName}</div>
                             </td>
-                            <td class="fw-bold text-primary small">${toArabicDigits(((transaction.QuantityBalance || 0).toFixed(3)))}</td>
+                            <td class="fw-bold text-primary small">${toArabicDigits((transaction.QuantityBalance || 0).toFixed(3))}</td>
                             <td class="small">
                                 ${transaction.Comment ?
                                     `<span class="text-muted" title="${transaction.Comment}">
@@ -921,6 +1121,18 @@
                     `;
                 } catch (error) {
                     console.error('Error rendering transaction row', index, ':', error, transaction);
+
+                    // عرض بيانات الخطأ لأغراض التصحيح
+                    html += `
+                        <tr class="table-warning">
+                            <td colspan="8" class="text-center">
+                                <small class="text-danger">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    خطأ في عرض المعاملة ${index + 1}
+                                </small>
+                            </td>
+                        </tr>
+                    `;
                 }
             });
 
@@ -959,7 +1171,7 @@
 
             return html;
         }
-
+        
         function loadPage(page) {
             currentPage = page;
             loadItemDetails();
@@ -989,50 +1201,431 @@
             `);
         }
 
-        // Export functions
+                // Export functions
         function exportToExcel() {
             showLoadingOverlay();
-            const form = $('<form>', {
-                method: 'POST',
-                action: '@Url.Action("ExportOverview", "YarnTransactions")'
-            });
-            form.append($('@Html.AntiForgeryToken()'));
-            form.append($('<input>', {
-                type: 'hidden',
-                name: 'availableOnly',
-                value: $('#availableOnlyFilter').is(':checked')
-            }));
-            form.appendTo('body').submit().remove();
-            setTimeout(hideLoadingOverlay, 2000);
+
+            try {
+                console.log('بدء تصدير Excel في', CURRENT_TIME);
+
+                // Collect data
+                const exportData = collectExportData();
+
+                // Generate Excel file
+                generateExcelFile(exportData);
+
+                console.log('تم تصدير Excel بنجاح');
+
+            } catch (error) {
+                console.error('فشل تصدير Excel:', error);
+                alert('حدث خطأ أثناء تصدير البيانات: ' + error.message);
+            } finally {
+                setTimeout(hideLoadingOverlay, 1000);
+            }
         }
 
-        function shareWhatsApp() {
-            showLoadingOverlay();
-            $.ajax({
-                url: '@Url.Action("ShareWhatsApp", "YarnTransactions")',
-                type: 'POST',
-                data: {
+        function collectExportData() {
+            const data = {
+                summary: {
+                    totalItems: toLatinDigits($('#totalItemsDisplay').text()),
+                    availableItems: toLatinDigits($('#availableItemsDisplay').text()),
+                    totalQuantity: toLatinDigits($('#totalQuantityDisplay').text().replace(/[^\d.,]/g, '')),
+                    totalCount: toLatinDigits($('#totalCountDisplay').text()),
+                    percentageAvailable: toLatinDigits($('#percentageDisplay').text().replace('%', '')),
+                    lastUpdated: toLatinDigits($('#lastUpdatedDisplay').text()),
                     availableOnly: $('#availableOnlyFilter').is(':checked'),
-                    __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                    exportDate: new Date().toLocaleDateString('ar-EG'),
+                    exportTime: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}),
+                    exportedBy: CURRENT_USER
                 },
-                success: function(response) {
-                    hideLoadingOverlay();
-                    if (response.success) {
-                        const message = encodeURIComponent(response.message);
-                        const whatsappUrl = `https://wa.me/?text=${message}`;
-                        window.open(whatsappUrl, '_blank');
-                    } else {
-                        showError(response.message || 'حدث خطأ أثناء إنشاء رسالة واتساب');
-                    }
-                },
-                error: function(xhr, status, error) {
-                    hideLoadingOverlay();
-                    console.error('Error sharing WhatsApp at', CURRENT_TIME, ':', error);
-                    showError('حدث خطأ أثناء إنشاء رسالة واتساب');
+                items: []
+            };
+
+            // Collect visible items
+            $('.yarn-item-row:visible').each(function() {
+                const row = $(this);
+                const item = {
+                    yarnItemId: row.data('yarn-id'),
+                    yarnItemName: row.find('td:first strong').text().trim(),
+                    originYarnName: row.find('td:nth-child(2) .text-info').text().trim() || 'غير محدد',
+                    manufacturerNames: row.find('td:nth-child(3) small').text().trim() || 'غير محدد',
+                    quantityBalance: toLatinDigits(row.find('.quantity-balance').text().trim()),
+                    countBalance: extractCountBalance(row.find('.count-balance-cell')),
+                    packagingBreakdown: extractPackagingBreakdown(row.find('.count-balance-cell')),
+                    isAvailable: row.data('available'),
+                    status: row.data('available') ? 'متاح' : 'غير متاح',
+                    totalTransactions: toLatinDigits(row.find('.transaction-count').text().trim()),
+                    inboundTransactions: toLatinDigits(row.find('.inbound-count').text().trim() || '0'),
+                    outboundTransactions: toLatinDigits(row.find('.outbound-count').text().trim() || '0'),
+                    lastTransactionDate: row.find('.last-transaction-date').text().trim() || 'لا توجد معاملات',
+                    daysSinceLastTransaction: toLatinDigits(row.find('.days-since').text().trim() || '0')
+                };
+                data.items.push(item);
+            });
+
+            return data;
+        }
+
+        function extractCountBalance(cell) {
+            const countText = cell.find('.fw-bold').text();
+            if (countText && countText.includes('وحدة')) {
+                return toLatinDigits(countText.replace(/[^\d]/g, ''));
+            }
+            return '0';
+        }
+
+        function extractPackagingBreakdown(cell) {
+            const badges = cell.find('.badge');
+            const breakdown = [];
+            badges.each(function() {
+                const text = $(this).text().trim();
+                if (text) {
+                    breakdown.push(text.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]));
                 }
             });
+            return breakdown.join(', ') || 'غير محددة';
         }
 
+        function generateExcelFile(data) {
+            // Check if SheetJS is available
+            if (typeof XLSX === 'undefined') {
+                // Load SheetJS dynamically
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => generateExcelWithSheetJS(data);
+                script.onerror = () => generateExcelFallback(data);
+                document.head.appendChild(script);
+            } else {
+                generateExcelWithSheetJS(data);
+            }
+        }
+
+        function generateExcelWithSheetJS(data) {
+            try {
+                // Create workbook
+                const workbook = XLSX.utils.book_new();
+
+                // Summary sheet
+                const summaryData = [
+                    ['نظرة عامة على أرصدة الغزل'],
+                    [''],
+                    ['تاريخ التصدير:', data.summary.exportDate],
+                    ['وقت التصدير:', data.summary.exportTime],
+                    ['تم التصدير بواسطة:', data.summary.exportedBy],
+                    ['آخر تحديث للبيانات:', data.summary.lastUpdated],
+                    ['فلتر المتاح فقط:', data.summary.availableOnly ? 'نعم' : 'لا'],
+                    [''],
+                    ['الإحصائيات العامة'],
+                    ['إجمالي الأصناف:', data.summary.totalItems],
+                    ['الأصناف المتاحة:', data.summary.availableItems],
+                    ['نسبة الأصناف المتاحة:', data.summary.percentageAvailable + '%'],
+                    ['إجمالي الكمية (كجم):', data.summary.totalQuantity],
+                    ['إجمالي العدد:', data.summary.totalCount],
+                    [''],
+                    ['عدد الأصناف في هذا التقرير:', data.items.length.toString()]
+                ];
+
+                const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+                // Set column widths for summary
+                summarySheet['!cols'] = [
+                    { width: 25 },
+                    { width: 20 }
+                ];
+
+                XLSX.utils.book_append_sheet(workbook, summarySheet, 'ملخص');
+
+                // Items sheet
+                const headers = [
+                    'معرف الصنف',
+                    'اسم الصنف',
+                    'الغزل الأصلي',
+                    'الشركة المصنعة',
+                    'رصيد الكمية (كجم)',
+                    'رصيد العدد',
+                    'تفاصيل التعبئة',
+                    'الحالة',
+                    'إجمالي المعاملات',
+                    'معاملات الوارد',
+                    'معاملات الصادر',
+                    'آخر معاملة',
+                    'أيام منذ آخر معاملة'
+                ];
+
+                const itemsData = [headers];
+
+                data.items.forEach(item => {
+                    itemsData.push([
+                        item.yarnItemId,
+                        item.yarnItemName,
+                        item.originYarnName,
+                        item.manufacturerNames,
+                        parseFloat(item.quantityBalance) || 0,
+                        parseInt(item.countBalance) || 0,
+                        item.packagingBreakdown,
+                        item.status,
+                        parseInt(item.totalTransactions) || 0,
+                        parseInt(item.inboundTransactions) || 0,
+                        parseInt(item.outboundTransactions) || 0,
+                        item.lastTransactionDate,
+                        parseInt(item.daysSinceLastTransaction) || 0
+                    ]);
+                });
+
+                const itemsSheet = XLSX.utils.aoa_to_sheet(itemsData);
+
+                // Set column widths for items
+                itemsSheet['!cols'] = [
+                    { width: 12 }, // معرف الصنف
+                    { width: 25 }, // اسم الصنف
+                    { width: 20 }, // الغزل الأصلي
+                    { width: 20 }, // الشركة المصنعة
+                    { width: 15 }, // رصيد الكمية
+                    { width: 12 }, // رصيد العدد
+                    { width: 25 }, // تفاصيل التعبئة
+                    { width: 10 }, // الحالة
+                    { width: 15 }, // إجمالي المعاملات
+                    { width: 12 }, // معاملات الوارد
+                    { width: 12 }, // معاملات الصادر
+                    { width: 18 }, // آخر معاملة
+                    { width: 20 }  // أيام منذ آخر معاملة
+                ];
+
+                // Style the header row
+                const headerRange = XLSX.utils.decode_range(itemsSheet['!ref']);
+                for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                    if (!itemsSheet[cellAddress]) continue;
+                    itemsSheet[cellAddress].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "366092" } },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+
+                XLSX.utils.book_append_sheet(workbook, itemsSheet, 'تفاصيل الأصناف');
+
+                // Generate filename
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `ارصدة_الغزل_${timestamp}.xlsx`;
+
+                // Download file
+                XLSX.writeFile(workbook, filename);
+
+                console.log('تم إنشاء ملف Excel بنجاح:', filename);
+
+                // Show success message
+                setTimeout(() => {
+                    alert('تم تصدير البيانات بنجاح إلى ملف Excel!');
+                }, 500);
+
+            } catch (error) {
+                console.error('خطأ في generateExcelWithSheetJS:', error);
+                generateExcelFallback(data);
+            }
+        }
+
+        function generateExcelFallback(data) {
+            try {
+                console.log('استخدام CSV كبديل لتصدير Excel');
+
+                // Create CSV content
+                let csvContent = '\uFEFF'; // BOM for UTF-8
+
+                // Add summary
+                csvContent += 'نظرة عامة على أرصدة الغزل\n\n';
+                csvContent += 'تاريخ التصدير,' + data.summary.exportDate + '\n';
+                csvContent += 'وقت التصدير,' + data.summary.exportTime + '\n';
+                csvContent += 'تم التصدير بواسطة,' + data.summary.exportedBy + '\n';
+                csvContent += 'آخر تحديث للبيانات,' + data.summary.lastUpdated + '\n';
+                csvContent += 'فلتر المتاح فقط,' + (data.summary.availableOnly ? 'نعم' : 'لا') + '\n\n';
+
+                csvContent += 'الإحصائيات العامة\n';
+                csvContent += 'إجمالي الأصناف,' + data.summary.totalItems + '\n';
+                csvContent += 'الأصناف المتاحة,' + data.summary.availableItems + '\n';
+                csvContent += 'نسبة الأصناف المتاحة,' + data.summary.percentageAvailable + '%\n';
+                csvContent += 'إجمالي الكمية (كجم),' + data.summary.totalQuantity + '\n';
+                csvContent += 'إجمالي العدد,' + data.summary.totalCount + '\n\n';
+
+                // Add headers
+                csvContent += 'معرف الصنف,اسم الصنف,الغزل الأصلي,الشركة المصنعة,رصيد الكمية (كجم),رصيد العدد,تفاصيل التعبئة,الحالة,إجمالي المعاملات,معاملات الوارد,معاملات الصادر,آخر معاملة,أيام منذ آخر معاملة\n';
+
+                // Add items
+                data.items.forEach(item => {
+                    const row = [
+                        item.yarnItemId,
+                        '"' + item.yarnItemName + '"',
+                        '"' + item.originYarnName + '"',
+                        '"' + item.manufacturerNames + '"',
+                        item.quantityBalance,
+                        item.countBalance,
+                        '"' + item.packagingBreakdown + '"',
+                        item.status,
+                        item.totalTransactions,
+                        item.inboundTransactions,
+                        item.outboundTransactions,
+                        '"' + item.lastTransactionDate + '"',
+                        item.daysSinceLastTransaction
+                    ].join(',');
+                    csvContent += row + '\n';
+                });
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `ارصدة_الغزل_${timestamp}.csv`;
+
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                    console.log('تم إنشاء ملف CSV بنجاح:', filename);
+                    alert('تم تصدير البيانات بنجاح إلى ملف CSV!');
+                } else {
+                    throw new Error('التصدير غير مدعوم في هذا المتصفح');
+                }
+
+            } catch (error) {
+                console.error('خطأ في generateExcelFallback:', error);
+                alert('حدث خطأ أثناء تصدير البيانات: ' + error.message);
+            }
+        }
+
+        // دالة مساعدة لتحويل الأرقام العربية إلى لاتينية
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        }
+               function shareWhatsApp() {
+            showLoadingOverlay();
+
+            try {
+                // جمع بيانات النظرة العامة
+                const totalItems = toLatinDigits($('#totalItemsDisplay').text());
+                const availableItems = toLatinDigits($('#availableItemsDisplay').text());
+                const totalQuantity = toLatinDigits($('#totalQuantityDisplay').text().replace(/[^\d.,]/g, ''));
+                const totalCount = toLatinDigits($('#totalCountDisplay').text());
+                const lastUpdated = toLatinDigits($('#lastUpdatedDisplay').text());
+                const availableOnly = $('#availableOnlyFilter').is(':checked');
+                const percentageAvailable = toLatinDigits($('#percentageDisplay').text());
+
+                // إنشاء رسالة WhatsApp
+                let message = `تقرير نظرة عامة على أرصدة الغزل\n\n`;
+
+                message += `الإحصائيات الرئيسية:\n`;
+                message += `• إجمالي الأصناف: ${totalItems} صنف\n`;
+                message += `• الأصناف المتاحة: ${availableItems} صنف (${percentageAvailable}%)\n`;
+                message += `• إجمالي الكمية: ${totalQuantity} كجم\n`;
+                message += `• إجمالي العدد: ${totalCount} وحدة\n`;
+                message += `• آخر تحديث: ${lastUpdated}\n\n`;
+
+                message += `إعدادات التقرير:\n`;
+                message += `• نوع العرض: ${availableOnly ? 'الأصناف المتاحة فقط' : 'جميع الأصناف'}\n`;
+                message += `• وقت التقرير: ${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'})}\n\n`;
+
+                // جمع بيانات الأصناف المرئية
+                const items = [];
+                $('.yarn-item-row:visible').each(function() {
+                    const row = $(this);
+                    const yarnName = row.find('td:first strong').text().trim();
+                    const originYarn = row.find('td:nth-child(2) .text-info').text().trim();
+                    const manufacturer = row.find('td:nth-child(3) small').text().trim();
+                    const quantityBalance = row.find('.quantity-balance').text().trim();
+                    const statusBadge = row.find('td:nth-child(6) .badge').text().trim();
+                    const transactionCount = row.find('.transaction-count').text().trim();
+                    const isAvailable = row.data('available');
+
+                    items.push({
+                        name: yarnName,
+                        origin: originYarn,
+                        manufacturer: manufacturer,
+                        quantity: quantityBalance,
+                        status: statusBadge,
+                        transactions: transactionCount,
+                        available: isAvailable
+                    });
+                });
+
+                // إضافة تفاصيل الأصناف
+                if (items.length > 0) {
+                    message += `تفاصيل الأصناف ${availableOnly ? '(المتاحة فقط)' : ''}:\n\n`;
+
+                    // تحديد عدد العناصر المعروضة لتجنب طول الرسالة
+                    const maxItems = Math.min(items.length, 10);
+                    const displayItems = items.slice(0, maxItems);
+
+                    displayItems.forEach((item, index) => {
+                        const statusText = item.available ? 'متاح' : 'غير متاح';
+                        const originText = item.origin && item.origin !== 'غير محدد' ? ` (${item.origin})` : '';
+                        const manufacturerText = item.manufacturer && item.manufacturer !== 'غير محدد' ? ` - ${item.manufacturer}` : '';
+
+                        message += `${item.name}${originText}${manufacturerText}\n`;
+                        message += `   الرصيد: ${item.quantity} كجم\n`;
+                        message += `   الحالة: ${statusText}\n`;
+                        message += `   عدد المعاملات: ${item.transactions}\n`;
+
+                        if (index < maxItems - 1) message += `\n`;
+                    });
+
+                    if (items.length > maxItems) {
+                        message += `\nو ${items.length - maxItems} صنف إضافي\n`;
+                    }
+                } else {
+                    message += `ملاحظة: لا توجد أصناف ${availableOnly ? 'متاحة' : ''} للعرض حاليًا\n`;
+                }
+
+                // إضافة تذييل الرسالة
+                message += `\n───\n`;
+                message += `مصدر التقرير: نظام إدارة مخزون الغزل\n`;
+                message += `المستخدم: ${CURRENT_USER}\n`;
+                message += `وقت الإنشاء: ${new Date().toLocaleString('ar-EG', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}`;
+
+                hideLoadingOverlay();
+
+                // فتح واتساب مع الرسالة
+                const encodedMessage = encodeURIComponent(message);
+                const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+
+                // التحقق من طول الرسالة (واتساب له حدود أحرف)
+                if (message.length > 4000) {
+                    // إنشاء نسخة مختصرة مع تحذير
+                    const truncatedMessage = message.substring(0, 3900) + '\n\nتم اختصار التقرير بسبب طول الرسالة';
+                    const truncatedUrl = `https://wa.me/?text=${encodeURIComponent(truncatedMessage)}`;
+
+                    if (confirm('الرسالة طويلة جدًا لواتساب. هل تريد إرسال نسخة مختصرة؟')) {
+                        window.open(truncatedUrl, '_blank');
+                    }
+                } else {
+                    window.open(whatsappUrl, '_blank');
+                }
+
+                console.log('تم إنشاء رسالة واتساب بنجاح في', CURRENT_TIME);
+
+            } catch (error) {
+                hideLoadingOverlay();
+                console.error('خطأ في إنشاء رسالة واتساب:', error);
+                alert('حدث خطأ أثناء إنشاء رسالة واتساب: ' + error.message);
+            }
+        }
+
+        // دالة مساعدة لتحويل الأرقام العربية إلى لاتينية
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        }
         function printOverview() { window.print(); }
         function showLoadingOverlay() { $('#loadingOverlay').show(); }
         function hideLoadingOverlay() { $('#loadingOverlay').hide(); }
@@ -1135,4 +1728,4 @@
         }
     </style>
 
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">

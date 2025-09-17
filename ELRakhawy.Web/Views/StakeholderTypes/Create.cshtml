@@ -74,6 +74,7 @@
                         <span asp-validation-for="FinancialTransactionTypeId" class="text-danger d-block mt-1"></span>
                     </div>
 
+                    <!-- CORRECTED: Remove the hidden field and fix the span -->
                     <div class="mb-4">
                         <label class="form-label fw-bold">الواجهات المرتبطة <span class="text-danger">*</span></label>
                         <div class="card border">
@@ -87,25 +88,32 @@
                                 </div>
                             </div>
                             <div class="card-body">
+                                <!-- REMOVED: <input type="hidden" name="SelectedFormIds" value="" /> -->
+
                                 <div class="row">
-                                    @foreach (var form in Model.AvailableForms)
+                                    @for (int i = 0; i < Model.AvailableForms.Count; i++)
                                     {
-                                        <div class="col-md-4 mb-2">
+                                        <div class="col-md-6 col-lg-4 mb-2">
                                             <div class="form-check">
-                                                <input type="checkbox" class="form-check-input"
-                                                       id="form_@form.Id"
+                                                <input type="checkbox"
+                                                       class="form-check-input"
                                                        name="SelectedFormIds"
-                                                       value="@form.Id">
-                                                <label class="form-check-label" for="form_@form.Id">@form.FormName</label>
+                                                       value="@Html.Raw(Model.AvailableForms[i].Id)"
+                                                       id="form_@Model.AvailableForms[i].Id"
+                                                       @(Model.SelectedFormIds?.Contains(Model.AvailableForms[i].Id) == true ? "checked" : "") />
+
+                                                <label class="form-check-label" for="form_@Model.AvailableForms[i].Id">
+                                                    @Model.AvailableForms[i].FormName
+                                                </label>
                                             </div>
                                         </div>
                                     }
                                 </div>
+                                <!-- FIXED: Added missing <span id=" -->
                                 <span id="formsValidationMsg" class="text-danger d-none">يجب اختيار واجهة واحدة على الأقل</span>
                             </div>
                         </div>
                     </div>
-
                     <div class="mb-4">
                         <label asp-for="Comment" class="form-label fw-bold">بيان</label>
                         <textarea asp-for="Comment" class="form-control" rows="3" placeholder="أدخل بيان إضافي (اختياري)"></textarea>

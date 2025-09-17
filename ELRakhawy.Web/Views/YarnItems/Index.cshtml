@@ -35,7 +35,7 @@
 
 <div class="row">
     <!-- Enhanced Sidebar -->
-    <div class="col-xl-3 col-lg-4">
+    <div class="col-xl-2 col-lg-3 col-md-4">
         <!-- Enhanced Stats Card -->
         <div class="card mb-4 shadow-sm border-0">
             <div class="card shadow-sm border-0">
@@ -44,16 +44,16 @@
                         <i class="fas fa-bolt me-2"></i>إجراءات سريعة
                     </h6>
                 </div>
-                <div class="card-body">
-                    <div class="d-grid gap-2">
+                <div class="card-body p-2">
+                    <div class="d-grid gap-1">
                         <a href="@Url.Action("Create")" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus-circle me-2"></i>إضافة صنف جديد
+                            <i class="fas fa-plus-circle me-1"></i>إضافة صنف جديد
                         </a>
                         <button type="button" class="btn btn-info btn-sm" id="clearAllSearches">
-                            <i class="fas fa-broom me-2"></i>مسح جميع البحوث
+                            <i class="fas fa-broom me-1"></i>مسح جميع البحوث
                         </button>
                         <button type="button" class="btn btn-secondary btn-sm" id="refreshData">
-                            <i class="fas fa-sync-alt me-2"></i>تحديث البيانات
+                            <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
                         </button>
                     </div>
                 </div>
@@ -63,77 +63,76 @@
                     <i class="fas fa-chart-bar me-2"></i>إحصائيات تفصيلية
                 </h6>
             </div>
-            <div class="card-body">
-                <div class="row g-3">
+            <div class="card-body p-2">
+                <div class="row g-1">
                     <div class="col-6">
-                        <div class="stat-card bg-primary bg-opacity-10 rounded p-3 text-center h-100">
-                            <div class="stat-icon text-primary mb-2">
-                                <i class="fas fa-boxes fa-2x"></i>
+                        <div class="stat-card bg-primary bg-opacity-10 rounded p-2 text-center h-100">
+                            <div class="stat-icon text-primary mb-1">
+                                <i class="fas fa-boxes fa-lg"></i>
                             </div>
-                            <div class="h4 mb-1 text-primary" id="sidebarTotalItems">@totalItems</div>
-                            <small class="text-muted">إجمالي الأصناف</small>
+                            <div class="h6 mb-1 text-primary" id="sidebarTotalItems">@totalItems</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">إجمالي الأصناف</small>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-card bg-success bg-opacity-10 rounded p-3 text-center h-100">
-                            <div class="stat-icon text-success mb-2">
-                                <i class="fas fa-check-circle fa-2x"></i>
+                        <div class="stat-card bg-success bg-opacity-10 rounded p-2 text-center h-100">
+                            <div class="stat-icon text-success mb-1">
+                                <i class="fas fa-check-circle fa-lg"></i>
                             </div>
-                            <div class="h4 mb-1 text-success" id="sidebarActiveItems">@activeItems</div>
-                            <small class="text-muted">الأصناف النشطة</small>
+                            <div class="h6 mb-1 text-success" id="sidebarActiveItems">@activeItems</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">الأصناف النشطة</small>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-card bg-warning bg-opacity-10 rounded p-3 text-center h-100">
-                            <div class="stat-icon text-warning mb-2">
-                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        <div class="stat-card bg-warning bg-opacity-10 rounded p-2 text-center h-100">
+                            <div class="stat-icon text-warning mb-1">
+                                <i class="fas fa-exclamation-triangle fa-lg"></i>
                             </div>
-                            <div class="h4 mb-1 text-warning" id="sidebarLowStock">@lowStockItems</div>
-                            <small class="text-muted">رصيد منخفض</small>
+                            <div class="h6 mb-1 text-warning" id="sidebarLowStock">@lowStockItems</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">رصيد منخفض</small>
                         </div>
                     </div>
                     <div class="col-6">
-                        <div class="stat-card bg-danger bg-opacity-10 rounded p-3 text-center h-100">
-                            <div class="stat-icon text-danger mb-2">
-                                <i class="fas fa-ban fa-2x"></i>
+                        <div class="stat-card bg-danger bg-opacity-10 rounded p-2 text-center h-100">
+                            <div class="stat-icon text-danger mb-1">
+                                <i class="fas fa-ban fa-lg"></i>
                             </div>
-                            <div class="h4 mb-1 text-danger" id="sidebarZeroStock">@zeroStockItems</div>
-                            <small class="text-muted">بدون رصيد</small>
+                            <div class="h6 mb-1 text-danger" id="sidebarZeroStock">@zeroStockItems</div>
+                            <small class="text-muted" style="font-size: 0.7rem;">بدون رصيد</small>
                         </div>
                     </div>
                 </div>
 
                 <!-- Balance Summary -->
-                <hr class="my-3">
+                <hr class="my-2">
                 <div class="balance-summary">
-                    <h6 class="text-primary mb-3">
-                        <i class="fas fa-calculator me-2"></i>ملخص الأرصدة
+                    <h6 class="text-primary mb-2" style="font-size: 0.9rem;">
+                        <i class="fas fa-calculator me-1"></i>ملخص الأرصدة
                     </h6>
-                    <div class="bg-light rounded p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">إجمالي الرصيد:</span>
-                            <span class="fw-bold text-primary h6 mb-0">@totalBalance.ToString("N3") كجم</span>
+                    <div class="bg-light rounded p-2">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted" style="font-size: 0.75rem;">إجمالي الرصيد:</span>
+                            <span class="fw-bold text-primary" style="font-size: 0.8rem;">@totalBalance.ToString("N3") كجم</span>
                         </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted">متوسط الرصيد:</span>
-                            <span class="fw-bold text-info">@((totalItems > 0 ? totalBalance / totalItems : 0).ToString("N2")) كجم</span>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="text-muted" style="font-size: 0.75rem;">متوسط الرصيد:</span>
+                            <span class="fw-bold text-info" style="font-size: 0.8rem;">@((totalItems > 0 ? totalBalance / totalItems : 0).ToString("N2")) كجم</span>
                         </div>
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted">نسبة النشطة:</span>
-                            <span class="fw-bold text-success">@((totalItems > 0 ? (activeItems * 100.0 / totalItems) : 0).ToString("N1"))%</span>
+                            <span class="text-muted" style="font-size: 0.75rem;">نسبة النشطة:</span>
+                            <span class="fw-bold text-success" style="font-size: 0.8rem;">@((totalItems > 0 ? (activeItems * 100.0 / totalItems) : 0).ToString("N1"))%</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-
         <!-- Quick Actions -->
        
     </div>
 
     <!-- Enhanced Main Content -->
-    <div class="col-xl-9 col-lg-8">
-        <!-- Alerts -->
+    <div class="col-xl-10 col-lg-9 col-md-8">
+        <!-- الكارد الكبير -->        <!-- Alerts -->
         @if (TempData["Success"] != null || TempData["Error"] != null)
         {
             <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4 shadow-sm border-0">
@@ -222,7 +221,6 @@
                                         <h6 class="card-title mb-1 text-primary fw-bold">
                                             <i class="fas fa-box me-2"></i>@item.Item
                                         </h6>
-                                        <small class="text-muted">معرف: #@item.Id</small>
                                     </div>
                                     <span class="badge bg-@(item.Status ? "success" : "secondary") px-3 py-2">
                                         <i class="fas fa-@(item.Status ? "check" : "times") me-1"></i>
@@ -414,7 +412,6 @@
                                             </div>
                                             <div>
                                                 <div class="fw-bold text-dark">@item.Item</div>
-                                                <small class="text-muted">معرف: #@item.Id</small>
                                             </div>
                                         </div>
                                     </td>

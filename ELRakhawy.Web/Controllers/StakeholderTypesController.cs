@@ -40,12 +40,44 @@ namespace ELRakhawy.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(StakeholderTypeViewModel viewModel)
         {
+            // 🔹 Normalize SelectedFormIds if model binder failed (Arabic digits issue)
+            if (viewModel.SelectedFormIds == null || viewModel.SelectedFormIds.Count == 0)
+            {
+                var rawValues = Request.Form["SelectedFormIds"].ToArray();
+                var normalizedIds = new List<int>();
+
+                foreach (var raw in rawValues)
+                {
+                    if (!string.IsNullOrWhiteSpace(raw))
+                    {
+                        // تحويل الأرقام العربية-الهندية إلى أرقام إنجليزية
+                        var normalized = raw
+                            .Replace('٠', '0')
+                            .Replace('١', '1')
+                            .Replace('٢', '2')
+                            .Replace('٣', '3')
+                            .Replace('٤', '4')
+                            .Replace('٥', '5')
+                            .Replace('٦', '6')
+                            .Replace('٧', '7')
+                            .Replace('٨', '8')
+                            .Replace('٩', '9');
+
+                        if (int.TryParse(normalized, out var id))
+                        {
+                            normalizedIds.Add(id);
+                        }
+                    }
+                }
+
+                viewModel.SelectedFormIds = normalizedIds;
+            }
+
             if (ModelState.IsValid)
             {
                 // Check if stakeholder type with same name exists
                 var existingType = _unitOfWork.Repository<StakeholderType>()
                     .GetOne(st => st.Type.ToLower() == viewModel.Type.ToLower());
-
                 if (existingType != null)
                 {
                     ModelState.AddModelError("Type", "A stakeholder type with this name already exists.");
@@ -60,25 +92,32 @@ namespace ELRakhawy.Web.Controllers
                     };
                     _unitOfWork.Repository<StakeholderType>().Add(stakeholderType);
                     _unitOfWork.Complete();
-                    // Add selected forms
-                    foreach (var formId in viewModel.SelectedFormIds)
+
+                    // Save selected forms
+                    if (viewModel.SelectedFormIds != null && viewModel.SelectedFormIds.Any())
                     {
-                        var stakeholderTypeForm = new StakeholderTypeForm
+                        foreach (var formId in viewModel.SelectedFormIds)
                         {
-                            StakeholderTypeId = stakeholderType.Id,
-                            FormId = formId
-                        };
-                        _unitOfWork.Repository<StakeholderTypeForm>().Add(stakeholderTypeForm);
+                            var stakeholderTypeForm = new StakeholderTypeForm
+                            {
+                                StakeholderTypeId = stakeholderType.Id,
+                                FormId = formId
+                            };
+                            _unitOfWork.Repository<StakeholderTypeForm>().Add(stakeholderTypeForm);
+                        }
+                        _unitOfWork.Complete();
                     }
-                    _unitOfWork.Complete();
+
                     return RedirectToAction(nameof(Index));
                 }
             }
+
             // If model state is invalid or type exists, repopulate the view model
             viewModel.FinancialTransactionTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().ToList();
             viewModel.AvailableForms = _unitOfWork.Repository<FormStyle>().GetAll().ToList();
             return View(viewModel);
         }
+
 
         // GET: StakeholderTypes/Edit/5
         public IActionResult Edit(int id)

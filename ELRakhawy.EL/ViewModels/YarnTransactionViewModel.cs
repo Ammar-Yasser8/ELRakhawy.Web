@@ -36,8 +36,8 @@ namespace ELRakhawy.EL.ViewModels
         public decimal Quantity { get; set; }
 
         [Required(ErrorMessage = "العدد مطلوب")]
-        [Range(0, int.MaxValue, ErrorMessage = "يجب أن يكون العدد صفر أو أكبر")]
-        [Display(Name = "عدد")]
+        [Range(1, int.MaxValue, ErrorMessage = "يجب أن يكون العدد رقماً صحيحاً موجباً")]
+        [RegularExpression("^[0-9]+$", ErrorMessage = "يجب إدخال عدد صحيح بدون كسور")]
         public int Count { get; set; }
 
         [Required(ErrorMessage = "نوع الجهة مطلوب")]

@@ -179,7 +179,7 @@
                             <div class="manufacturers-list p-3" id="manufacturersList">
                                 <!-- This will be populated by JavaScript -->
                             </div>
-
+                            
                             <!-- Hidden Select for Form Submission -->
                             <select asp-for="ManufacturerIds"
                                     asp-items="Model.Manufacturers"
@@ -602,12 +602,13 @@
         loadManufacturers() {
             // Get manufacturers from the select options
             const select = document.getElementById('hiddenManufacturerSelect');
-            this.manufacturers = Array.from(select.options).map(option => ({
-                id: option.value,
-                name: option.text,
-                selected: option.selected
-            }));
-
+            this.manufacturers = Array.from(select.options)
+    .filter(option => option.value && option.value.trim() !== '') // ⬅️ تجاهل الـ placeholder
+    .map(option => ({
+        id: option.value,
+        name: option.text,
+        selected: option.selected
+    }));
             // Initialize selected items
             this.manufacturers.forEach(manufacturer => {
                 if (manufacturer.selected) {
