@@ -151,6 +151,27 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
+        [HttpGet("Get/{id}")]
+        public IActionResult Get(int id)
+        {
+            var manufacturer = _unitOfWork.Repository<Manufacturers>().GetOne(m => m.Id == id);
+            if (manufacturer == null)
+            {
+                return Json(new { success = false, message = "المصنع غير موجود" });
+            }
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    id = manufacturer.Id,
+                    name = manufacturer.Name,
+                    description = manufacturer.Description,
+                    status = manufacturer.Status
+                }
+            });
+        }
+
 
     }
 }

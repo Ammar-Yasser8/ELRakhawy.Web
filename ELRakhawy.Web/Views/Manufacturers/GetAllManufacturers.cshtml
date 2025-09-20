@@ -56,6 +56,14 @@
                             <button class="btn btn-success add-manufacturer-btn ms-3">
                                 <i class="fas fa-plus-circle me-1"></i>إضافة مصنع جديد
                             </button>
+                            <div class="btn-group export-btn-group ms-2">
+                                <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
+                                </button>
+                                <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
+                                    <i class="fas fa-print me-1"></i>طباعة
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -149,6 +157,14 @@
                                                     title="تعديل المصنع">
                                                 <i class="fas fa-edit"></i>
                                             </button>
+                                            <button class="btn btn-sm btn-outline-secondary view-manufacturer"
+                                                    data-id="@manufacturer.Id"
+                                                    data-name="@manufacturer.Name"
+                                                    data-description="@(manufacturer.Description ?? "")"
+                                                    title="عرض التفاصيل">
+                                                <i class="fas fa-eye" ></i>
+                                            </button>
+
                                             <button class="btn btn-sm btn-outline-danger delete-manufacturer"
                                                     data-id="@manufacturer.Id"
                                                     data-name="@manufacturer.Name"
@@ -363,6 +379,29 @@
     </div>
 </div>
 
+<!-- Enhances modal for display details-->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل المصنع
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="detailsContent">
+                    <!-- تفاصيل المصنع ستظهر هنا -->
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Enhanced Toast Notifications -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -382,9 +421,174 @@
         <span class="visually-hidden">جاري التحميل...</span>
     </div>
 </div>
+<script>
+    // Export to Excel function
+    function exportToExcel() {
+        try {
+            // Get table data
+            const table = document.getElementById('manufacturersTable');
+            const rows = table.querySelectorAll('tr:not(.search-row)');
 
+            // Create Excel workbook
+            const wb = XLSX.utils.book_new();
+            const wsData = [];
+
+            // Add header row (skip actions column - index 2)
+            const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+            const headers = headerCells
+                .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
+                .filter(item => item.index !== 2) // Skip actions column (index 2)
+                .map(item => item.text);
+
+            wsData.push(headers);
+
+            // Add data rows
+            rows.forEach(row => {
+                // Skip search row and header
+                if (row.classList.contains('search-row') || row.querySelector('th')) return;
+
+                const rowData = [];
+                const cols = row.querySelectorAll('td');
+
+                cols.forEach((col, index) => {
+                    // Skip actions column (index 2)
+                    if (index === 2) return;
+
+                    let text = col.textContent.trim().replace(/\s+/g, ' ');
+
+                    // For manufacturer name, extract just the text without icons
+                    if (index === 0) {
+                        text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                    }
+
+                    rowData.push(text);
+                });
+
+                if (rowData.length > 0) {
+                    wsData.push(rowData);
+                }
+            });
+
+            // Create worksheet
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Set column widths
+            const colWidths = [
+                {wch: 40}, // Company name
+                {wch: 60}  // Description
+            ];
+            ws['!cols'] = colWidths;
+
+            // Add worksheet to workbook
+            XLSX.utils.book_append_sheet(wb, ws, 'المصنعين');
+
+            // Generate Excel file and trigger download
+            const currentDate = new Date().toISOString().slice(0, 10);
+            XLSX.writeFile(wb, `المصنعين_${currentDate}.xlsx`);
+
+            // Show success notification
+            showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+
+        } catch (error) {
+            console.error('Error exporting to Excel:', error);
+            showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+        }
+    }
+
+          // Print function
+          function printTable() {
+           try {
+               // Create a print-friendly version of the table
+               const printContent = document.createElement('div');
+               printContent.id = 'printSection';
+
+               // Add title and date
+               const title = document.createElement('h4');
+               title.textContent = 'قائمة المصنعين';
+               title.className = 'text-center mb-3';
+               printContent.appendChild(title);
+
+               const date = document.createElement('p');
+               date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+               date.className = 'text-center mb-4 text-muted';
+               printContent.appendChild(date);
+
+               // Create print table
+               const printTable = document.createElement('table');
+               printTable.className = 'print-table';
+
+               // Create table header
+               const thead = document.createElement('thead');
+               const headerRow = document.createElement('tr');
+
+               ['الشركة المصنعة', 'البيان'].forEach(headerText => {
+                   const th = document.createElement('th');
+                   th.textContent = headerText;
+                   th.className = 'bg-light';
+                   headerRow.appendChild(th);
+               });
+
+               thead.appendChild(headerRow);
+               printTable.appendChild(thead);
+
+               // Create table body with data
+               const tbody = document.createElement('tbody');
+               const visibleRows = document.querySelectorAll('.manufacturer-row:not([style*="display: none"])');
+
+               if (visibleRows.length === 0) {
+                   const row = document.createElement('tr');
+                   const cell = document.createElement('td');
+                   cell.textContent = 'لا توجد بيانات للعرض';
+                   cell.colSpan = 2;
+                   cell.className = 'text-center py-4 text-muted';
+                   row.appendChild(cell);
+                   tbody.appendChild(row);
+               } else {
+                   visibleRows.forEach(row => {
+                       const dataRow = document.createElement('tr');
+
+                       // Company name
+                       const nameCell = document.createElement('td');
+                       const name = row.querySelector('.manufacturer-name .fw-semibold')?.textContent.trim() || '';
+                       nameCell.textContent = name;
+                       dataRow.appendChild(nameCell);
+
+                       // Description
+                       const descCell = document.createElement('td');
+                       const desc = row.querySelector('.manufacturer-description').textContent.trim() || 'لا يوجد وصف';
+                       descCell.textContent = desc;
+                       dataRow.appendChild(descCell);
+
+                       tbody.appendChild(dataRow);
+                   });
+               }
+
+               printTable.appendChild(tbody);
+               printContent.appendChild(printTable);
+
+               // Add summary
+               const summary = document.createElement('p');
+               summary.className = 'mt-3 text-muted text-center';
+               summary.textContent = `عدد المصنعين: ${visibleRows.length}`;
+               printContent.appendChild(summary);
+
+               // Add to document and print
+               document.body.appendChild(printContent);
+               window.print();
+
+               // Clean up
+               document.body.removeChild(printContent);
+
+           } catch (error) {
+               console.error('Error printing table:', error);
+               showNotification('حدث خطأ أثناء الطباعة', 'error');
+           }
+       }
+</script>
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script>
+
         $(document).ready(function() {
             const CURRENT_TIME = '2025-09-04 16:29:29';
             const CURRENT_USER = 'Ammar-Yasser8';
@@ -479,7 +683,7 @@
                     }
                 }
             });
-
+           
             // Initialize components
             const toastElement = document.getElementById('notificationToast');
             const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
@@ -632,10 +836,94 @@
             }
 
             // Modal handlers
-            $('.add-manufacturer-btn').on('click', function() {
+
+
+             $('.add-manufacturer-btn').on('click', function() {
                 resetForm();
                 $('#manufacturerModalTitle').html('<i class="fas fa-plus-circle text-success me-2"></i>إضافة مصنع جديد');
                 manufacturerModal.show();
+            });
+
+            $(document).on('click', '.edit-manufacturer', function() {
+                resetForm();
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                const description = $(this).data('description');
+
+                $('#manufacturerId').val(id);
+                $('#manufacturerName').val(name);
+                $('#manufacturerDescription').val(description);
+                $('#charCount').text(toArabicDigits((description || '').length.toString()));
+
+                $('#manufacturerModalTitle').html('<i class="fas fa-edit text-info me-2"></i>تعديل المصنع');
+                manufacturerModal.show();
+            });
+
+            $(document).on('click', '.view-manufacturer', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                const description = $(this).data('description');
+                const createdDate = $(this).data('created-date') || 'غير محدد';
+                const modifiedDate = $(this).data('modified-date') || 'غير محدد';
+
+                // Build details content with Arabic styling
+                const detailsContent = `
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold text-primary">
+                                                <i class="fas fa-hashtag me-2"></i>رقم المعرف
+                                            </label>
+                                            <div class="form-control-plaintext bg-white border p-2 rounded">
+                                                ${toArabicDigits(id.toString())}
+                                            </div
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold text-success">
+                                                <i class="fas fa-signature me-2"></i>اسم المصنع
+                                            </label>
+                                            <div class="form-control-plaintext bg-white border p-2 rounded fw-semibold">
+                                                ${name}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-12 mb-3">
+                                            <label class="form-label fw-bold text-warning">
+                                                <i class="fas fa-comment-alt me-2"></i>الوصف والتفاصيل
+                                            </label>
+                                            <div class="form-control-plaintext bg-white border p-3 rounded" style="min-height: 80px;">
+                                                ${description || '<span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i>لا يوجد وصف متاح</span>'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        
+                                        
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#detailsContent').html(detailsContent);
+
+                // Initialize and show details modal
+                const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+                detailsModal.show();
+            });
+
+            $(document).on('click', '.delete-manufacturer', function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+
+                $('#deleteManufacturerId').val(id);
+                $('#deleteManufacturerName').text(name);
+                deleteModal.show();
             });
 
             $(document).on('click', '.edit-manufacturer', function() {
@@ -821,6 +1109,8 @@
                     $(this).remove();
                 });
             }
+           
+
 
             // Enhanced refresh data with Arabic counter update
             $('#refreshData').click(function() {
@@ -1038,6 +1328,40 @@
         /* Better visual separation between header and search */
         .table thead tr:first-child th {
             border-bottom: 2px solid #dee2e6;
+        }
+        @@media print {
+            body *
+
+        {
+            visibility: hidden;
+        }
+
+        #printSection, #printSection * {
+            visibility: visible;
+        }
+
+        #printSection {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .print-table th, .print-table td {
+                border: 1px solid #ccc;
+                padding: 8px;
+                text-align: center;
+            }
+
+            .print-table th {
+                background-color: #f8f9fa;
+            }
+
         }
     </style>
 }
