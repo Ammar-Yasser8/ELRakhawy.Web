@@ -162,9 +162,8 @@
                                                     data-name="@manufacturer.Name"
                                                     data-description="@(manufacturer.Description ?? "")"
                                                     title="عرض التفاصيل">
-                                                <i class="fas fa-eye" ></i>
+                                                <i class="fas fa-eye"></i>
                                             </button>
-
                                             <button class="btn btn-sm btn-outline-danger delete-manufacturer"
                                                     data-id="@manufacturer.Id"
                                                     data-name="@manufacturer.Name"
@@ -175,12 +174,13 @@
                                     </td>
                                 </tr>
                             }
+    
                         </tbody>
                     </table>
+                                                
                 </div>
             </div>
         </div>
-    </div>
 
     <!-- No Results Message -->
     <div id="noResultsMessage" class="text-center py-5" style="display: none;">
@@ -210,7 +210,6 @@
             <div class="modal-body p-4">
                 <form id="manufacturerForm" class="needs-validation" novalidate>
                     <input type="hidden" id="manufacturerId" name="Id">
-
 
                     <div class="row">
                         <div class="col-12 mb-4">
@@ -245,7 +244,7 @@
                                         <i class="fas fa-lightbulb me-1"></i>اختياري - يمكن إضافة معلومات إضافية
                                     </small>
                                     <small class="text-muted">
-                                        <span id="charCount">0</span> / 1000 حرف
+                                        <span id="charCount">٠</span> / ١٠٠٠ حرف
                                     </small>
                                 </div>
                             </div>
@@ -253,87 +252,6 @@
                     </div>
                 </form>
             </div>
-            <script>
-                // دالة لتحويل الأرقام للغة العربية
-                function toArabicDigits(str) {
-                    return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-                }
-
-                // دالة لتحويل الأرقام للاتينية
-                function toLatinDigits(str) {
-                    return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-                }
-
-                // دالة لاكتشاف إذا كان الحرف عربي
-                function isArabicChar(c) {
-                    return /[\u0600-\u06FF]/.test(c);
-                }
-
-                // دالة لاكتشاف إذا كان الحرف إنجليزي
-                function isEnglishChar(c) {
-                    return /[a-zA-Z]/.test(c);
-                }
-
-                // دالة للعثور على آخر حرف (ليس رقم أو رمز)
-                function getLastLetter(str) {
-                    for (let i = str.length - 1; i >= 0; i--) {
-                        let char = str[i];
-                        if (isArabicChar(char)) {
-                            return 'arabic';
-                        } else if (isEnglishChar(char)) {
-                            return 'english';
-                        }
-                    }
-                    return 'arabic'; // default is Arabic
-                }
-
-                // تطبيق التحويل على كل الحقول النصية
-                document.addEventListener("input", function (e) {
-                    if (e.target.closest("#manufacturerForm")) {
-                        let input = e.target;
-                        let val = input.value;
-
-                        if (val.length > 0) {
-                            let lastLetterLang = getLastLetter(val);
-
-                            let newVal;
-                            if (lastLetterLang === 'arabic') {
-                                // حول جميع الأرقام للعربية
-                                newVal = toArabicDigits(val);
-                            } else {
-                                // حول جميع الأرقام للاتينية
-                                newVal = toLatinDigits(val);
-                            }
-
-                            // تحديث القيمة فقط إذا تغيرت
-                            if (newVal !== val) {
-                                let cursorPos = input.selectionStart;
-                                input.value = newVal;
-                                // استعادة موضع المؤشر
-                                input.setSelectionRange(cursorPos, cursorPos);
-                            }
-                        }
-
-                        // تحديث عداد الأحرف للوصف
-                        if (input.id === 'manufacturerDescription') {
-                            document.getElementById('charCount').textContent = val.length;
-                        }
-                    }
-                });
-
-                // دالة لإعادة تعيين الفورم
-                function resetForm() {
-                    document.getElementById('manufacturerForm').reset();
-                    document.getElementById('manufacturerId').value = '';
-                    document.getElementById('charCount').textContent = '0';
-
-                    // إزالة حالات التحقق
-                    let form = document.getElementById('manufacturerForm');
-                    form.classList.remove('was-validated');
-                    form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                }
-            </script>
-
             <div class="modal-footer bg-light border-top">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-1"></i>إلغاء
@@ -379,7 +297,7 @@
     </div>
 </div>
 
-<!-- Enhances modal for display details-->
+<!-- Enhanced modal for display details-->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow">
@@ -402,6 +320,7 @@
         </div>
     </div>
 </div>
+
 <!-- Enhanced Toast Notifications -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -421,174 +340,184 @@
         <span class="visually-hidden">جاري التحميل...</span>
     </div>
 </div>
-<script>
-    // Export to Excel function
-    function exportToExcel() {
-        try {
-            // Get table data
-            const table = document.getElementById('manufacturersTable');
-            const rows = table.querySelectorAll('tr:not(.search-row)');
 
-            // Create Excel workbook
-            const wb = XLSX.utils.book_new();
-            const wsData = [];
-
-            // Add header row (skip actions column - index 2)
-            const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
-            const headers = headerCells
-                .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
-                .filter(item => item.index !== 2) // Skip actions column (index 2)
-                .map(item => item.text);
-
-            wsData.push(headers);
-
-            // Add data rows
-            rows.forEach(row => {
-                // Skip search row and header
-                if (row.classList.contains('search-row') || row.querySelector('th')) return;
-
-                const rowData = [];
-                const cols = row.querySelectorAll('td');
-
-                cols.forEach((col, index) => {
-                    // Skip actions column (index 2)
-                    if (index === 2) return;
-
-                    let text = col.textContent.trim().replace(/\s+/g, ' ');
-
-                    // For manufacturer name, extract just the text without icons
-                    if (index === 0) {
-                        text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
-                    }
-
-                    rowData.push(text);
-                });
-
-                if (rowData.length > 0) {
-                    wsData.push(rowData);
-                }
-            });
-
-            // Create worksheet
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-            // Set column widths
-            const colWidths = [
-                {wch: 40}, // Company name
-                {wch: 60}  // Description
-            ];
-            ws['!cols'] = colWidths;
-
-            // Add worksheet to workbook
-            XLSX.utils.book_append_sheet(wb, ws, 'المصنعين');
-
-            // Generate Excel file and trigger download
-            const currentDate = new Date().toISOString().slice(0, 10);
-            XLSX.writeFile(wb, `المصنعين_${currentDate}.xlsx`);
-
-            // Show success notification
-            showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
-
-        } catch (error) {
-            console.error('Error exporting to Excel:', error);
-            showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
-        }
-    }
-
-          // Print function
-          function printTable() {
-           try {
-               // Create a print-friendly version of the table
-               const printContent = document.createElement('div');
-               printContent.id = 'printSection';
-
-               // Add title and date
-               const title = document.createElement('h4');
-               title.textContent = 'قائمة المصنعين';
-               title.className = 'text-center mb-3';
-               printContent.appendChild(title);
-
-               const date = document.createElement('p');
-               date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
-               date.className = 'text-center mb-4 text-muted';
-               printContent.appendChild(date);
-
-               // Create print table
-               const printTable = document.createElement('table');
-               printTable.className = 'print-table';
-
-               // Create table header
-               const thead = document.createElement('thead');
-               const headerRow = document.createElement('tr');
-
-               ['الشركة المصنعة', 'البيان'].forEach(headerText => {
-                   const th = document.createElement('th');
-                   th.textContent = headerText;
-                   th.className = 'bg-light';
-                   headerRow.appendChild(th);
-               });
-
-               thead.appendChild(headerRow);
-               printTable.appendChild(thead);
-
-               // Create table body with data
-               const tbody = document.createElement('tbody');
-               const visibleRows = document.querySelectorAll('.manufacturer-row:not([style*="display: none"])');
-
-               if (visibleRows.length === 0) {
-                   const row = document.createElement('tr');
-                   const cell = document.createElement('td');
-                   cell.textContent = 'لا توجد بيانات للعرض';
-                   cell.colSpan = 2;
-                   cell.className = 'text-center py-4 text-muted';
-                   row.appendChild(cell);
-                   tbody.appendChild(row);
-               } else {
-                   visibleRows.forEach(row => {
-                       const dataRow = document.createElement('tr');
-
-                       // Company name
-                       const nameCell = document.createElement('td');
-                       const name = row.querySelector('.manufacturer-name .fw-semibold')?.textContent.trim() || '';
-                       nameCell.textContent = name;
-                       dataRow.appendChild(nameCell);
-
-                       // Description
-                       const descCell = document.createElement('td');
-                       const desc = row.querySelector('.manufacturer-description').textContent.trim() || 'لا يوجد وصف';
-                       descCell.textContent = desc;
-                       dataRow.appendChild(descCell);
-
-                       tbody.appendChild(dataRow);
-                   });
-               }
-
-               printTable.appendChild(tbody);
-               printContent.appendChild(printTable);
-
-               // Add summary
-               const summary = document.createElement('p');
-               summary.className = 'mt-3 text-muted text-center';
-               summary.textContent = `عدد المصنعين: ${visibleRows.length}`;
-               printContent.appendChild(summary);
-
-               // Add to document and print
-               document.body.appendChild(printContent);
-               window.print();
-
-               // Clean up
-               document.body.removeChild(printContent);
-
-           } catch (error) {
-               console.error('Error printing table:', error);
-               showNotification('حدث خطأ أثناء الطباعة', 'error');
-           }
-       }
-</script>
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- Export and Print Functions -->
     <script>
+        // Export to Excel function - Fixed version
+        function exportToExcel() {
+            try {
+                // Get table data
+                const table = document.getElementById('manufacturersTable');
+                const rows = table.querySelectorAll('tr:not(.search-row)');
 
+                // Create Excel workbook
+                const wb = XLSX.utils.book_new();
+                const wsData = [];
+
+                // Add header row (skip actions column - index 2)
+                const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+                const headers = headerCells
+                    .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
+                    .filter(item => item.index !== 2) // Skip actions column (index 2)
+                    .map(item => item.text);
+
+                wsData.push(headers);
+
+                // Add data rows
+                rows.forEach(row => {
+                    // Skip search row and header
+                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+
+                    const rowData = [];
+                    const cols = row.querySelectorAll('td');
+
+                    cols.forEach((col, index) => {
+                        // Skip actions column (index 2)
+                        if (index === 2) return;
+
+                        let text = col.textContent.trim().replace(/\s+/g, ' ');
+
+                        // For manufacturer name, extract just the text without icons
+                        if (index === 0) {
+                            text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                        }
+
+                        rowData.push(text);
+                    });
+
+                    if (rowData.length > 0) {
+                        wsData.push(rowData);
+                    }
+                });
+
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // Set column widths
+                const colWidths = [
+                    {wch: 40}, // Company name
+                    {wch: 60}  // Description
+                ];
+                ws['!cols'] = colWidths;
+
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'المصنعين');
+
+                // Generate Excel file and trigger download
+                const currentDate = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `المصنعين_${currentDate}.xlsx`);
+
+                // Show success notification
+                if (typeof showNotification === 'function') {
+                    showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+                }
+
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+                }
+            }
+        }
+
+        // Print function
+        function printTable() {
+            try {
+                // Create a print-friendly version of the table
+                const printContent = document.createElement('div');
+                printContent.id = 'printSection';
+
+                // Add title and date
+                const title = document.createElement('h4');
+                title.textContent = 'قائمة المصنعين';
+                title.className = 'text-center mb-3';
+                printContent.appendChild(title);
+
+                const date = document.createElement('p');
+                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                date.className = 'text-center mb-4 text-muted';
+                printContent.appendChild(date);
+
+                // Create print table
+                const printTable = document.createElement('table');
+                printTable.className = 'print-table';
+
+                // Create table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+
+                ['الشركة المصنعة', 'البيان'].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    th.className = 'bg-light';
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                printTable.appendChild(thead);
+
+                // Create table body with data
+                const tbody = document.createElement('tbody');
+                const visibleRows = document.querySelectorAll('.manufacturer-row:not([style*="display: none"])');
+
+                if (visibleRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.textContent = 'لا توجد بيانات للعرض';
+                    cell.colSpan = 2;
+                    cell.className = 'text-center py-4 text-muted';
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                } else {
+                    visibleRows.forEach(row => {
+                        const dataRow = document.createElement('tr');
+
+                        // Company name
+                        const nameCell = document.createElement('td');
+                        const name = row.querySelector('.manufacturer-name .fw-semibold')?.textContent.trim() || '';
+                        nameCell.textContent = name;
+                        dataRow.appendChild(nameCell);
+
+                        // Description
+                        const descCell = document.createElement('td');
+                        const desc = row.querySelector('.manufacturer-description').textContent.trim() || 'لا يوجد وصف';
+                        descCell.textContent = desc;
+                        dataRow.appendChild(descCell);
+
+                        tbody.appendChild(dataRow);
+                    });
+                }
+
+                printTable.appendChild(tbody);
+                printContent.appendChild(printTable);
+
+                // Add summary
+                const summary = document.createElement('p');
+                summary.className = 'mt-3 text-muted text-center';
+                summary.textContent = `عدد المصنعين: ${visibleRows.length}`;
+                printContent.appendChild(summary);
+
+                // Add to document and print
+                document.body.appendChild(printContent);
+                window.print();
+
+                // Clean up
+                document.body.removeChild(printContent);
+
+            } catch (error) {
+                console.error('Error printing table:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء الطباعة', 'error');
+                }
+            }
+        }
+    </script>
+
+    <!-- Enhanced Arabic Number Conversion Script -->
+    <script>
         $(document).ready(function() {
             const CURRENT_TIME = '2025-09-04 16:29:29';
             const CURRENT_USER = 'Ammar-Yasser8';
@@ -618,29 +547,39 @@
                 return /[a-zA-Z]/.test(c);
             }
 
-            function getLastLetter(str) {
-                if (!str || str.trim().length === 0) {
-                    return 'arabic';
-                }
-
-                for (let i = str.length - 1; i >= 0; i--) {
-                    let char = str[i];
-                    if (isArabicChar(char)) {
-                        return 'arabic';
-                    } else if (isEnglishChar(char)) {
-                        return 'english';
-                    }
-                }
-                return 'arabic'; // default is Arabic
+            // Enhanced function to check if text contains Arabic characters
+            function containsArabic(str) {
+                if (!str || str.trim().length === 0) return false;
+                return /[\u0600-\u06FF]/.test(str);
             }
 
-            // Apply Arabic number conversion to inputs
+            // Enhanced function to determine number format - prioritizes Arabic
+            function shouldUseArabicNumbers(str) {
+                if (!str || str.trim().length === 0) {
+                    return true; // Default to Arabic when empty
+                }
+                
+                // If text contains ANY Arabic character, use Arabic numbers
+                if (containsArabic(str)) {
+                    return true;
+                }
+                
+                // If text contains ONLY English characters and numbers, use English numbers
+                                if (/^[a-zA-Z0-9\s\-_.@@#$%^&*()+={}[\]:";'<>?,./\\|`~]*$/.test(str)) {
+                    return false;
+                }
+                
+                // Default to Arabic for any other cases
+                return true;
+            }
+
+            // Enhanced number conversion function
             function applyNumberConversion($input) {
                 let val = $input.val();
 
                 if (val && val.length > 0) {
-                    let lastLetterLang = getLastLetter(val);
-                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+                    let useArabicNumbers = shouldUseArabicNumbers(val);
+                    let newVal = useArabicNumbers ? toArabicDigits(val) : toLatinDigits(val);
 
                     if (newVal !== val) {
                         let cursorPos = $input[0].selectionStart;
@@ -654,25 +593,32 @@
                 }
             }
 
-            // Enhanced search and form input event handler with Arabic support
+            // Enhanced search and form input event handler with improved Arabic support
             $(document).on("input keyup paste", "#searchByName, #searchByComment, #manufacturerName, #manufacturerDescription", function(e) {
                 const $input = $(this);
                 applyNumberConversion($input);
             });
 
-            // Direct number key conversion for immediate Arabic conversion
+            // Enhanced number key conversion - always converts to Arabic by default
             $(document).on("keypress", "#searchByName, #searchByComment, #manufacturerName, #manufacturerDescription", function(e) {
                 // Convert English digits to Arabic immediately
                 if (e.which >= 48 && e.which <= 57) { // 0-9
                     e.preventDefault();
                     let digit = String.fromCharCode(e.which);
-                    let arabicDigit = toArabicDigits(digit);
+                    
+                    // Get current input value to determine if we should use Arabic or English
+                    let currentValue = e.target.value;
+                    let cursorPos = e.target.selectionStart || 0;
+                    
+                    // Create temporary value to test what the result would be
+                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
+                    
+                    // Determine if we should use Arabic numbers
+                    let useArabicNumbers = shouldUseArabicNumbers(tempValue);
+                    let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
 
                     let input = e.target;
-                    let cursorPos = input.selectionStart || 0;
-                    let currentValue = input.value;
-
-                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
                     input.value = newValue;
 
                     input.setSelectionRange(cursorPos + 1, cursorPos + 1);
@@ -683,7 +629,7 @@
                     }
                 }
             });
-           
+            
             // Initialize components
             const toastElement = document.getElementById('notificationToast');
             const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
@@ -706,7 +652,7 @@
                 }
             });
 
-            // Enhanced search functionality with Arabic number support
+            // Enhanced search functionality with improved Arabic number support
             function performSearch() {
                 const nameSearch = $('#searchByName').val().toLowerCase().trim();
                 const nameSearchLatin = toLatinDigits(nameSearch);
@@ -745,7 +691,6 @@
 
             // Enhanced updateSearchInfo with Arabic numbers
             function updateSearchInfo(visibleCount, nameSearch, commentSearch) {
-                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
                 $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
 
                 // Show/hide clear buttons
@@ -765,7 +710,7 @@
             let searchTimeout;
             $('#searchByName, #searchByComment').on('input', function() {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(performSearch, 200); // Faster response for inline search
+                searchTimeout = setTimeout(performSearch, 200);
             });
 
             // Enhanced search input focus effects
@@ -794,7 +739,7 @@
             });
 
             // Enhanced notification function
-            function showNotification(message, type = 'success') {
+            window.showNotification = function(message, type = 'success') {
                 const icons = {
                     success: 'fa-check-circle',
                     error: 'fa-exclamation-circle',
@@ -815,7 +760,7 @@
                     .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
 
                 toast.show();
-            }
+            };
 
             // Loading functions
             function showLoading() {
@@ -836,9 +781,7 @@
             }
 
             // Modal handlers
-
-
-             $('.add-manufacturer-btn').on('click', function() {
+            $('.add-manufacturer-btn').on('click', function() {
                 resetForm();
                 $('#manufacturerModalTitle').html('<i class="fas fa-plus-circle text-success me-2"></i>إضافة مصنع جديد');
                 manufacturerModal.show();
@@ -863,24 +806,13 @@
                 const id = $(this).data('id');
                 const name = $(this).data('name');
                 const description = $(this).data('description');
-                const createdDate = $(this).data('created-date') || 'غير محدد';
-                const modifiedDate = $(this).data('modified-date') || 'غير محدد';
 
-                // Build details content with Arabic styling
                 const detailsContent = `
                     <div class="row g-4">
                         <div class="col-12">
                             <div class="card border-0 bg-light">
                                 <div class="card-body">
                                     <div class="row">
-                                        <div class="col-md-6 mb-3">
-                                            <label class="form-label fw-bold text-primary">
-                                                <i class="fas fa-hashtag me-2"></i>رقم المعرف
-                                            </label>
-                                            <div class="form-control-plaintext bg-white border p-2 rounded">
-                                                ${toArabicDigits(id.toString())}
-                                            </div
-                                        </div>
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label fw-bold text-success">
                                                 <i class="fas fa-signature me-2"></i>اسم المصنع
@@ -900,10 +832,6 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        
-                                        
-                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -911,34 +839,8 @@
                 `;
 
                 $('#detailsContent').html(detailsContent);
-
-                // Initialize and show details modal
                 const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
                 detailsModal.show();
-            });
-
-            $(document).on('click', '.delete-manufacturer', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-
-                $('#deleteManufacturerId').val(id);
-                $('#deleteManufacturerName').text(name);
-                deleteModal.show();
-            });
-
-            $(document).on('click', '.edit-manufacturer', function() {
-                resetForm();
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-                const description = $(this).data('description');
-
-                $('#manufacturerId').val(id);
-                $('#manufacturerName').val(name);
-                $('#manufacturerDescription').val(description);
-                $('#charCount').text(toArabicDigits((description || '').length.toString()));
-
-                $('#manufacturerModalTitle').html('<i class="fas fa-edit text-info me-2"></i>تعديل المصنع');
-                manufacturerModal.show();
             });
 
             $(document).on('click', '.delete-manufacturer', function() {
@@ -989,11 +891,11 @@
                             } else {
                                 addManufacturerToUI(response.data);
                                 totalCount++;
-                                $('#totalCount').text(toArabicDigits(totalCount.toString()));
+                                $('#badgeCount').text(toArabicDigits(totalCount.toString()));
                             }
 
                             manufacturerModal.hide();
-                            performSearch(); // Refresh search results
+                            performSearch();
                         } else {
                             showNotification(response.message, 'error');
                         }
@@ -1022,9 +924,9 @@
                             showNotification(response.message, 'success');
                             removeManufacturerFromUI(id);
                             totalCount--;
-                            $('#totalCount').text(toArabicDigits(totalCount.toString()));
+                            $('#badgeCount').text(toArabicDigits(totalCount.toString()));
                             deleteModal.hide();
-                            performSearch(); // Refresh search results
+                            performSearch();
                         } else {
                             showNotification(response.message, 'error');
                         }
@@ -1054,9 +956,9 @@
                         descriptionTd.html('<span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i>لا يوجد وصف</span>');
                     }
 
-                    tableRow.find('.edit-manufacturer, .delete-manufacturer')
+                    tableRow.find('.edit-manufacturer, .delete-manufacturer, .view-manufacturer')
                         .data('name', name).attr('data-name', name);
-                    tableRow.find('.edit-manufacturer')
+                    tableRow.find('.edit-manufacturer, .view-manufacturer')
                         .data('description', description || '').attr('data-description', description || '');
                 }
             }
@@ -1076,7 +978,6 @@
                                 <div>
                                     <span class="fw-semibold">${name}</span>
                                     <br>
-
                                 </div>
                             </div>
                         </td>
@@ -1090,6 +991,11 @@
                                         data-id="${id}" data-name="${name}" data-description="${description || ''}"
                                         title="تعديل المصنع">
                                     <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary view-manufacturer"
+                                        data-id="${id}" data-name="${name}" data-description="${description || ''}"
+                                        title="عرض التفاصيل">
+                                    <i class="fas fa-eye"></i>
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger delete-manufacturer"
                                         data-id="${id}" data-name="${name}"
@@ -1109,8 +1015,6 @@
                     $(this).remove();
                 });
             }
-           
-
 
             // Enhanced refresh data with Arabic counter update
             $('#refreshData').click(function() {
@@ -1127,8 +1031,6 @@
             function updateInitialCounts() {
                 const currentTotal = $('.manufacturer-row').length;
                 const arabicTotal = toArabicDigits(currentTotal.toString());
-                $('#totalCount').text(arabicTotal);
-                $('#visibleCount').text(arabicTotal);
                 $('#badgeCount').text(arabicTotal);
             }
 
@@ -1148,19 +1050,22 @@
                 }
             });
 
-            // Test number conversion functions
-            console.log('Testing Arabic number conversion:');
-            console.log('123 to Arabic:', toArabicDigits('123'));
-            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
-            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+            // Test enhanced number conversion functions
+            console.log('Testing Enhanced Arabic number conversion:');
+            console.log('English only "hello 123":', shouldUseArabicNumbers('hello 123') ? 'Arabic' : 'English');
+            console.log('Mixed "hello مرحبا 123":', shouldUseArabicNumbers('hello مرحبا 123') ? 'Arabic' : 'English');
+            console.log('Arabic only "مرحبا 123":', shouldUseArabicNumbers('مرحبا 123') ? 'Arabic' : 'English');
+            console.log('Numbers only "123":', shouldUseArabicNumbers('123') ? 'Arabic' : 'English');
+            console.log('Empty "":', shouldUseArabicNumbers('') ? 'Arabic' : 'English');
 
             // Initialize with Arabic numbers
             updateInitialCounts();
 
-            console.log('Enhanced manufacturers page with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            console.log('Enhanced manufacturers page with improved Arabic number priority initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
         });
     </script>
 
+    <!-- Enhanced Styles -->
     <style>
         /* Enhanced Styles for Inline Search */
         .icon-circle {
@@ -1177,10 +1082,10 @@
             transition: all 0.2s ease;
         }
 
-            .manufacturer-row:hover {
-                background-color: rgba(0,123,255,0.05);
-                transform: scale(1.005);
-            }
+        .manufacturer-row:hover {
+            background-color: rgba(0,123,255,0.05);
+            transform: scale(1.005);
+        }
 
         /* Enhanced search row styling */
         .search-row th {
@@ -1193,13 +1098,13 @@
             transition: all 0.2s ease;
         }
 
-            .search-container .input-group:hover {
-                transform: translateY(-1px);
-            }
+        .search-container .input-group:hover {
+            transform: translateY(-1px);
+        }
 
-            .search-container .input-group.shadow-sm {
-                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-            }
+        .search-container .input-group.shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
 
         .search-container .input-group-text {
             background-color: #f8f9fa;
@@ -1213,15 +1118,15 @@
             padding: 6px 12px;
         }
 
-            .search-container .form-control:focus {
-                border-color: #86b7fe;
-                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
+        .search-container .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
 
-            .search-container .form-control.border-primary {
-                border-color: #0d6efd !important;
-                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
-            }
+        .search-container .form-control.border-primary {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+        }
 
         .manufacturer-icon {
             width: 30px;
@@ -1250,23 +1155,23 @@
             position: relative;
         }
 
-            .search-container .input-group::before {
-                content: '';
-                position: absolute;
-                top: -2px;
-                left: -2px;
-                right: -2px;
-                bottom: -2px;
-                background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
-                border-radius: 6px;
-                opacity: 0;
-                transition: opacity 0.3s ease;
-                z-index: -1;
-            }
+        .search-container .input-group::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
 
-            .search-container .input-group:focus-within::before {
-                opacity: 1;
-            }
+        .search-container .input-group:focus-within::before {
+            opacity: 1;
+        }
 
         /* Animation for new rows */
         .manufacturer-row {
@@ -1274,49 +1179,42 @@
         }
 
         @@keyframes fadeInUp {
-            from
-
-        {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Mobile responsiveness */
         @@media (max-width: 768px) {
-            .icon-circle
+            .icon-circle {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
 
-        {
-            width: 45px;
-            height: 45px;
-            font-size: 1.2rem;
-        }
-
-        .btn-group {
-            flex-direction: column;
-            width: 100%;
-        }
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
 
             .btn-group .btn {
                 margin: 1px 0;
-                border-radius: 4px !important;
+                border-radius: 4px;
             }
 
-        .search-row th {
-            padding: 6px 8px;
-        }
+            .search-row th {
+                padding: 6px 8px;
+            }
 
-        .search-container .form-control {
-            font-size: 0.8rem;
-            padding: 4px 8px;
-        }
-
+            .search-container .form-control {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
         }
 
         /* Table header styling */
@@ -1329,28 +1227,28 @@
         .table thead tr:first-child th {
             border-bottom: 2px solid #dee2e6;
         }
+
+        /* Print styles */
         @@media print {
-            body *
+            body * {
+                visibility: hidden;
+            }
 
-        {
-            visibility: hidden;
-        }
+            #printSection, #printSection * {
+                visibility: visible;
+            }
 
-        #printSection, #printSection * {
-            visibility: visible;
-        }
+            #printSection {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+            }
 
-        #printSection {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-        }
-
-        .print-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+            .print-table {
+                width: 100%;
+                border-collapse: collapse;
+            }
 
             .print-table th, .print-table td {
                 border: 1px solid #ccc;
@@ -1361,7 +1259,6 @@
             .print-table th {
                 background-color: #f8f9fa;
             }
-
         }
     </style>
 }

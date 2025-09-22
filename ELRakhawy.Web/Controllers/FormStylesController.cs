@@ -109,51 +109,39 @@ namespace ELRakhawy.Web.Controllers
         }
 
         // GET: FormStyles/Details/5
+        [HttpGet]
         public IActionResult Details(int id)
         {
             try
             {
-                _logger.LogInformation("Getting details for business operation form ID {Id} by {User} at {Time}",
-                    id, _currentUser, _currentTime);
-
                 var formStyle = _unitOfWork.Repository<FormStyle>()
                     .GetOne(f => f.Id == id, "PackagingStyleForms,PackagingStyleForms.PackagingStyle");
 
                 if (formStyle == null)
-                {
-                    _logger.LogWarning("Business operation form not found for ID {Id} by {User} at {Time}",
-                        id, _currentUser, _currentTime);
                     return NotFound();
-                }
 
-                // Get packaging styles that use this form
                 var packagingStyles = formStyle.PackagingStyleForms
-                    .Select(psf => psf.PackagingStyle)
+                    .Select(psf => psf.PackagingStyle.StyleName)
                     .ToList();
 
-                var viewModel = new FormStyleDetailsViewModel
+                var viewModel = new
                 {
                     Id = formStyle.Id,
                     FormName = formStyle.FormName,
-                    FormCategory = GetFormCategory(formStyle.FormName),
-                    PackagingStyles = packagingStyles,
                     UsageCount = packagingStyles.Count,
-                    CreatedAt = _currentTime,
-                    CreatedBy = _currentUser
+                    PackagingStyles = packagingStyles,
+                    Status = packagingStyles.Count > 0 ? "نشط (مستخدم)" : "غير مستخدم",
+                    Deletable = packagingStyles.Count > 0 ? "لا" : "نعم"
                 };
-                
-                _logger.LogInformation("Retrieved details for business operation form '{FormName}' (ID: {Id}) by {User} at {Time}",
-                    formStyle.FormName, id, _currentUser, _currentTime);
 
-                return View(viewModel);
+                return Json(viewModel);
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                _logger.LogError(ex, "Error occurred while retrieving business operation form details for ID: {Id} by {User} at {Time}",
-                    id, _currentUser, _currentTime);
-                return StatusCode(500, "حدث خطأ أثناء استرداد تفاصيل العملية التجارية. يرجى المحاولة مرة أخرى لاحقاً.");
+                return StatusCode(500, "Error while fetching details");
             }
         }
+
 
         // GET: FormStyles/Create
         public IActionResult Create()
@@ -185,51 +173,44 @@ namespace ELRakhawy.Web.Controllers
         {
             if (!ModelState.IsValid)
             {
-                LoadFormSuggestions(viewModel);
-                return View(viewModel);
-            }
-
-            try
-            {
-                _logger.LogInformation("Creating business operation form '{FormName}' by {User} at {Time}",
-                    viewModel.FormName, _currentUser, _currentTime);
-
-                // Check if form name already exists (case-insensitive)
-                var existingForm = _unitOfWork.Repository<FormStyle>()
-                    .GetOne(f => f.FormName.Trim().ToLower() == viewModel.FormName.Trim().ToLower());
-
-                if (existingForm != null)
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
-                    _logger.LogWarning("Duplicate business operation form name attempted: '{FormName}' by {User} at {Time}",
-                        viewModel.FormName, _currentUser, _currentTime);
-                    ModelState.AddModelError("FormName", "اسم العملية التجارية موجود بالفعل");
-                    LoadFormSuggestions(viewModel);
-                    return View(viewModel);
+                    return Json(new { success = false, message = "بيانات غير صالحة" });
                 }
-
-                var formStyle = new FormStyle
-                {
-                    FormName = viewModel.FormName.Trim()
-                };
-
-                _unitOfWork.Repository<FormStyle>().Add(formStyle);
-                _unitOfWork.Complete();
-
-                _logger.LogInformation("Business operation form '{FormName}' created successfully with ID {Id} by {User} at {Time}",
-                    viewModel.FormName, formStyle.Id, _currentUser, _currentTime);
-
-                TempData["Success"] = "تم إنشاء العملية التجارية بنجاح";
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error occurred while creating business operation form: {FormName} by {User} at {Time}",
-                    viewModel.FormName, _currentUser, _currentTime);
-                ModelState.AddModelError("", "حدث خطأ أثناء إنشاء العملية التجارية");
-                LoadFormSuggestions(viewModel);
                 return View(viewModel);
             }
+
+            var existingForm = _unitOfWork.Repository<FormStyle>()
+                .GetOne(f => f.FormName.Trim().ToLower() == viewModel.FormName.Trim().ToLower());
+
+            if (existingForm != null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, message = "اسم العملية التجارية موجود بالفعل" });
+                }
+                ModelState.AddModelError("FormName", "اسم العملية التجارية موجود بالفعل");
+                return View(viewModel);
+            }
+
+            var formStyle = new FormStyle { FormName = viewModel.FormName.Trim() };
+            _unitOfWork.Repository<FormStyle>().Add(formStyle);
+            _unitOfWork.Complete();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Json(new
+                {
+                    success = true,
+                    message = "تم إنشاء العملية التجارية بنجاح",
+                    data = new { id = formStyle.Id, formName = formStyle.FormName }
+                });
+            }
+
+            TempData["Success"] = "تم إنشاء العملية التجارية بنجاح";
+            return RedirectToAction(nameof(Index));
         }
+
 
         // GET: FormStyles/Edit/5
         public IActionResult Edit(int id)
@@ -282,77 +263,49 @@ namespace ELRakhawy.Web.Controllers
         }
 
         // POST: FormStyles/Edit/5
+        // POST: FormStyles/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, FormStyleViewModel viewModel)
         {
             if (id != viewModel.Id)
             {
-                _logger.LogWarning("ID mismatch in edit request - URL ID: {UrlId}, Model ID: {ModelId} by {User} at {Time}",
-                    id, viewModel.Id, _currentUser, _currentTime);
-                return NotFound();
+                return Json(new { success = false, message = "عدم تطابق في المعرف" });
             }
 
             if (!ModelState.IsValid)
             {
-                LoadFormSuggestions(viewModel);
-                LoadFormUsageInfo(viewModel);
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, message = "بيانات غير صالحة" });
+                }
                 return View(viewModel);
             }
 
-            try
+            var formStyle = _unitOfWork.Repository<FormStyle>().GetOne(f => f.Id == id);
+            if (formStyle == null)
             {
-                _logger.LogInformation("Updating business operation form ID {Id} with name '{FormName}' by {User} at {Time}",
-                    id, viewModel.FormName, _currentUser, _currentTime);
-
-                // Check if form style exists
-                var formStyle = _unitOfWork.Repository<FormStyle>()
-                    .GetOne(f => f.Id == id, "PackagingStyleForms");
-
-                if (formStyle == null)
-                {
-                    _logger.LogWarning("Business operation form not found for update, ID: {Id} by {User} at {Time}",
-                        id, _currentUser, _currentTime);
-                    return NotFound();
-                }
-
-                // Store original name for logging
-                var originalName = formStyle.FormName;
-
-                // Check if name already exists (excluding current form)
-                var existingForm = _unitOfWork.Repository<FormStyle>()
-                    .GetOne(f => f.FormName.Trim().ToLower() == viewModel.FormName.Trim().ToLower() && f.Id != id);
-
-                if (existingForm != null)
-                {
-                    _logger.LogWarning("Duplicate business operation form name attempted in edit: '{FormName}' by {User} at {Time}",
-                        viewModel.FormName, _currentUser, _currentTime);
-                    ModelState.AddModelError("FormName", "اسم العملية التجارية موجود بالفعل");
-                    LoadFormSuggestions(viewModel);
-                    LoadFormUsageInfo(viewModel);
-                    return View(viewModel);
-                }
-
-                // Update the form name
-                formStyle.FormName = viewModel.FormName.Trim();
-                _unitOfWork.Repository<FormStyle>().Update(formStyle);
-                _unitOfWork.Complete();
-
-                _logger.LogInformation("Business operation form updated successfully - ID: {Id}, Original: '{OriginalName}', New: '{NewName}' by {User} at {Time}",
-                    id, originalName, formStyle.FormName, _currentUser, _currentTime);
-
-                TempData["Success"] = "تم تحديث العملية التجارية بنجاح";
-                return RedirectToAction(nameof(Index));
+                return Json(new { success = false, message = "العنصر غير موجود" });
             }
-            catch (Exception ex)
+
+            var existingForm = _unitOfWork.Repository<FormStyle>()
+                .GetOne(f => f.FormName.Trim().ToLower() == viewModel.FormName.Trim().ToLower() && f.Id != id);
+
+            if (existingForm != null)
             {
-                _logger.LogError(ex, "Error occurred while updating business operation form ID: {Id} by {User} at {Time}",
-                    id, _currentUser, _currentTime);
-                ModelState.AddModelError("", "حدث خطأ أثناء تحديث العملية التجارية");
-                LoadFormSuggestions(viewModel);
-                LoadFormUsageInfo(viewModel);
-                return View(viewModel);
+                return Json(new { success = false, message = "اسم العملية التجارية موجود بالفعل" });
             }
+
+            formStyle.FormName = viewModel.FormName.Trim();
+            _unitOfWork.Repository<FormStyle>().Update(formStyle);
+            _unitOfWork.Complete();
+
+            return Json(new
+            {
+                success = true,
+                message = "تم تحديث العملية التجارية بنجاح",
+                data = new { id = formStyle.Id, formName = formStyle.FormName }
+            });
         }
 
         // GET: FormStyles/Delete/5

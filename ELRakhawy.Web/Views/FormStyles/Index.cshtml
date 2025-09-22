@@ -5,7 +5,8 @@
     var currentTime = "2025-08-19 20:46:08";
     var currentUser = "Ammar-Yasser8";
 }
-
+<!-- ضع هذا في أعلى الصفحة الرئيسية (ليس داخل الmodal) -->
+@Html.AntiForgeryToken()
 <!-- Enhanced Navigation Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-4">
     <div class="card border-0 shadow-sm">
@@ -31,7 +32,6 @@
         </div>
     </div>
 </nav>
-
 
 <!-- Enhanced Success/Error Messages -->
 @if (TempData["Success"] != null || TempData["Error"] != null)
@@ -61,33 +61,34 @@
                         <!-- Search Results Info -->
                         <div class="badge bg-warning px-3 py-2">
                             <i class="fas fa-database me-1"></i>
-                            <span id="badgeCount">0</span> ﻮاﺟﻬﺎت
+                            <span id="badgeCount">٠</span> ﻮاﺟﻬﺎت
                         </div>
                         <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
                             <i class="fas fa-eraser me-1"></i>مسح المرشحات
                         </button>
-                            <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
-                                <button class="btn btn-outline-info" id="refreshData">
-                                    <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
-                                </button>
-                                <a asp-action="Create" class="btn btn-success">
-                                    <i class="fas fa-plus-circle me-1"></i>إضافة وجهة جديدة
-                                </a>
-                            </div>
+                        <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
+                            <button class="btn btn-outline-info" id="refreshData">
+                                <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
+                            </button>
+                            <a asp-action="Create" class="btn btn-success add-formstyle-btn">
+                                <i class="fas fa-plus-circle me-1"></i>إضافة وجهة جديدة
+                            </a>
+
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="formStylesTable">
+                    <table class="table table-hover table-bordered align-middle w-100" id="formStylesTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="fw-bold" style="width: 50%;">
+                                <th class="fw-bold">
                                     <i class="fas fa-cogs text-primary me-1"></i>اسم الواجهة 
                                 </th>
                                
-                                <th class="text-center fw-bold" style="width: 15%;">
+                                <th class="text-center fw-bold">
                                     <i class="fas fa-tools text-dark me-1"></i>الإجراءات
                                 </th>
                             </tr>
@@ -100,12 +101,20 @@
                                                 <i class="fas fa-search text-muted"></i>
                                             </span>
                                             <input type="text" id="searchByFormName" class="form-control border-start-0"
-                                                   placeholder="ابحث في أسماء العمليات...">
+                                                   placeholder="ابحث في أسماء الواجهات...">
                                             <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFormNameSearch" style="display: none;">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </div>
                                     </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2 text-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter me-1"></i>البحث والتصفية
+                                    </small>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2 text-center">
+                                   
                                 </th>
                             </tr>
                         </thead>
@@ -123,20 +132,22 @@
                                                 <div>
                                                     <span class="fw-semibold">@form.FormName</span>
                                                     <br>
-                                                   
                                                 </div>
                                             </div>
                                         </td>
-                                       
+                                        
                                         <td class="text-center">
                                             <div class="btn-group" role="group">
-                                                <a asp-action="Details" asp-route-id="@form.Id"
-                                                   class="btn btn-sm btn-outline-info"
+                                                <a href="/FormStyles/Details/@form.Id"
+                                                   class="btn btn-sm btn-outline-info details-btn"
                                                    title="تفاصيل @form.FormName">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
                                                 <a asp-action="Edit" asp-route-id="@form.Id"
-                                                   class="btn btn-sm btn-outline-warning"
+                                                   class="btn btn-sm btn-outline-warning edit-formstyle"
+                                                   data-id="@form.Id"
+                                                   data-name="@form.FormName"
+                                                   data-category="@(form.FormCategory ?? "")"
                                                    title="تعديل @form.FormName">
                                                     <i class="fas fa-edit"></i>
                                                 </a>
@@ -166,7 +177,7 @@
             <div class="card-body">
                 <i class="fas fa-search fa-3x text-muted mb-3"></i>
                 <h5 class="text-muted">لا توجد نتائج مطابقة</h5>
-                <p class="text-muted mb-3">لم يتم العثور على عمليات تجارية تطابق معايير البحث الحالية</p>
+                <p class="text-muted mb-3">لم يتم العثور على واجهات تطابق معايير البحث الحالية</p>
                 <button class="btn btn-outline-primary" id="resetSearch">
                     <i class="fas fa-refresh me-1"></i>إعادة تعيين البحث
                 </button>
@@ -187,7 +198,7 @@
                             <i class="fas fa-search text-muted"></i>
                         </span>
                         <input type="text" id="searchInputMobile" class="form-control"
-                               placeholder="ابحث في العمليات...">
+                               placeholder="ابحث في الواجهات...">
                         <button class="btn btn-outline-secondary" type="button" id="clearMobileSearch" style="display: none;">
                             <i class="fas fa-times"></i>
                         </button>
@@ -232,7 +243,11 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item py-2" asp-action="Edit" asp-route-id="@form.Id">
+                                    <a class="dropdown-item py-2 mobile-edit-formstyle" 
+                                       data-id="@form.Id"
+                                       data-name="@form.FormName"
+                                       data-category="@(form.FormCategory ?? "")"
+                                       href="#!">
                                         <i class="fas fa-edit me-2"></i>تعديل
                                     </a>
                                 </li>
@@ -249,7 +264,7 @@
                                 {
                                     <li>
                                         <a class="dropdown-item py-2 text-danger mobile-delete-btn"
-                                           data-id="@form.Id" data-name="@form.FormName" href="#!">
+                                           data-id="@form.Id" data-name="@form.FormName" data-usage="@form.UsageCount" href="#!">
                                             <i class="fas fa-trash me-2"></i>حذف
                                         </a>
                                     </li>
@@ -259,12 +274,7 @@
                     </div>
                     <div class="card-body py-3">
                         <div class="row g-2">
-                            <div class="col-6">
-                                <div class="text-center p-2 bg-light rounded">
-                                    <div class="badge bg-info mb-1">@form.FormCategory</div>
-                                    <div><small class="text-muted">الفئة</small></div>
-                                </div>
-                            </div>
+                            
                             <div class="col-6">
                                 <div class="text-center p-2 bg-light rounded">
                                     <div class="badge @(form.UsageCount > 0 ? "bg-success" : "bg-secondary") mb-1">@form.UsageCount</div>
@@ -279,20 +289,175 @@
     </div>
 </div>
 
+<!-- Enhanced Create/Edit FormStyle Modal -->
+<div class="modal fade" id="formStyleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom">
+                <h5 class="modal-title fw-bold" id="formStyleModalTitle">
+                    <i class="fas fa-plus-circle text-success me-2"></i>إضافة واجهة جديدة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="formStyleForm" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="formStyleId" name="Id">
+
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <label for="formStyleName" class="form-label fw-semibold">
+                                <i class="fas fa-signature text-primary me-1"></i>
+                                اسم الواجهة <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control form-control-lg" id="formStyleName"
+                                   name="FormName" required maxlength="200"
+                                   placeholder="أدخل اسم الواجهة">
+                            <div class="invalid-feedback">
+                                <i class="fas fa-exclamation-circle me-1"></i>يرجى إدخال اسم الواجهة (الحد الأقصى 200 حرف)
+                            </div>
+                        </div>
+
+                        <!-- Quick Template Generator -->
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-header">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-magic text-info me-2"></i>منشئ النماذج السريع
+                                        </h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row g-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label">نوع المادة:</label>
+                                                <select id="materialType" class="form-select">
+                                                    <option value="">اختر نوع المادة</option>
+                                                    <option value="غزل">غزل</option>
+                                                    <option value="قماش">قماش</option>
+                                                    <option value="خام">خام</option>
+                                                    <option value="منتجات">منتجات</option>
+                                                    <option value="اكسسوارات">اكسسوارات</option>
+                                                    <option value="اصباغ">اصباغ</option>
+                                                    <option value="كيماويات">كيماويات</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label">نوع العملية:</label>
+                                                <select id="operationType" class="form-select">
+                                                    <option value="">اختر نوع العملية</option>
+                                                    <option value="اضافة وارد">اضافة وارد</option>
+                                                    <option value="اضافة صادر">اضافة صادر</option>
+                                                    <option value="تعديل مخزون">تعديل مخزون</option>
+                                                    <option value="جرد">جرد</option>
+                                                    <option value="فحص جودة">فحص جودة</option>
+                                                    <option value="تحويل">تحويل</option>
+                                                    <option value="تخزين">تخزين</option>
+                                                    <option value="ارجاع">ارجاع</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="button" id="generateForm" class="btn btn-info">
+                                                    <i class="fas fa-magic me-2"></i>توليد اسم العملية
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <script>
+
+                            document.getElementById('generateForm')?.addEventListener('click', function () {
+                                let materialType = document.getElementById('materialType').value;
+                                let operationType = document.getElementById('operationType').value;
+
+                                if (materialType && operationType) {
+                                    let generatedName = operationType + ' ' + materialType;
+                                    let formNameInput = document.querySelector('input[name="FormName"]');
+                                    if (formNameInput) {
+                                        formNameInput.value = generatedName;
+                                        let event = new Event('input', { bubbles: true });
+                                        formNameInput.dispatchEvent(event);
+                                    }
+                                } else {
+                                    alert('يرجى اختيار نوع المادة ونوع العملية أولاً');
+                                }
+                            });
+                        </script>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-success" id="saveFormStyle">
+                    <i class="fas fa-save me-1"></i>حفظ الواجهة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-light border-bottom">
+                <h5 class="modal-title fw-bold" id="detailsModalTitle">
+                    <i class="fas fa-eye text-info me-2"></i>تفاصيل الواجهة
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3">
+                    
+                    <div class="col-md-6">
+                        <h6>الاسم</h6>
+                        <span id="detailsFormName" class="fw-bold">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>عدد مرات الاستخدام</h6>
+                        <span id="detailsUsage" class="fw-bold">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>الحالة</h6>
+                        <span id="detailsStatus" class="badge bg-secondary">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>قابل للحذف</h6>
+                        <span id="detailsDeletable" class="badge bg-secondary">-</span>
+                    </div>
+                    <div class="col-12">
+                        <h6>أنماط التغليف المرتبطة</h6>
+                        <ul id="detailsPackagingStyles" class="list-group small"></ul>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> إغلاق
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Enhanced Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-danger text-white border-bottom-0">
                 <h5 class="modal-title fw-bold">
-                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد حذف العملية التجارية
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد حذف الواجهة
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="text-center">
                     <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
-                    <h6 class="mb-3">هل أنت متأكد من حذف هذه العملية؟</h6>
+                    <h6 class="mb-3">هل أنت متأكد من حذف هذه الواجهة؟</h6>
                     <div class="alert alert-warning">
                         <strong id="deleteFormName" class="text-dark"></strong>
                     </div>
@@ -324,8 +489,326 @@
                 time: CURRENT_TIME,
                 user: CURRENT_USER
             });
+                   // Modal instance
 
-            // Arabic number conversion functions
+        // Reset Form
+        function resetForm() {
+            $('#formStyleForm')[0].reset();
+            $('#formStyleId').val('');
+            $('#formStyleForm .is-invalid').removeClass('is-invalid');
+            $('#formStyleForm').removeClass('was-validated');
+        }
+
+        // Add new
+        $('.add-formstyle-btn').on('click', function (e) {
+            e.preventDefault();
+            resetForm();
+            $('#formStyleModalTitle').html('<i class="fas fa-plus-circle text-success me-2"></i>إضافة واجهة جديدة');
+            formStyleModal.show();
+        });
+
+        // Edit
+        $(document).on('click', '.edit-formstyle, .mobile-edit-formstyle', function (e) {
+            e.preventDefault();
+            resetForm();
+            const id = $(this).data('id');
+            const name = $(this).data('name');
+
+            $('#formStyleId').val(id);
+            $('#formStyleName').val(name);
+
+            $('#formStyleModalTitle').html('<i class="fas fa-edit text-info me-2"></i>تعديل الواجهة');
+            formStyleModal.show();
+        });
+
+               // إعداد CSRF Token globally
+        $(document).ready(function() {
+            // الحصول على CSRF token من الصفحة الرئيسية
+            function getCsrfToken() {
+                return $('input[name="__RequestVerificationToken"]').val();
+            }
+
+            console.log('CSRF Token available:', getCsrfToken() ? 'Yes' : 'No');
+
+            // Save FormStyle
+            $('#saveFormStyle').on('click', function () {
+                const form = document.getElementById('formStyleForm');
+
+                if (!form.checkValidity()) {
+                    $(form).addClass('was-validated');
+                    return;
+                }
+
+                const id = $('#formStyleId').val();
+                const name = $('#formStyleName').val().trim();
+
+                if (!name) {
+                    showNotification('يرجى إدخال اسم الواجهة', 'error');
+                    return;
+                }
+
+                const formData = {
+                    Id: id ? parseInt(id) : 0,
+                    FormName: name
+                };
+
+                const isEdit = id && id !== '0';
+                const url = isEdit ? `/FormStyles/Edit/${id}` : '/FormStyles/Create';
+                const btn = $(this);
+                const originalText = btn.html();
+
+                btn.prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+
+                // الطريقة الصحيحة - إرسال كـ application/x-www-form-urlencoded
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    data: {
+                        __RequestVerificationToken: getCsrfToken(),
+                        Id: formData.Id,
+                        FormName: formData.FormName
+                    },
+                    success: function (response) {
+                        btn.prop('disabled', false).html(originalText);
+
+                        if (response && response.success) {
+                            showNotification(response.message || 'تم الحفظ بنجاح', 'success');
+
+                            if (isEdit) {
+                                updateFormStyleInUI(response.data || formData);
+                            } else {
+                                addFormStyleToUI(response.data || formData);
+                            }
+
+                            formStyleModal.hide();
+                            resetForm();
+                        } else {
+                            showNotification(response?.message || 'استجابة غير متوقعة', 'error');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        btn.prop('disabled', false).html(originalText);
+
+                        let errorMessage = 'حدث خطأ أثناء معالجة الطلب';
+
+                        if (xhr.status === 400) {
+                            // محاولة قراءة الخطأ من الخادم
+                            try {
+                                if (xhr.responseJSON) {
+                                    errorMessage = xhr.responseJSON.message || xhr.responseJSON.title || errorMessage;
+                                } else if (xhr.responseText) {
+                                    const response = JSON.parse(xhr.responseText);
+                                    errorMessage = response.message || errorMessage;
+                                }
+                            } catch (e) {
+                                errorMessage = 'بيانات غير صالحة (400) - يرجى التحقق من المدخلات';
+                            }
+                        }
+
+                        showNotification(errorMessage, 'error');
+                        console.error('Error details:', xhr);
+                    }
+                });
+            });
+        });
+
+        $(document).on('click', '.details-btn', function (e) {
+            e.preventDefault();
+            const id = $(this).attr("href")?.split("/").pop();
+
+            if (!id) return;
+
+            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+            $('#detailsModalTitle').html('<i class="fas fa-spinner fa-spin text-info me-2"></i> جاري التحميل...');
+            detailsModal.show();
+
+            $.ajax({
+                url: `/FormStyles/Details/${id}`,
+                type: 'GET',
+                success: function (data) {
+                    $('#detailsModalTitle').html('<i class="fas fa-eye text-info me-2"></i> تفاصيل الواجهة');
+                    $('#detailsFormId').text(data.id);
+                    $('#detailsFormName').text(data.formName);
+                    $('#detailsUsage').text(data.usageCount);
+                    $('#detailsStatus').text(data.status).removeClass().addClass('badge ' + (data.status.includes("نشط") ? 'bg-success' : 'bg-secondary'));
+                    $('#detailsDeletable').text(data.deletable).removeClass().addClass('badge ' + (data.deletable === "نعم" ? 'bg-success' : 'bg-danger'));
+
+                    // Populate packaging styles list
+                    $('#detailsPackagingStyles').empty();
+                    if (data.packagingStyles.length > 0) {
+                        data.packagingStyles.forEach(function (style) {
+                            $('#detailsPackagingStyles').append(`<li class="list-group-item">${style}</li>`);
+                        });
+                    } else {
+                        $('#detailsPackagingStyles').append(`<li class="list-group-item text-muted">لا يوجد</li>`);
+                    }
+                },
+                error: function () {
+                    $('#detailsModalTitle').html('<i class="fas fa-exclamation-triangle text-danger me-2"></i> خطأ');
+                    $('#detailsFormId, #detailsFormName, #detailsUsage').text('-');
+                }
+            });
+        });
+
+
+
+            // UI update functions
+            function updateFormStyleInUI(formStyle) {
+                const id = formStyle.id || formStyle.Id;
+                const name = formStyle.formName || formStyle.FormName;
+                const category = formStyle.formCategory || formStyle.FormCategory || '';
+                const usageCount = formStyle.usageCount || formStyle.UsageCount || 0;
+
+                // Update desktop table row
+                const tableRow = $(`.form-style-row[data-id="${id}"]`);
+                if (tableRow.length) {
+                    tableRow.find('.form-style-name .fw-semibold').text(name);
+                    
+                    const categoryElement = tableRow.find('.form-style-name small');
+                    if (category) {
+                        if (categoryElement.length) {
+                            categoryElement.html(`<i class="fas fa-tag me-1"></i>${category}`);
+                        } else {
+                            tableRow.find('.form-style-name div').append(`
+                                <br><small class="text-muted">
+                                    <i class="fas fa-tag me-1"></i>${category}
+                                </small>
+                            `);
+                        }
+                    } else {
+                        categoryElement.remove();
+                    }
+
+                    // Update data attributes
+                    tableRow.attr('data-category', category);
+                    tableRow.find('.edit-formstyle')
+                        .data('name', name).attr('data-name', name)
+                        .data('category', category).attr('data-category', category);
+                }
+
+                // Update mobile card
+                const mobileCard = $(`.mobile-form-card[data-id="${id}"]`);
+                if (mobileCard.length) {
+                    mobileCard.find('h6.fw-bold').text(name);
+                    mobileCard.find('.badge.bg-info').text(category || 'غير محدد');
+                    mobileCard.attr('data-category', category);
+                    mobileCard.find('.mobile-edit-formstyle')
+                        .data('name', name).attr('data-name', name)
+                        .data('category', category).attr('data-category', category);
+                }
+            }
+
+            function addFormStyleToUI(formStyle) {
+                const id = formStyle.id || formStyle.Id;
+                const name = formStyle.formName || formStyle.FormName;
+                const category = formStyle.formCategory || formStyle.FormCategory || '';
+                const usageCount = formStyle.usageCount || formStyle.UsageCount || 0;
+                const arabicUsage = toArabicDigits(usageCount.toString());
+
+                // Add to desktop table
+                const tableRow = `
+                    <tr class="form-style-row" data-id="${id}" data-category="${category}">
+                        <td class="form-style-name">
+                            <div class="d-flex align-items-center">
+                                <div class="form-icon me-2">
+                                    <i class="fas fa-cog text-warning"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-semibold">${name}</span>
+                                    <br>
+                                    ${category ? `<small class="text-muted"><i class="fas fa-tag me-1"></i>${category}</small>` : ''}
+                                </div>
+                            </div>
+                        </td>
+                      
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a href="/FormStyles/Details/${id}" class="btn btn-sm btn-outline-info" title="تفاصيل ${name}">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <button class="btn btn-sm btn-outline-warning edit-formstyle"
+                                        data-id="${id}" data-name="${name}" data-category="${category}"
+                                        title="تعديل ${name}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm ${usageCount > 0 ? 'btn-outline-secondary' : 'btn-outline-danger'} delete-btn"
+                                        data-id="${id}" data-name="${name}" data-usage="${usageCount}"
+                                        title="${usageCount > 0 ? 'لا يمكن الحذف' : 'حذف'} ${name}"
+                                        ${usageCount > 0 ? 'disabled' : ''}>
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+
+                $('#formStylesTableBody').prepend(tableRow);
+
+                // Add to mobile view
+                const mobileCard = `
+                    <div class="card mb-3 mobile-form-card" data-id="${id}" data-category="${category}" data-usage="${usageCount}">
+                        <div class="card-header d-flex justify-content-between align-items-center py-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-cog text-warning me-2"></i>
+                                <h6 class="mb-0 fw-bold">${name}</h6>
+                            </div>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item py-2" href="/FormStyles/Details/${id}">
+                                            <i class="fas fa-eye me-2"></i>تفاصيل
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item py-2 mobile-edit-formstyle" 
+                                           data-id="${id}" data-name="${name}" data-category="${category}" href="#!">
+                                            <i class="fas fa-edit me-2"></i>تعديل
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    ${usageCount > 0 ? 
+                                        `<li><span class="dropdown-item py-2 text-secondary"><i class="fas fa-ban me-2"></i>لا يمكن الحذف (مستخدم)</span></li>` :
+                                        `<li><a class="dropdown-item py-2 text-danger mobile-delete-btn" data-id="${id}" data-name="${name}" data-usage="${usageCount}" href="#!"><i class="fas fa-trash me-2"></i>حذف</a></li>`
+                                    }
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="card-body py-3">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-light rounded">
+                                        <div class="badge bg-info mb-1">${category || 'غير محدد'}</div>
+                                        <div><small class="text-muted">الفئة</small></div>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="text-center p-2 bg-light rounded">
+                                        <div class="badge ${usageCount > 0 ? 'bg-success' : 'bg-secondary'} mb-1">${arabicUsage}</div>
+                                        <div><small class="text-muted">الاستخدامات</small></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                $('#mobileCardsContainer').prepend(mobileCard);
+            }
+
+            function removeFormStyleFromUI(id) {
+                $(`.form-style-row[data-id="${id}"]`).fadeOut(300, function() {
+                    $(this).remove();
+                });
+                $(`.mobile-form-card[data-id="${id}"]`).fadeOut(300, function() {
+                    $(this).remove();
+                });
+            }
+
+            // Enhanced Arabic number conversion functions - same as Manufacturers
             function toArabicDigits(str) {
                 if (typeof str !== 'string') return str;
                 return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
@@ -344,29 +827,39 @@
                 return /[a-zA-Z]/.test(c);
             }
 
-            function getLastLetter(str) {
-                if (!str || str.trim().length === 0) {
-                    return 'arabic';
-                }
-
-                for (let i = str.length - 1; i >= 0; i--) {
-                    let char = str[i];
-                    if (isArabicChar(char)) {
-                        return 'arabic';
-                    } else if (isEnglishChar(char)) {
-                        return 'english';
-                    }
-                }
-                return 'arabic'; // default is Arabic
+            // Enhanced function to check if text contains Arabic characters
+            function containsArabic(str) {
+                if (!str || str.trim().length === 0) return false;
+                return /[\u0600-\u06FF]/.test(str);
             }
 
-            // Apply Arabic number conversion to search inputs
+            // Enhanced function to determine number format - prioritizes Arabic
+            function shouldUseArabicNumbers(str) {
+                if (!str || str.trim().length === 0) {
+                    return true; // Default to Arabic when empty
+                }
+                
+                // If text contains ANY Arabic character, use Arabic numbers
+                if (containsArabic(str)) {
+                    return true;
+                }
+                
+                // If text contains ONLY English characters and numbers, use English numbers
+                if (/^[a-zA-Z0-9\s\-_.@@!#$%^&*()+={}[\]:";'<>?,./\\|`~]*$/.test(str)) {
+                    return false;
+                }
+                
+                // Default to Arabic for any other cases
+                return true;
+            }
+
+            // Enhanced number conversion function
             function applyNumberConversion($input) {
                 let val = $input.val();
 
                 if (val && val.length > 0) {
-                    let lastLetterLang = getLastLetter(val);
-                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+                    let useArabicNumbers = shouldUseArabicNumbers(val);
+                    let newVal = useArabicNumbers ? toArabicDigits(val) : toLatinDigits(val);
 
                     if (newVal !== val) {
                         let cursorPos = $input[0].selectionStart;
@@ -380,111 +873,88 @@
                 }
             }
 
-            // Enhanced search input event handler with Arabic support
-            $(document).on("input keyup paste", "#searchByFormName, #searchInputMobile, #mobileCategoryFilter, #mobileUsageFilter", function(e) {
+            // Initialize components
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+            const formStyleModal = new bootstrap.Modal(document.getElementById('formStyleModal'));
+            let currentDeleteId = null;
+
+            // Enhanced search and form input event handler with improved Arabic support
+            $(document).on("input keyup paste", "#searchByFormName, #searchInputMobile, #formStyleName, #formStyleCategory", function(e) {
                 const $input = $(this);
 
-                // Apply number conversion for text inputs only
+                // Always apply Arabic number conversion for text inputs
                 if ($input.attr('type') === 'text' || $input.is('input:not([type])')) {
                     applyNumberConversion($input);
                 }
             });
 
-            // Direct number key conversion for immediate Arabic conversion
-            $(document).on("keypress", "#searchByFormName, #searchInputMobile", function(e) {
+            // Enhanced number key conversion - always converts to Arabic by default
+            $(document).on("keypress", "#searchByFormName, #searchInputMobile, #formStyleName", function(e) {
                 // Convert English digits to Arabic immediately
                 if (e.which >= 48 && e.which <= 57) { // 0-9
                     e.preventDefault();
                     let digit = String.fromCharCode(e.which);
-                    let arabicDigit = toArabicDigits(digit);
+
+                    // Convert digit to Arabic by default
+                    let convertedDigit = toArabicDigits(digit);
 
                     let input = e.target;
-                    let cursorPos = input.selectionStart || 0;
                     let currentValue = input.value;
+                    let cursorPos = input.selectionStart || 0;
 
-                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
                     input.value = newValue;
 
                     input.setSelectionRange(cursorPos + 1, cursorPos + 1);
 
-                    // Trigger search
-                    $(input).trigger('input');
+                    // Trigger search for search inputs
+                    if ($(input).attr('id').includes('search')) {
+                        $(input).trigger('input');
+                    }
                 }
             });
-
-            // Initialize components
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            let currentDeleteId = null;
-
-            // Enhanced search functionality with Arabic number support
+            // Enhanced search functionality with improved Arabic number support
             function performSearch() {
                 const formNameSearch = $('#searchByFormName').val().toLowerCase().trim();
+                const formNameSearchArabic = toArabicDigits(formNameSearch); // Default to Arabic numbers
                 const formNameSearchLatin = toLatinDigits(formNameSearch);
-                const formNameSearchArabic = toArabicDigits(formNameSearch);
 
-                const categoryFilter = $('#searchByCategory').val();
-                const usageFilter = $('#searchByUsage').val();
                 let visibleCount = 0;
 
                 $('.form-style-row').each(function() {
                     const row = $(this);
                     const formName = row.find('.form-style-name').text().toLowerCase();
-                    const category = row.data('category');
-                    const usage = parseInt(row.find('.form-style-usage').data('usage')) || 0;
 
                     // Enhanced search matching with Arabic/English number support
                     const formNameMatch = !formNameSearch ||
-                        formName.includes(formNameSearch) ||
+                        formName.includes(formNameSearchArabic) || // Arabic first
                         formName.includes(formNameSearchLatin) ||
-                        formName.includes(formNameSearchArabic);
+                        formName.includes(formNameSearch);
 
-                    const categoryMatch = !categoryFilter || category === categoryFilter;
-
-                    let usageMatch = true;
-                    if (usageFilter) {
-                        switch(usageFilter) {
-                            case 'used':
-                                usageMatch = usage > 0;
-                                break;
-                            case 'unused':
-                                usageMatch = usage === 0;
-                                break;
-                            case 'high':
-                                usageMatch = usage >= 5;
-                                break;
-                            case 'medium':
-                                usageMatch = usage >= 1 && usage <= 4;
-                                break;
-                        }
-                    }
-
-                    const shouldShow = formNameMatch && categoryMatch && usageMatch;
+                    const shouldShow = formNameMatch;
                     row.toggle(shouldShow);
 
                     if (shouldShow) visibleCount++;
                 });
 
-                updateSearchInfo(visibleCount, formNameSearch, categoryFilter, usageFilter);
+                updateSearchInfo(visibleCount, formNameSearchArabic); // Pass Arabic numbers to update info
             }
 
-            // UPDATED: Enhanced updateSearchInfo without empty state display
-            function updateSearchInfo(visibleCount, formNameSearch, categoryFilter, usageFilter) {
+            // Enhanced updateSearchInfo with Arabic numbers
+            function updateSearchInfo(visibleCount, formNameSearch) {
                 // Display counts in Arabic numerals
-                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
                 $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
 
                 // Show/hide clear buttons
                 $('#clearFormNameSearch').toggle(formNameSearch.length > 0);
 
-                const hasAnyFilter = formNameSearch.length > 0 || categoryFilter || usageFilter;
+                const hasAnyFilter = formNameSearch.length > 0;
                 $('#clearAllSearch').toggle(hasAnyFilter);
 
-                // REMOVED: Empty state display - just show/hide no results message
+                // Show/hide no results message
                 if (visibleCount === 0 && hasAnyFilter) {
                     $('#noResultsMessage').show();
-                    // Keep the table visible always
                     $('#formStylesContainer .section-card').show();
-                    console.log('No results found for search criteria - showing no results message only');
                 } else {
                     $('#noResultsMessage').hide();
                     $('#formStylesContainer .section-card').show();
@@ -493,7 +963,7 @@
                 // Add visual feedback to search inputs
                 $('#searchByFormName').toggleClass('border-primary', formNameSearch.length > 0);
 
-                console.log(`Search completed: ${visibleCount} results for "${formNameSearch}"`);
+                console.log(`Search completed: ${toArabicDigits(visibleCount.toString())} results for "${formNameSearch}"`);
             }
 
             // Enhanced updateCounts with Arabic numbers
@@ -501,19 +971,32 @@
                 const totalCount = $('.form-style-row').length;
                 const visibleCount = $('.form-style-row:visible').length;
 
-                $('#totalCount').text(toArabicDigits(totalCount.toString()));
-                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
                 $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
+
+                // Update usage counts in Arabic
+                $('.form-style-usage').each(function() {
+                    const $badge = $(this).find('.badge');
+                    const usage = parseInt($(this).data('usage')) || 0;
+                    $badge.text(toArabicDigits(usage.toString()));
+                });
+
+                // Update mobile cards usage counts
+                $('.mobile-form-card .badge').each(function() {
+                    const text = $(this).text();
+                    if (/^\d+$/.test(text)) {
+                        $(this).text(toArabicDigits(text));
+                    }
+                });
             }
 
             function populateFilterOptions() {
-                // Populate categories
+                // Populate categories for mobile filters
                 const categories = [...new Set($('.form-style-row').map(function() {
                     return $(this).data('category');
                 }).get())].filter(cat => cat).sort();
 
                 categories.forEach(category => {
-                    $('#searchByCategory, #mobileCategoryFilter').append(
+                    $('#mobileCategoryFilter').append(
                         `<option value="${category}">${category}</option>`
                     );
                 });
@@ -521,7 +1004,7 @@
 
             // Search events with debouncing
             let searchTimeout;
-            $('#searchByFormName, #searchByCategory, #searchByUsage').on('input change', function() {
+            $('#searchByFormName').on('input', function() {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(performSearch, 200);
             });
@@ -570,7 +1053,7 @@
 
                 $('#clearMobileSearch').toggle($('#searchInputMobile').val().length > 0);
 
-                console.log(`Mobile search: ${visibleMobileCount} cards visible`);
+                console.log(`Mobile search: ${toArabicDigits(visibleMobileCount.toString())} cards visible`);
             });
 
             // Clear search buttons
@@ -581,7 +1064,7 @@
             });
 
             $('#clearAllSearch, #resetSearch').click(function() {
-                $('#searchByFormName, #searchByCategory, #searchByUsage').val('').removeClass('border-primary');
+                $('#searchByFormName').val('').removeClass('border-primary');
                 performSearch();
             });
 
@@ -599,7 +1082,7 @@
 
                 if (usage > 0) {
                     const arabicUsage = toArabicDigits(usage.toString());
-                    showNotification(`لا يمكن حذف هذه العملية لأنها مستخدمة في ${arabicUsage} من أنماط التعبئة`, 'warning');
+                    showNotification(`لا يمكن حذف هذه الواجهة لأنها مستخدمة في ${arabicUsage} من العمليات`, 'warning');
                     return;
                 }
 
@@ -640,7 +1123,7 @@
                     },
                     error: function(xhr) {
                         btn.prop('disabled', false).html(originalText);
-                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف العملية';
+                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الواجهة';
                         showNotification(errorMessage, 'error');
                         currentDeleteId = null;
                     }
@@ -655,11 +1138,11 @@
                     return;
                 }
 
-                let csvContent = "اسم العملية,الفئة,الاستخدامات\n";
+                let csvContent = "اسم الواجهة,الفئة,الاستخدامات\n";
                 visibleRows.each(function() {
                     const name = $(this).find('.form-style-name .fw-semibold').text();
                     const category = $(this).data('category') || 'غير محدد';
-                    const usage = parseInt($(this).data('usage')) || 0;
+                    const usage = parseInt($(this).find('.form-style-usage').data('usage')) || 0;
                     const arabicUsage = toArabicDigits(usage.toString());
                     csvContent += `"${name}","${category}","${arabicUsage}"\n`;
                 });
@@ -667,11 +1150,11 @@
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
                 const link = document.createElement('a');
                 link.href = URL.createObjectURL(blob);
-                link.download = `business_operations_${new Date().toISOString().split('T')[0]}.csv`;
+                link.download = `form_styles_${new Date().toISOString().split('T')[0]}.csv`;
                 link.click();
 
                 const arabicCount = toArabicDigits(visibleRows.length.toString());
-                showNotification(`تم تصدير ${arabicCount} عملية بنجاح`, 'success');
+                showNotification(`تم تصدير ${arabicCount} واجهة بنجاح`, 'success');
             });
 
             // Refresh data
@@ -686,7 +1169,7 @@
             });
 
             // Enhanced notification function
-            function showNotification(message, type = 'success') {
+            window.showNotification = function(message, type = 'success') {
                 const alertTypes = {
                     'success': { class: 'alert-success', icon: 'fa-check-circle' },
                     'error': { class: 'alert-danger', icon: 'fa-exclamation-circle' },
@@ -706,12 +1189,12 @@
                     </div>
                 `);
 
-                $('.welcome-card').after(alert);
+                $('nav[aria-label="breadcrumb"]').after(alert);
 
                 setTimeout(() => {
                     alert.fadeOut(350, function() { $(this).remove(); });
                 }, 4000);
-            }
+            };
 
             // Auto-dismiss success alerts after 5 seconds
             setTimeout(function() {
@@ -724,25 +1207,23 @@
                     e.preventDefault();
                     $('#searchByFormName').focus();
                 }
+                if (e.ctrlKey && e.keyCode === 78) { // Ctrl+N
+                    e.preventDefault();
+                    $('.add-formstyle-btn').click();
+                }
                 if (e.keyCode === 27) { // Escape
-                    $('#searchByFormName, #searchByCategory, #searchByUsage').val('').removeClass('border-primary');
+                    $('#searchByFormName').val('').removeClass('border-primary');
                     performSearch();
                 }
             });
-
-            // Test number conversion functions
-            console.log('Testing Arabic number conversion:');
-            console.log('123 to Arabic:', toArabicDigits('123'));
-            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
-            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
-
             // Initialize with Arabic numbers
             populateFilterOptions();
             updateCounts();
 
-            console.log('Enhanced form styles index with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            console.log('Enhanced form styles index with improved Arabic number priority initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
         });
     </script>
+
     <style>
         /* Enhanced Styles */
         .icon-circle {
@@ -759,10 +1240,10 @@
             transition: all 0.2s ease;
         }
 
-            .form-style-row:hover {
-                background-color: rgba(255,193,7,0.05);
-                transform: scale(1.002);
-            }
+        .form-style-row:hover {
+            background-color: rgba(255,193,7,0.05);
+            transform: scale(1.002);
+        }
 
         .search-row th {
             background-color: #ffffff;
@@ -774,9 +1255,13 @@
             transition: all 0.2s ease;
         }
 
-            .search-container .input-group:hover {
-                transform: translateY(-1px);
-            }
+        .search-container .input-group:hover {
+            transform: translateY(-1px);
+        }
+
+        .search-container .input-group.shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
 
         .search-container .input-group-text {
             background-color: #f8f9fa;
@@ -790,15 +1275,15 @@
             padding: 6px 12px;
         }
 
-            .search-container .form-control:focus, .search-container .form-select:focus {
-                border-color: #86b7fe;
-                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
+        .search-container .form-control:focus, .search-container .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
 
-            .search-container .form-control.border-primary {
-                border-color: #0d6efd !important;
-                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
-            }
+        .search-container .form-control.border-primary {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+        }
 
         .form-icon {
             width: 30px;
@@ -814,28 +1299,24 @@
             border-left: 4px solid transparent;
         }
 
-            .mobile-form-card:hover {
-                border-left-color: #ffc107;
-                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            }
+        .mobile-form-card:hover {
+            border-left-color: #ffc107;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
 
         .form-style-row {
             animation: fadeInUp 0.5s ease-out;
         }
 
         @@keyframes fadeInUp {
-            from
-
-        {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .table thead th {
@@ -849,51 +1330,68 @@
 
         /* Mobile responsiveness */
         @@media (max-width: 768px) {
-            .icon-circle
+            .icon-circle {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
 
-        {
-            width: 45px;
-            height: 45px;
-            font-size: 1.2rem;
-        }
-
-        .btn-group {
-            flex-direction: column;
-            width: 100%;
-        }
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
 
             .btn-group .btn {
                 margin: 1px 0;
-                border-radius: 4px !important;
+                border-radius: 4px;
             }
 
-        .search-row th {
-            padding: 6px 8px;
-        }
+            .search-row th {
+                padding: 6px 8px;
+            }
 
-        .search-container .form-control, .search-container .form-select {
-            font-size: 0.8rem;
-            padding: 4px 8px;
-        }
+            .search-container .form-control, .search-container .form-select {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
 
-        .mobile-form-card {
-            margin-bottom: 1rem;
-        }
-
+            .mobile-form-card {
+                margin-bottom: 1rem;
+            }
         }
 
         /* Print styles */
         @@media print {
-            .btn-group, .search-row, .btn
+            .btn-group, .search-row, .btn {
+                display: none;
+            }
 
-        {
-            display: none !important;
+            .form-style-row {
+                break-inside: avoid;
+            }
         }
 
-        .form-style-row {
-            break-inside: avoid;
+        /* Animation for search highlighting */
+        .search-container .input-group {
+            position: relative;
         }
 
+        .search-container .input-group::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .search-container .input-group:focus-within::before {
+            opacity: 1;
         }
     </style>
 }
