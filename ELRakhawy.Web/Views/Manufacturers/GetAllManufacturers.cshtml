@@ -70,8 +70,11 @@
             </div>
 
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0" id="manufacturersTable">
+                <div class="table-responsive position-relative">
+                    <!-- مكان الزر -->
+                    <div class="table-toolbar mb-2"></div>
+
+                    <table class="table table-hover align-middle mb-0 toggleable-table" id="manufacturersTable">
                         <thead class="table-light">
                             <tr>
                                 <th class="fw-bold" style="width: 40%;">
@@ -86,7 +89,7 @@
                             </tr>
                             <!-- Inline Search Row -->
                             <tr class="search-row bg-white">
-                                <th class="border-bottom-0 pb-2 pt-2">
+                                <th>
                                     <div class="search-container">
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-light border-end-0">
@@ -100,7 +103,7 @@
                                         </div>
                                     </div>
                                 </th>
-                                <th class="border-bottom-0 pb-2 pt-2">
+                                <th>
                                     <div class="search-container">
                                         <div class="input-group input-group-sm">
                                             <span class="input-group-text bg-light border-end-0">
@@ -114,7 +117,7 @@
                                         </div>
                                     </div>
                                 </th>
-                                <th class="border-bottom-0 pb-2 pt-2 text-center">
+                                <th class="text-center">
                                     <small class="text-muted">
                                         <i class="fas fa-filter me-1"></i>البحث والتصفية
                                     </small>
@@ -132,7 +135,6 @@
                                             </div>
                                             <div>
                                                 <span class="fw-semibold">@manufacturer.Name</span>
-                                                <br>
                                             </div>
                                         </div>
                                     </td>
@@ -174,11 +176,60 @@
                                     </td>
                                 </tr>
                             }
-    
                         </tbody>
                     </table>
-                                                
                 </div>
+                <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        document.querySelectorAll(".toggleable-table").forEach((table, tableIndex) => {
+                            const headers = table.querySelectorAll("thead tr:first-child th");
+                            if (headers.length === 0) return;
+
+                            const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
+                            if (!toolbar) return;
+
+                            const btnGroup = document.createElement("div");
+                            btnGroup.className = "btn-group mb-2";
+                            btnGroup.innerHTML = `
+                                <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
+                                </button>
+                                <ul class="dropdown-menu column-toggle-menu"></ul>
+                            `;
+                            toolbar.appendChild(btnGroup);
+
+                            const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
+
+                            headers.forEach((th, index) => {
+                                const title = th.innerText.trim() || `عمود ${index + 1}`;
+                                const li = document.createElement("li");
+                                li.innerHTML = `
+                                    <label class="dropdown-item">
+                                        <input type="checkbox" class="me-2 column-toggle" data-table="${tableIndex}" data-index="${index}" checked>
+                                        ${title}
+                                    </label>`;
+                                toggleMenu.appendChild(li);
+                            });
+                        });
+
+                        document.body.addEventListener("change", function (e) {
+                            if (!e.target.classList.contains("column-toggle")) return;
+
+                            const tableIndex = e.target.getAttribute("data-table");
+                            const colIndex = e.target.getAttribute("data-index");
+                            const isVisible = e.target.checked;
+
+                            const table = document.querySelectorAll(".toggleable-table")[tableIndex];
+                            table.querySelectorAll("tr").forEach(row => {
+                                const cell = row.querySelectorAll("th, td")[colIndex];
+                                if (cell) {
+                                    cell.style.display = isVisible ? "" : "none";
+                                }
+                            });
+                        });
+                    });
+                </script>
+
             </div>
         </div>
 

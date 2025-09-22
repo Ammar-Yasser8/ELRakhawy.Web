@@ -88,6 +88,13 @@
 
             <div class="card-body p-0">
                 <div class="table-responsive">
+                    <div class="btn-group mb-2">
+                        <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
+                        </button>
+                        <ul class="dropdown-menu" id="columnToggleMenu"></ul>
+                    </div>
+
                     <table class="table table-hover table-bordered align-middle w-100" id="formStylesTable">
                         <thead class="table-light">
                             <tr>
@@ -177,6 +184,43 @@
             </div>
         </div>
     </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const table = document.getElementById("formStylesTable");
+            const headers = table.querySelectorAll("thead th");
+            const toggleMenu = document.getElementById("columnToggleMenu");
+
+            headers.forEach((th, index) => {
+                // تخطي الأعمدة الفارغة أو الأعمدة الخاصة بالإجراءات
+                if (th.innerText.trim() === "") return;
+
+                // أضف عنصر في الـ dropdown لكل عمود
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <label class="dropdown-item">
+                        <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                        ${th.innerText.trim()}
+                    </label>`;
+                toggleMenu.appendChild(li);
+            });
+
+            // التحكم في الإظهار/الإخفاء
+            toggleMenu.addEventListener("change", function (e) {
+                if (!e.target.classList.contains("column-toggle")) return;
+
+                const colIndex = e.target.getAttribute("data-index");
+                const isVisible = e.target.checked;
+
+                // إظهار/إخفاء العمود
+                table.querySelectorAll("tr").forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[colIndex];
+                    if (cell) {
+                        cell.style.display = isVisible ? "" : "none";
+                    }
+                });
+            });
+        });
+    </script>
 
     <!-- No Results Message -->
     <div id="noResultsMessage" class="text-center py-5" style="display: none;">
