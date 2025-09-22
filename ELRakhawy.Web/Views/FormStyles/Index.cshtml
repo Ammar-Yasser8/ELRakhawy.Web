@@ -73,7 +73,14 @@
                             <a asp-action="Create" class="btn btn-success add-formstyle-btn">
                                 <i class="fas fa-plus-circle me-1"></i>إضافة وجهة جديدة
                             </a>
-
+                        </div>
+                        <div class="btn-group export-btn-group ms-2">
+                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
+                            </button>
+                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
+                                <i class="fas fa-print me-1"></i>طباعة
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -480,6 +487,140 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Export and Print Functions -->
+    <script>
+               function exportToExcel() {
+            try {
+                // Get table data
+                const table = document.getElementById('formStylesTable');
+                const rows = table.querySelectorAll('tr:not(.search-row)');
+
+                // Create Excel workbook
+                const wb = XLSX.utils.book_new();
+                const wsData = [];
+
+                // Add header row (just form name)
+                const headers = ['اسم الواجهة'];
+                wsData.push(headers);
+
+                // Add data rows
+                rows.forEach(row => {
+                    // Skip search row and header
+                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+
+                    const nameElement = row.querySelector('.form-style-name .fw-semibold');
+                    if (nameElement) {
+                        const formName = nameElement.textContent.trim();
+                        wsData.push([formName]);
+                    }
+                });
+
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // Set column width
+                const colWidths = [
+                    {wch: 50} // Form name column width
+                ];
+                ws['!cols'] = colWidths;
+
+                // Set RTL for Arabic text
+                ws['!rtl'] = true;
+
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'الواجهات');
+
+                // Generate Excel file and trigger download
+                const currentDate = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `الواجهات_${currentDate}.xlsx`);
+
+                // Show success notification
+                showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+            }
+        }
+
+        // Print function
+        function printTable() {
+            try {
+                // Create a print-friendly version of the table
+                const printContent = document.createElement('div');
+                printContent.id = 'printSection';
+
+                // Add title and date
+                const title = document.createElement('h4');
+                title.textContent = 'قائمة الواجهات';
+                title.className = 'text-center mb-3';
+                printContent.appendChild(title);
+
+                const date = document.createElement('p');
+                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                date.className = 'text-center mb-4 text-muted';
+                printContent.appendChild(date);
+
+                // Create print table
+                const printTable = document.createElement('table');
+                printTable.className = 'print-table';
+
+                // Create table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                const th = document.createElement('th');
+                th.textContent = 'اسم الواجهة';
+                th.className = 'bg-light';
+                headerRow.appendChild(th);
+                thead.appendChild(headerRow);
+                printTable.appendChild(thead);
+
+                // Create table body with data
+                const tbody = document.createElement('tbody');
+                const visibleRows = document.querySelectorAll('.form-style-row:not([style*="display: none"])');
+
+                if (visibleRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.textContent = 'لا توجد بيانات للعرض';
+                    cell.className = 'text-center py-4 text-muted';
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                } else {
+                    visibleRows.forEach(row => {
+                        const dataRow = document.createElement('tr');
+                        const nameCell = document.createElement('td');
+                        const name = row.querySelector('.form-style-name .fw-semibold')?.textContent.trim() || '';
+                        nameCell.textContent = name;
+                        dataRow.appendChild(nameCell);
+                        tbody.appendChild(dataRow);
+                    });
+                }
+
+                printTable.appendChild(tbody);
+                printContent.appendChild(printTable);
+
+                // Add summary
+                const summary = document.createElement('p');
+                summary.className = 'mt-3 text-muted text-center';
+                summary.textContent = `عدد الواجهات: ${toArabicDigits(visibleRows.length.toString())}`;
+                printContent.appendChild(summary);
+
+                // Add to document and print
+                document.body.appendChild(printContent);
+                window.print();
+
+                // Clean up
+                document.body.removeChild(printContent);
+
+            } catch (error) {
+                console.error('Error printing table:', error);
+                showNotification('حدث خطأ أثناء الطباعة', 'error');
+            }
+        }
+    </script>
     <script>
         $(document).ready(function() {
             const CURRENT_TIME = '2025-09-04 16:12:35';
