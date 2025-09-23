@@ -532,6 +532,7 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <!-- Export and Print Functions -->
     <script>
@@ -675,6 +676,8 @@
                 user: CURRENT_USER
             });
                    // Modal instance
+        // Modal instance
+        const formStyleModal = new bootstrap.Modal(document.getElementById('formStyleModal'));
 
         // Reset Form
         function resetForm() {
@@ -992,112 +995,89 @@
                     $(this).remove();
                 });
             }
+        // Convert English → Arabic
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
 
-            // Enhanced Arabic number conversion functions - same as Manufacturers
-            function toArabicDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        // Convert Arabic → English
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') return str;
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        // Detect Arabic letters
+        function containsArabic(str) {
+            if (!str || str.trim().length === 0) return false;
+            return /[\u0600-\u06FF]/.test(str);
+        }
+
+        // Decide which number style to use
+        function shouldUseArabicNumbers(str) {
+            if (!str || str.trim().length === 0) {
+                return true; // Default Arabic
             }
-
-            function toLatinDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-            }
-
-            function isArabicChar(c) {
-                return /[\u0600-\u06FF]/.test(c);
-            }
-
-            function isEnglishChar(c) {
-                return /[a-zA-Z]/.test(c);
-            }
-
-            // Enhanced function to check if text contains Arabic characters
-            function containsArabic(str) {
-                if (!str || str.trim().length === 0) return false;
-                return /[\u0600-\u06FF]/.test(str);
-            }
-
-            // Enhanced function to determine number format - prioritizes Arabic
-            function shouldUseArabicNumbers(str) {
-                if (!str || str.trim().length === 0) {
-                    return true; // Default to Arabic when empty
-                }
-                
-                // If text contains ANY Arabic character, use Arabic numbers
-                if (containsArabic(str)) {
-                    return true;
-                }
-                
-                // If text contains ONLY English characters and numbers, use English numbers
-                if (/^[a-zA-Z0-9\s\-_.@@!#$%^&*()+={}[\]:";'<>?,./\\|`~]*$/.test(str)) {
-                    return false;
-                }
-                
-                // Default to Arabic for any other cases
+            if (containsArabic(str)) {
                 return true;
             }
+            if (/^[0-9٠-٩]+$/.test(str)) {
+                return true;
+            }
+            return false; // fallback English
+        }
 
-            // Enhanced number conversion function
-            function applyNumberConversion($input) {
-                let val = $input.val();
+        // Apply conversion on existing text
+        function applyNumberConversion($input) {
+            let val = $input.val();
+            if (val && val.length > 0) {
+                let useArabicNumbers = shouldUseArabicNumbers(val);
+                let newVal = useArabicNumbers ? toArabicDigits(val) : toLatinDigits(val);
 
-                if (val && val.length > 0) {
-                    let useArabicNumbers = shouldUseArabicNumbers(val);
-                    let newVal = useArabicNumbers ? toArabicDigits(val) : toLatinDigits(val);
-
-                    if (newVal !== val) {
-                        let cursorPos = $input[0].selectionStart;
-                        $input.val(newVal);
-                        try {
-                            $input[0].setSelectionRange(cursorPos, cursorPos);
-                        } catch (ex) {
-                            $input.focus();
-                        }
+                if (newVal !== val) {
+                    let cursorPos = $input[0].selectionStart;
+                    $input.val(newVal);
+                    try {
+                        $input[0].setSelectionRange(cursorPos, cursorPos);
+                    } catch (ex) {
+                        $input.focus();
                     }
                 }
             }
+        }
 
-            // Initialize components
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            const formStyleModal = new bootstrap.Modal(document.getElementById('formStyleModal'));
-            let currentDeleteId = null;
+        // Event binding
+        $(document).on("input keyup paste", "#searchByFormName, #searchInputMobile, #formStyleName, #formStyleCategory", function() {
+            const $input = $(this);
+            if ($input.attr('type') === 'text' || $input.is('input:not([type])')) {
+                applyNumberConversion($input);
+            }
+        });
 
-            // Enhanced search and form input event handler with improved Arabic support
-            $(document).on("input keyup paste", "#searchByFormName, #searchInputMobile, #formStyleName, #formStyleCategory", function(e) {
-                const $input = $(this);
+        // Keypress handler - follow shouldUseArabicNumbers logic
+        $(document).on("keypress", "#searchByFormName, #searchInputMobile, #formStyleName, #formStyleCategory", function(e) {
+            if (e.which >= 48 && e.which <= 57) { // English 0-9
+                e.preventDefault();
+                let digit = String.fromCharCode(e.which);
 
-                // Always apply Arabic number conversion for text inputs
-                if ($input.attr('type') === 'text' || $input.is('input:not([type])')) {
-                    applyNumberConversion($input);
+                let input = e.target;
+                let currentValue = input.value;
+                let cursorPos = input.selectionStart || 0;
+
+                let useArabicNumbers = shouldUseArabicNumbers(currentValue);
+                let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
+
+                let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
+                input.value = newValue;
+
+                input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                if ($(input).attr('id').includes('search')) {
+                    $(input).trigger('input');
                 }
-            });
+            }
+        });
 
-            // Enhanced number key conversion - always converts to Arabic by default
-            $(document).on("keypress", "#searchByFormName, #searchInputMobile, #formStyleName", function(e) {
-                // Convert English digits to Arabic immediately
-                if (e.which >= 48 && e.which <= 57) { // 0-9
-                    e.preventDefault();
-                    let digit = String.fromCharCode(e.which);
-
-                    // Convert digit to Arabic by default
-                    let convertedDigit = toArabicDigits(digit);
-
-                    let input = e.target;
-                    let currentValue = input.value;
-                    let cursorPos = input.selectionStart || 0;
-
-                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
-                    input.value = newValue;
-
-                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
-
-                    // Trigger search for search inputs
-                    if ($(input).attr('id').includes('search')) {
-                        $(input).trigger('input');
-                    }
-                }
-            });
             // Enhanced search functionality with improved Arabic number support
             function performSearch() {
                 const formNameSearch = $('#searchByFormName').val().toLowerCase().trim();

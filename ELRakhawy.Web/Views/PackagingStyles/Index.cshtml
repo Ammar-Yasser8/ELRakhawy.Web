@@ -40,22 +40,27 @@
                         <i class="fas fa-list me-2 text-primary"></i>قائمة أنماط التعبئة
                     </h5>
                     <div class="d-flex align-items-center gap-3">
-                       
                         <div class="badge bg-success px-3 py-2">
                             <i class="fas fa-database me-1"></i>
-                            <span id="badgeCount">0</span> نمط
+                            <span id="badgeCount">٠</span> نمط
                         </div>
                         <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
                             <i class="fas fa-eraser me-1"></i>مسح المرشحات
                         </button>
-                    </div>
-                    <div class="col-lg-6 text-lg-end mt-3 mt-lg-0">
                         <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
                             <button class="btn btn-outline-info" id="refreshData">
                                 <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
                             </button>
-                            <button onclick="window.location.href='/PackagingStyles/Create'" class="btn btn-success">
+                            <button class="btn btn-success add-packaging-style-btn">
                                 <i class="fas fa-plus-circle me-1"></i>إضافة نمط تعبئة جديد
+                            </button>
+                        </div>
+                        <div class="btn-group export-btn-group ms-2">
+                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
+                            </button>
+                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
+                                <i class="fas fa-print me-1"></i>طباعة
                             </button>
                         </div>
                     </div>
@@ -64,6 +69,9 @@
 
             <div class="card-body p-0">
                 <div class="table-responsive">
+                    <!-- مكان الزر -->
+                    <div class="table-toolbar mb-2"></div>
+
                     <table class="table table-hover align-middle mb-0" id="packagingStylesTable">
                         <thead class="table-light">
                             <tr>
@@ -136,6 +144,55 @@
                         </tbody>
                     </table>
                 </div>
+                <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        const table = document.getElementById("packagingStylesTable");
+                        if (!table) return;
+
+                        const headers = table.querySelectorAll("thead tr:first-child th");
+                        if (headers.length === 0) return;
+
+                        const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
+                        if (!toolbar) return;
+
+                        const btnGroup = document.createElement("div");
+                        btnGroup.className = "btn-group mb-2";
+                        btnGroup.innerHTML = `
+                            <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
+                            </button>
+                            <ul class="dropdown-menu column-toggle-menu"></ul>
+                        `;
+                        toolbar.appendChild(btnGroup);
+
+                        const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
+
+                        headers.forEach((th, index) => {
+                            const title = th.innerText.trim() || `عمود ${index + 1}`;
+                            const li = document.createElement("li");
+                            li.innerHTML = `
+                                <label class="dropdown-item">
+                                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                                    ${title}
+                                </label>`;
+                            toggleMenu.appendChild(li);
+                        });
+
+                        document.body.addEventListener("change", function (e) {
+                            if (!e.target.classList.contains("column-toggle")) return;
+
+                            const colIndex = e.target.getAttribute("data-index");
+                            const isVisible = e.target.checked;
+
+                            table.querySelectorAll("tr").forEach(row => {
+                                const cell = row.querySelectorAll("th, td")[colIndex];
+                                if (cell) {
+                                    cell.style.display = isVisible ? "" : "none";
+                                }
+                            });
+                        });
+                    });
+                </script>
             </div>
         </div>
     </div>
@@ -166,34 +223,9 @@
     </div>
 </div>
 
-<!-- Enhanced Details Modal -->
-<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-info text-white border-bottom-0">
-                <h5 class="modal-title fw-bold">
-                    <i class="fas fa-info-circle me-2"></i>تفاصيل نمط التعبئة
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0" id="detailsContent">
-                <!-- Details content will be loaded here -->
-            </div>
-            <div class="modal-footer bg-light border-top">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                    <i class="fas fa-times me-1"></i>إغلاق
-                </button>
-                <button type="button" class="btn btn-info" id="editFromDetails">
-                    <i class="fas fa-edit me-1"></i>تعديل
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- Enhanced Create/Edit Modal -->
 <div class="modal fade" id="packagingStyleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-xl">
         <div class="modal-content border-0 shadow">
             <div class="modal-header bg-light border-bottom">
                 <h5 class="modal-title fw-bold" id="modalTitle">
@@ -216,6 +248,12 @@
                                    placeholder="أدخل اسم نمط التعبئة">
                             <div class="invalid-feedback">
                                 <i class="fas fa-exclamation-circle me-1"></i>يرجى إدخال اسم نمط التعبئة (الحد الأقصى 200 حرف)
+                            </div>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    يجب أن يكون اسم نمط التعبئة فريداً ووصفياً
+                                </small>
                             </div>
                         </div>
 
@@ -246,93 +284,13 @@
                                         <i class="fas fa-lightbulb me-1"></i>اختياري - يمكن إضافة معلومات إضافية
                                     </small>
                                     <small class="text-muted">
-                                        <span id="charCount">0</span> / 1000 حرف
+                                        <span id="charCount">٠</span> / ١٠٠٠ حرف
                                     </small>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </form>
-                <script>
-                    // دالة لتحويل الأرقام للغة العربية
-                    function toArabicDigits(str) {
-                        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-                    }
-
-                    // دالة لتحويل الأرقام للاتينية
-                    function toLatinDigits(str) {
-                        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-                    }
-
-                    // دالة لاكتشاف إذا كان الحرف عربي
-                    function isArabicChar(c) {
-                        return /[\u0600-\u06FF]/.test(c);
-                    }
-
-                    // دالة لاكتشاف إذا كان الحرف إنجليزي
-                    function isEnglishChar(c) {
-                        return /[a-zA-Z]/.test(c);
-                    }
-
-                    // دالة للعثور على آخر حرف (ليس رقم أو رمز)
-                    function getLastLetter(str) {
-                        for (let i = str.length - 1; i >= 0; i--) {
-                            let char = str[i];
-                            if (isArabicChar(char)) {
-                                return 'arabic';
-                            } else if (isEnglishChar(char)) {
-                                return 'english';
-                            }
-                        }
-                        return 'arabic'; // default is Arabic
-                    }
-
-                    // تطبيق التحويل على كل الحقول النصية
-                    document.addEventListener("input", function (e) {
-                        if (e.target.closest("#packagingStyleForm")) {
-                            let input = e.target;
-                            let val = input.value;
-
-                            if (val.length > 0) {
-                                let lastLetterLang = getLastLetter(val);
-
-                                let newVal;
-                                if (lastLetterLang === 'arabic') {
-                                    // حول جميع الأرقام للعربية
-                                    newVal = toArabicDigits(val);
-                                } else {
-                                    // حول جميع الأرقام للاتينية
-                                    newVal = toLatinDigits(val);
-                                }
-
-                                // تحديث القيمة فقط إذا تغيرت
-                                if (newVal !== val) {
-                                    let cursorPos = input.selectionStart;
-                                    input.value = newVal;
-                                    // استعادة موضع المؤشر
-                                    input.setSelectionRange(cursorPos, cursorPos);
-                                }
-                            }
-
-                            // تحديث عداد الأحرف للتعليقات
-                            if (input.id === 'styleComment') {
-                                document.getElementById('charCount').textContent = val.length;
-                            }
-                        }
-                    });
-
-                    // دالة لإعادة تعيين الفورم
-                    function resetPackagingStyleForm() {
-                        document.getElementById('packagingStyleForm').reset();
-                        document.getElementById('styleId').value = '';
-                        document.getElementById('charCount').textContent = '0';
-
-                        // إزالة حالات التحقق
-                        let form = document.getElementById('packagingStyleForm');
-                        form.classList.remove('was-validated');
-                        form.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-                    }
-                </script>
             </div>
             <div class="modal-footer bg-light border-top">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
@@ -340,6 +298,31 @@
                 </button>
                 <button type="button" class="btn btn-success" id="savePackagingStyle">
                     <i class="fas fa-save me-1"></i>حفظ نمط التعبئة
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل نمط التعبئة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0" id="detailsContent">
+                <!-- Details content will be loaded here -->
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+                <button type="button" class="btn btn-info" id="editFromDetails">
+                    <i class="fas fa-edit me-1"></i>تعديل
                 </button>
             </div>
         </div>
@@ -400,6 +383,187 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Export and Print Functions -->
+    <script>
+        // Export to Excel function for packagingStylesTable
+        function exportToExcel() {
+            try {
+                // Get table data
+                const table = document.getElementById('packagingStylesTable');
+                const rows = table.querySelectorAll('tr:not(.search-row)');
+
+                // Create Excel workbook
+                const wb = XLSX.utils.book_new();
+                const wsData = [];
+
+                // Add header row (skip actions column - index 3)
+                const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+                const headers = headerCells
+                    .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
+                    .filter(item => item.index !== 3) // Skip actions column (index 3)
+                    .map(item => item.text);
+
+                wsData.push(headers);
+
+                // Add data rows
+                rows.forEach(row => {
+                    // Skip search row and header
+                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+
+                    const rowData = [];
+                    const cols = row.querySelectorAll('td');
+
+                    cols.forEach((col, index) => {
+                        // Skip actions column (index 3)
+                        if (index === 3) return;
+
+                        let text = col.textContent.trim().replace(/\s+/g, ' ');
+
+                        // For packaging style name, extract just the text without icons
+                        if (index === 0) {
+                            text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                        }
+
+                        rowData.push(text);
+                    });
+
+                    if (rowData.length > 0) {
+                        wsData.push(rowData);
+                    }
+                });
+
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // Set column widths
+                const colWidths = [
+                    { wch: 30 }, // Packaging name
+                    { wch: 50 }, // Linked forms
+                    { wch: 40 }  // Comments
+                ];
+                ws['!cols'] = colWidths;
+
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'أنماط التعبئة');
+
+                // Generate Excel file and trigger download
+                const currentDate = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `أنماط_التعبئة_${currentDate}.xlsx`);
+
+                // Show success notification
+                if (typeof showNotification === 'function') {
+                    showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+                }
+
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+                }
+            }
+        }
+
+        // Print function for packagingStylesTable
+        function printTable() {
+            try {
+                // Create a print-friendly version of the table
+                const printContent = document.createElement('div');
+                printContent.id = 'printSection';
+
+                // Add title and date
+                const title = document.createElement('h4');
+                title.textContent = 'قائمة أنماط التعبئة';
+                title.className = 'text-center mb-3';
+                printContent.appendChild(title);
+
+                const date = document.createElement('p');
+                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                date.className = 'text-center mb-4 text-muted';
+                printContent.appendChild(date);
+
+                // Create print table
+                const printTable = document.createElement('table');
+                printTable.className = 'print-table';
+
+                // Create table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+
+                ['التعبئة', 'الواجهات المرتبطة', 'البيان'].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    th.className = 'bg-light';
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                printTable.appendChild(thead);
+
+                // Create table body with data
+                const tbody = document.createElement('tbody');
+                const visibleRows = document.querySelectorAll('.packaging-style-row:not([style*="display: none"])');
+
+                if (visibleRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.textContent = 'لا توجد بيانات للعرض';
+                    cell.colSpan = 3;
+                    cell.className = 'text-center py-4 text-muted';
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                } else {
+                    visibleRows.forEach(row => {
+                        const dataRow = document.createElement('tr');
+
+                        // Packaging name
+                        const nameCell = document.createElement('td');
+                        const name = row.querySelector('.packaging-style-name .fw-semibold')?.textContent.trim() || '';
+                        nameCell.textContent = name;
+                        dataRow.appendChild(nameCell);
+
+                        // Linked forms
+                        const formsCell = document.createElement('td');
+                        const forms = row.querySelector('.packaging-style-forms').textContent.trim() || 'لا توجد واجهات';
+                        formsCell.textContent = forms;
+                        dataRow.appendChild(formsCell);
+
+                        // Comments
+                        const commentCell = document.createElement('td');
+                        const comment = row.querySelector('.packaging-style-comment').textContent.trim() || 'لا يوجد بيان';
+                        commentCell.textContent = comment;
+                        dataRow.appendChild(commentCell);
+
+                        tbody.appendChild(dataRow);
+                    });
+                }
+
+                printTable.appendChild(tbody);
+                printContent.appendChild(printTable);
+
+                // Add summary
+                const summary = document.createElement('p');
+                summary.className = 'mt-3 text-muted text-center';
+                summary.textContent = `عدد أنماط التعبئة: ${visibleRows.length}`;
+                printContent.appendChild(summary);
+
+                // Add to document and print
+                document.body.appendChild(printContent);
+                window.print();
+
+                // Clean up
+                document.body.removeChild(printContent);
+
+            } catch (error) {
+                console.error('Error printing table:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء الطباعة', 'error');
+                }
+            }
+        }
+    </script>
+
     <script>
         $(document).ready(function() {
             const CURRENT_TIME = '2025-09-04 16:17:58';
@@ -410,80 +574,88 @@
                 user: CURRENT_USER
             });
 
-            // Arabic number conversion functions
+        // Convert English digits to Arabic digits
             function toArabicDigits(str) {
                 if (typeof str !== 'string') return str;
                 return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
             }
 
+            // Convert Arabic digits to English digits
             function toLatinDigits(str) {
                 if (typeof str !== 'string') return str;
                 return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
             }
 
-            function isArabicChar(c) {
-                return /[\u0600-\u06FF]/.test(c);
+            // Check if the string contains Arabic characters
+            function containsArabic(str) {
+                return /[\u0600-\u06FF]/.test(str);
             }
 
-            function isEnglishChar(c) {
-                return /[a-zA-Z]/.test(c);
+               function shouldUseArabicNumbers(str) {
+            if (!str || str.trim().length === 0) {
+                return true; // Default Arabic when empty
             }
 
-            function getLastLetter(str) {
-                if (!str || str.trim().length === 0) {
-                    return 'arabic';
+            // If contains Arabic letters → use Arabic
+            if (containsArabic(str)) {
+                return true;
+            }
+
+            // If contains only numbers → default Arabic
+            if (/^[0-9٠-٩]+$/.test(str)) {
+                return true;
+            }
+
+            // Otherwise English
+            return false;
+        }
+
+
+        // Apply number conversion based on the input content
+        function applyNumberConversion($input) {
+            let val = $input.val();
+
+            // حتى لو فاضي، هحدد الاتجاه الافتراضي (عربي)
+            let useArabicNumbers = shouldUseArabicNumbers(val || "");
+            let newVal = useArabicNumbers ? toArabicDigits(val || "") : toLatinDigits(val || "");
+
+            if (newVal !== val) {
+                let cursorPos = $input[0].selectionStart || 0;
+                $input.val(newVal);
+                try {
+                    $input[0].setSelectionRange(cursorPos, cursorPos);
+                } catch (ex) {
+                    $input.focus();
                 }
-
-                for (let i = str.length - 1; i >= 0; i--) {
-                    let char = str[i];
-                    if (isArabicChar(char)) {
-                        return 'arabic';
-                    } else if (isEnglishChar(char)) {
-                        return 'english';
-                    }
-                }
-                return 'arabic'; // default is Arabic
             }
+        }
 
-            // Apply Arabic number conversion to inputs
-            function applyNumberConversion($input) {
-                let val = $input.val();
-
-                if (val && val.length > 0) {
-                    let lastLetterLang = getLastLetter(val);
-                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
-
-                    if (newVal !== val) {
-                        let cursorPos = $input[0].selectionStart;
-                        $input.val(newVal);
-                        try {
-                            $input[0].setSelectionRange(cursorPos, cursorPos);
-                        } catch (ex) {
-                            $input.focus();
-                        }
-                    }
-                }
-            }
-
-            // Enhanced search and form input event handler with Arabic support
+            // Event handler for input fields
             $(document).on("input keyup paste", "#searchByName, #searchByForms, #searchByComment, #styleName, #styleComment", function(e) {
                 const $input = $(this);
                 applyNumberConversion($input);
             });
 
-            // Direct number key conversion for immediate Arabic conversion
+            // Convert numbers to Arabic by default during keypress
             $(document).on("keypress", "#searchByName, #searchByForms, #searchByComment, #styleName, #styleComment", function(e) {
                 // Convert English digits to Arabic immediately
                 if (e.which >= 48 && e.which <= 57) { // 0-9
                     e.preventDefault();
                     let digit = String.fromCharCode(e.which);
-                    let arabicDigit = toArabicDigits(digit);
+
+                    // Get current input value to determine if we should use Arabic or English
+                    let currentValue = e.target.value;
+                    let cursorPos = e.target.selectionStart || 0;
+
+                    // Create temporary value to test what the result would be
+                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
+
+                    // Determine if we should use Arabic numbers
+                    let useArabicNumbers = shouldUseArabicNumbers(tempValue);
+                    let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
 
                     let input = e.target;
-                    let cursorPos = input.selectionStart || 0;
-                    let currentValue = input.value;
-
-                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
                     input.value = newValue;
 
                     input.setSelectionRange(cursorPos + 1, cursorPos + 1);
@@ -494,7 +666,6 @@
                     }
                 }
             });
-
             // Initialize components
             const toastElement = document.getElementById('notificationToast');
             const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
@@ -521,7 +692,7 @@
             });
 
             // Enhanced notification function
-            function showNotification(message, type = 'success') {
+            window.showNotification = function(message, type = 'success') {
                 const icons = {
                     success: 'fa-check-circle',
                     error: 'fa-exclamation-circle',
@@ -542,7 +713,7 @@
                     .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
 
                 toast.show();
-            }
+            };
 
             // Loading functions
             function showLoading() {
@@ -677,6 +848,7 @@
                                         <div class="row">
                                             <div class="col-md-6">
                                                 <small class="text-muted">
+                                                    <i class="fas fa-hashtag me-1"></i>المعرف: <strong>${toArabicDigits(style.id.toString())}</strong>
                                                 </small>
                                             </div>
                                             <div class="col-md-6">
@@ -780,12 +952,12 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group" role="group">
-                                     <button class="btn btn-sm btn-outline-info edit-style"
-                                             onclick="window.location.href='/PackagingStyles/Edit/${style.id}'"
-                                             title="تعديل ${style.styleName}">
-                                         <i class="fas fa-edit"></i>
-                                     </button>
-
+                                    <button class="btn btn-sm btn-outline-info edit-style"
+                                            data-id="${style.id}"
+                                            data-name="${style.styleName}"
+                                            data-comment="${style.comment || ''}"
+                                            title="تعديل ${style.styleName}">
+                                        <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-secondary view-details"
                                             data-id="${style.id}" title="تفاصيل ${style.styleName}">
@@ -831,7 +1003,7 @@
                 container.html(formsHtml);
             }
 
-            // Enhanced search functionality with Arabic number support
+            // Enhanced search functionality with improved Arabic number support
             function performSearch() {
                 const nameSearch = $('#searchByName').val().toLowerCase().trim();
                 const nameSearchLatin = toLatinDigits(nameSearch);
@@ -880,7 +1052,6 @@
 
             // Enhanced updateSearchInfo with Arabic numbers
             function updateSearchInfo(visibleCount, nameSearch, formsSearch, commentSearch) {
-                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
                 $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
 
                 // Show/hide clear buttons
@@ -891,7 +1062,14 @@
                 const hasAnySearch = nameSearch.length > 0 || formsSearch.length > 0 || commentSearch.length > 0;
                 $('#clearAllSearch').toggle(hasAnySearch);
 
-                // Keep table always visible - no modal overlays
+                // Show/hide no results message
+                if (visibleCount === 0 && hasAnySearch) {
+                    $('#noResultsMessage').show();
+                } else {
+                    $('#noResultsMessage').hide();
+                }
+
+                // Keep table always visible
                 $('#packagingStylesContainer .section-card').show();
 
                 // Add visual feedback to search inputs
@@ -903,12 +1081,10 @@
             // Enhanced updateCounts with Arabic numbers
             function updateCounts(count) {
                 const arabicCount = toArabicDigits(count.toString());
-                $('#totalCount').text(arabicCount);
-                $('#visibleCount').text(arabicCount);
                 $('#badgeCount').text(arabicCount);
             }
 
-            // Search events
+            // Search events with debouncing
             let searchTimeout;
             $('#searchByName, #searchByForms, #searchByComment').on('input', function() {
                 clearTimeout(searchTimeout);
@@ -939,8 +1115,19 @@
                 performSearch();
             });
 
+            // Enhanced reset form with Arabic character counter
+            function resetForm() {
+                $('#packagingStyleForm')[0].reset();
+                $('#styleId').val('');
+                $('#charCount').text(toArabicDigits('0'));
+                $('#packagingStyleForm .is-invalid').removeClass('is-invalid');
+                $('#packagingStyleForm').removeClass('was-validated');
+                $('#availableFormsContainer input[type="checkbox"]').prop('checked', false);
+            }
+
             // Modal handlers
-            $('#addNewStyle, #addFirstStyle').click(function() {
+            $('.add-packaging-style-btn').on('click', function(e) {
+                e.preventDefault();
                 resetForm();
                 $('#modalTitle').html('<i class="fas fa-plus-circle text-success me-2"></i>إضافة نمط تعبئة جديد');
                 loadAvailableForms();
@@ -974,16 +1161,6 @@
                     editPackagingStyle(currentDetailsId);
                 }
             });
-
-            // Enhanced reset form with Arabic character counter
-            function resetForm() {
-                $('#packagingStyleForm')[0].reset();
-                $('#styleId').val('');
-                $('#charCount').text(toArabicDigits('0'));
-                $('#packagingStyleForm .is-invalid').removeClass('is-invalid');
-                $('#packagingStyleForm').removeClass('was-validated');
-                $('#availableFormsContainer input[type="checkbox"]').prop('checked', false);
-            }
 
             // Edit packaging style
             function editPackagingStyle(id) {
@@ -1046,8 +1223,11 @@
                 const isEdit = id && id !== '';
                 const url = isEdit ? `/api/PackagingStyles/${id}` : '/api/PackagingStyles';
                 const method = isEdit ? 'PUT' : 'POST';
+                const btn = $(this);
+                const originalText = btn.html();
 
-                showLoading();
+                btn.prop('disabled', true)
+                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
 
                 $.ajax({
                     url: url,
@@ -1055,10 +1235,10 @@
                     contentType: 'application/json',
                     data: JSON.stringify(data),
                     success: function(response) {
-                        hideLoading();
+                        btn.prop('disabled', false).html(originalText);
 
                         if (response.success) {
-                            showNotification(response.message, 'success');
+                            showNotification(response.message || (isEdit ? 'تم تحديث نمط التعبئة بنجاح' : 'تم إضافة نمط التعبئة بنجاح'), 'success');
                             modal.hide();
                             loadPackagingStyles(); // Reload data
                         } else {
@@ -1066,7 +1246,7 @@
                         }
                     },
                     error: function(xhr, status, error) {
-                        hideLoading();
+                        btn.prop('disabled', false).html(originalText);
 
                         let errorMessage = 'حدث خطأ أثناء حفظ نمط التعبئة';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
@@ -1082,14 +1262,17 @@
             // Delete packaging style
             $('#confirmDelete').click(function() {
                 const id = $('#deleteStyleId').val();
+                const btn = $(this);
+                const originalText = btn.html();
 
-                showLoading();
+                btn.prop('disabled', true)
+                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحذف...');
 
                 $.ajax({
                     url: `/api/PackagingStyles/${id}`,
                     method: 'DELETE',
                     success: function(response) {
-                        hideLoading();
+                        btn.prop('disabled', false).html(originalText);
 
                         if (response.success) {
                             showNotification(response.message, 'success');
@@ -1100,7 +1283,7 @@
                         }
                     },
                     error: function(xhr, status, error) {
-                        hideLoading();
+                        btn.prop('disabled', false).html(originalText);
                         showNotification('حدث خطأ أثناء حذف نمط التعبئة', 'error');
                         console.error('Delete error:', { xhr, status, error, time: CURRENT_TIME });
                     }
@@ -1128,7 +1311,7 @@
                 }
                 if (e.ctrlKey && e.keyCode === 78) { // Ctrl+N
                     e.preventDefault();
-                    $('#addNewStyle').click();
+                    $('.add-packaging-style-btn').click();
                 }
                 if (e.keyCode === 27) { // Escape
                     $('#searchByName, #searchByForms, #searchByComment').val('').removeClass('border-primary');
@@ -1136,17 +1319,19 @@
                 }
             });
 
-            // Test number conversion functions
-            console.log('Testing Arabic number conversion:');
-            console.log('123 to Arabic:', toArabicDigits('123'));
-            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
-            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+            // Test enhanced number conversion functions
+            console.log('Testing Enhanced Arabic number conversion:');
+            console.log('English only "hello 123":', shouldUseArabicNumbers('hello 123') ? 'Arabic' : 'English');
+            console.log('Mixed "hello مرحبا 123":', shouldUseArabicNumbers('hello مرحبا 123') ? 'Arabic' : 'English');
+            console.log('Arabic only "مرحبا 123":', shouldUseArabicNumbers('مرحبا 123') ? 'Arabic' : 'English');
+            console.log('Numbers only "123":', shouldUseArabicNumbers('123') ? 'Arabic' : 'English');
+            console.log('Empty "":', shouldUseArabicNumbers('') ? 'Arabic' : 'English');
 
             // Initialize page
             loadPackagingStyles();
             loadAvailableForms();
 
-            console.log('Enhanced packaging styles page with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            console.log('Enhanced packaging styles page with improved Arabic number priority initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
         });
     </script>
 
@@ -1166,10 +1351,10 @@
             transition: all 0.2s ease;
         }
 
-            .packaging-style-row:hover {
-                background-color: rgba(25,135,84,0.05);
-                transform: scale(1.005);
-            }
+        .packaging-style-row:hover {
+            background-color: rgba(25,135,84,0.05);
+            transform: scale(1.005);
+        }
 
         .search-row th {
             background-color: #ffffff;
@@ -1181,13 +1366,13 @@
             transition: all 0.2s ease;
         }
 
-            .search-container .input-group:hover {
-                transform: translateY(-1px);
-            }
+        .search-container .input-group:hover {
+            transform: translateY(-1px);
+        }
 
-            .search-container .input-group.shadow-sm {
-                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075) !important;
-            }
+        .search-container .input-group.shadow-sm {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        }
 
         .search-container .input-group-text {
             background-color: #f8f9fa;
@@ -1201,15 +1386,15 @@
             padding: 6px 12px;
         }
 
-            .search-container .form-control:focus {
-                border-color: #86b7fe;
-                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-            }
+        .search-container .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
 
-            .search-container .form-control.border-primary {
-                border-color: #0d6efd !important;
-                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
-            }
+        .search-container .form-control.border-primary {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+        }
 
         .packaging-icon {
             width: 30px;
@@ -1245,7 +1430,7 @@
         }
 
         .border-start {
-            border-left: 4px solid !important;
+            border-left: 4px solid;
         }
 
         .packaging-style-row {
@@ -1253,18 +1438,14 @@
         }
 
         @@keyframes fadeInUp {
-            from
-
-        {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .table thead th {
@@ -1276,32 +1457,61 @@
             border-bottom: 2px solid #dee2e6;
         }
 
+        /* Animation for search highlighting */
+        .search-container .input-group {
+            position: relative;
+        }
+
+        .search-container .input-group::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
+            border-radius: 6px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: -1;
+        }
+
+        .search-container .input-group:focus-within::before {
+            opacity: 1;
+        }
+
         /* Mobile responsiveness */
         @@media (max-width: 768px) {
-            .icon-circle
+            .icon-circle {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
+            }
 
-        {
-            width: 45px;
-            height: 45px;
-            font-size: 1.2rem;
-        }
-
-        .btn-group {
-            flex-direction: column;
-            width: 100%;
-        }
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
 
             .btn-group .btn {
                 margin: 1px 0;
-                border-radius: 4px !important;
+                border-radius: 4px;
             }
 
-        .details-modal .icon-circle {
-            width: 60px;
-            height: 60px;
-            font-size: 1.5rem;
-        }
+            .details-modal .icon-circle {
+                width: 60px;
+                height: 60px;
+                font-size: 1.5rem;
+            }
 
+            .search-row th {
+                padding: 6px 8px;
+            }
+
+            .search-container .form-control {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
         }
     </style>
 }

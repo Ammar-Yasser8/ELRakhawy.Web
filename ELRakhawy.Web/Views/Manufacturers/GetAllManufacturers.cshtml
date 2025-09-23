@@ -604,24 +604,23 @@
                 return /[\u0600-\u06FF]/.test(str);
             }
 
-            // Enhanced function to determine number format - prioritizes Arabic
-            function shouldUseArabicNumbers(str) {
+                        function shouldUseArabicNumbers(str) {
                 if (!str || str.trim().length === 0) {
-                    return true; // Default to Arabic when empty
+                    return true; // Default Arabic when empty
                 }
-                
-                // If text contains ANY Arabic character, use Arabic numbers
+
+                // If contains Arabic letters → use Arabic
                 if (containsArabic(str)) {
                     return true;
                 }
-                
-                // If text contains ONLY English characters and numbers, use English numbers
-                                if (/^[a-zA-Z0-9\s\-_.@@#$%^&*()+={}[\]:";'<>?,./\\|`~]*$/.test(str)) {
-                    return false;
+
+                // If contains only numbers → default Arabic
+                if (/^[0-9٠-٩]+$/.test(str)) {
+                    return true;
                 }
-                
-                // Default to Arabic for any other cases
-                return true;
+
+                // Otherwise English
+                return false;
             }
 
             // Enhanced number conversion function
