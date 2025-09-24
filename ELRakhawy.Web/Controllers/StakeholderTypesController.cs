@@ -23,7 +23,13 @@ namespace ELRakhawy.Web.Controllers
                 .ToList();
             return View(types);
         }
-
+        [HttpGet]
+        public IActionResult GetFormOptions()
+        {
+            var forms = _unitOfWork.Repository<FormStyle>().GetAll().Select(f => new { id = f.Id, formName = f.FormName }).ToList();
+            var financialTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().Select(ft => new { id = ft.Id, type = ft.Type }).ToList();
+            return Json(new { success = true, forms, financialTypes });
+        }
         // GET: StakeholderTypes/Create
         public IActionResult Create()
         {

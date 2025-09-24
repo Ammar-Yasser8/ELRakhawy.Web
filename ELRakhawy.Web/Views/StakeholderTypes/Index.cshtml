@@ -76,12 +76,24 @@
                         <a asp-action="Create" class="btn btn-success">
                             <i class="fas fa-plus-circle me-1"></i>إضافة نوع جديد
                         </a>
+                        <div class="btn-group export-btn-group ms-2">
+                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
+                            </button>
+                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
+                                <i class="fas fa-print me-1"></i>طباعة
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 <div class="table-responsive">
+
+                    <!-- مكان الزر -->
+                    <div class="table-toolbar mb-2"></div>
+
                     <table class="table table-hover align-middle mb-0" id="stakeholderTypesTable">
                         <thead class="table-light">
                             <tr>
@@ -252,6 +264,56 @@
                         </tbody>
                     </table>
                 </div>
+
+                <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        const table = document.getElementById("stakeholderTypesTable");
+                        if (!table) return;
+
+                        const headers = table.querySelectorAll("thead tr:first-child th");
+                        if (headers.length === 0) return;
+
+                        const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
+                        if (!toolbar) return;
+
+                        const btnGroup = document.createElement("div");
+                        btnGroup.className = "btn-group mb-2";
+                        btnGroup.innerHTML = `
+                            <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
+                            </button>
+                            <ul class="dropdown-menu column-toggle-menu"></ul>
+                        `;
+                        toolbar.appendChild(btnGroup);
+
+                        const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
+
+                        headers.forEach((th, index) => {
+                            const title = th.innerText.trim() || `عمود ${index + 1}`;
+                            const li = document.createElement("li");
+                            li.innerHTML = `
+                                <label class="dropdown-item">
+                                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                                    ${title}
+                                </label>`;
+                            toggleMenu.appendChild(li);
+                        });
+
+                        document.body.addEventListener("change", function (e) {
+                            if (!e.target.classList.contains("column-toggle")) return;
+
+                            const colIndex = e.target.getAttribute("data-index");
+                            const isVisible = e.target.checked;
+
+                            table.querySelectorAll("tr").forEach(row => {
+                                const cell = row.querySelectorAll("th, td")[colIndex];
+                                if (cell) {
+                                    cell.style.display = isVisible ? "" : "none";
+                                }
+                            });
+                        });
+                    });
+                </script>
             </div>
         </div>
     </div>
@@ -324,6 +386,199 @@
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Export and Print Functions -->
+    <script>
+        // Export to Excel function - Fixed version for StakeholderType table
+               function exportToExcel() {
+            try {
+                // Get table data
+                const table = document.getElementById('stakeholderTypesTable');
+                const rows = table.querySelectorAll('tr:not(.search-row)');
+
+                // Create Excel workbook
+                const wb = XLSX.utils.book_new();
+                const wsData = [];
+
+                // Add header row (skip actions column - index 4)
+                const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+                const headers = headerCells
+                    .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
+                    .filter(item => item.index !== 4) // Skip actions column (index 4)
+                    .map(item => item.text);
+
+                wsData.push(headers);
+
+                // Add data rows
+                rows.forEach(row => {
+                    // Skip search row and header
+                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+
+                    const rowData = [];
+                    const cols = row.querySelectorAll('td');
+
+                    cols.forEach((col, index) => {
+                        // Skip actions column (index 4)
+                        if (index === 4) return;
+
+                        let text = col.textContent.trim().replace(/\s+/g, ' ');
+
+                        // For stakeholder type name, extract just the text without icons
+                        if (index === 0) {
+                            text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                        }
+
+                        // Separate forms by comma
+                        if (index === 2) {
+                            const badges = col.querySelectorAll('.badge');
+                            text = Array.from(badges).map(badge => badge.textContent.trim()).join(', ');
+                        }
+
+                        rowData.push(text);
+                    });
+
+                    if (rowData.length > 0) {
+                        wsData.push(rowData);
+                    }
+                });
+
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // Set column widths
+                const colWidths = [
+                    { wch: 30 }, // Type
+                    { wch: 25 }, // Financial Transaction Type
+                    { wch: 40 }, // Linked Forms
+                    { wch: 50 }  // Comment
+                ];
+                ws['!cols'] = colWidths;
+
+                // Add worksheet to workbook
+                XLSX.utils.book_append_sheet(wb, ws, 'أنواع أصحاب المصلحة');
+
+                // Generate Excel file and trigger download
+                const currentDate = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `أنواع_أصحاب_المصلحة_${currentDate}.xlsx`);
+
+                // Show success notification
+                if (typeof showNotification === 'function') {
+                    showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+                }
+
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+                }
+            }
+        }
+
+        // Print function for StakeholderType table
+        function printTable() {
+            try {
+                // Create a print-friendly version of the table
+                const printContent = document.createElement('div');
+                printContent.id = 'printSection';
+
+                // Add title and date
+                const title = document.createElement('h4');
+                title.textContent = 'قائمة أنواع أصحاب المصلحة';
+                title.className = 'text-center mb-3';
+                printContent.appendChild(title);
+
+                const date = document.createElement('p');
+                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                date.className = 'text-center mb-4 text-muted';
+                printContent.appendChild(date);
+
+                // Create print table
+                const printTable = document.createElement('table');
+                printTable.className = 'print-table';
+
+                // Create table header
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+
+                ['النوع', 'نوع المعاملة المالية', 'الواجهات المرتبطة', 'البيان'].forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    th.className = 'bg-light';
+                    headerRow.appendChild(th);
+                });
+
+                thead.appendChild(headerRow);
+                printTable.appendChild(thead);
+
+                // Create table body with data
+                const tbody = document.createElement('tbody');
+                const visibleRows = document.querySelectorAll('.stakeholder-type-row:not([style*="display: none"])');
+
+                if (visibleRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.textContent = 'لا توجد بيانات للعرض';
+                    cell.colSpan = 4;
+                    cell.className = 'text-center py-4 text-muted';
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                } else {
+                    visibleRows.forEach(row => {
+                        const dataRow = document.createElement('tr');
+
+                        // Type
+                        const typeCell = document.createElement('td');
+                        const type = row.querySelector('.stakeholder-type-name .fw-semibold')?.textContent.trim() || '';
+                        typeCell.textContent = type;
+                        dataRow.appendChild(typeCell);
+
+                        // Financial Transaction Type
+                        const financialCell = document.createElement('td');
+                        const financial = row.querySelector('.stakeholder-type-financial').textContent.trim() || 'لا يوجد';
+                        financialCell.textContent = financial;
+                        dataRow.appendChild(financialCell);
+
+                        // Linked Forms
+                        const formsCell = document.createElement('td');
+                        const forms = row.querySelector('.stakeholder-type-forms').textContent.trim() || 'لا توجد واجهات مرتبطة';
+                        formsCell.textContent = forms;
+                        dataRow.appendChild(formsCell);
+
+                        // Comment
+                        const commentCell = document.createElement('td');
+                        const comment = row.querySelector('.stakeholder-type-comment').textContent.trim() || 'لا يوجد بيان';
+                        commentCell.textContent = comment;
+                        dataRow.appendChild(commentCell);
+
+                        tbody.appendChild(dataRow);
+                    });
+                }
+
+                printTable.appendChild(tbody);
+                printContent.appendChild(printTable);
+
+                // Add summary
+                const summary = document.createElement('p');
+                summary.className = 'mt-3 text-muted text-center';
+                summary.textContent = `عدد الأنواع: ${visibleRows.length}`;
+                printContent.appendChild(summary);
+
+                // Add to document and print
+                document.body.appendChild(printContent);
+                window.print();
+
+                // Clean up
+                document.body.removeChild(printContent);
+
+            } catch (error) {
+                console.error('Error printing table:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء الطباعة', 'error');
+                }
+            }
+        }
+    </script>
+
     <script>
         $(document).ready(function() {
             const CURRENT_TIME = '2025-09-04 16:33:23';
