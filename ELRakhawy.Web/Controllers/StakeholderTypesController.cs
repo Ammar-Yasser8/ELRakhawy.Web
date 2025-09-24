@@ -41,12 +41,11 @@ namespace ELRakhawy.Web.Controllers
             return View(viewModel);
 
         }
-        // POST: StakeholderTypes/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(StakeholderTypeViewModel viewModel)
+        public async Task<IActionResult> Create(StakeholderTypeViewModel viewModel)
         {
-            // 🔹 Normalize SelectedFormIds if model binder failed (Arabic digits issue)
+            // Normalize SelectedFormIds (your existing code)
             if (viewModel.SelectedFormIds == null || viewModel.SelectedFormIds.Count == 0)
             {
                 var rawValues = Request.Form["SelectedFormIds"].ToArray();
@@ -56,17 +55,10 @@ namespace ELRakhawy.Web.Controllers
                 {
                     if (!string.IsNullOrWhiteSpace(raw))
                     {
-                        // تحويل الأرقام العربية-الهندية إلى أرقام إنجليزية
                         var normalized = raw
-                            .Replace('٠', '0')
-                            .Replace('١', '1')
-                            .Replace('٢', '2')
-                            .Replace('٣', '3')
-                            .Replace('٤', '4')
-                            .Replace('٥', '5')
-                            .Replace('٦', '6')
-                            .Replace('٧', '7')
-                            .Replace('٨', '8')
+                            .Replace('٠', '0').Replace('١', '1').Replace('٢', '2')
+                            .Replace('٣', '3').Replace('٤', '4').Replace('٥', '5')
+                            .Replace('٦', '6').Replace('٧', '7').Replace('٨', '8')
                             .Replace('٩', '9');
 
                         if (int.TryParse(normalized, out var id))
@@ -75,7 +67,6 @@ namespace ELRakhawy.Web.Controllers
                         }
                     }
                 }
-
                 viewModel.SelectedFormIds = normalizedIds;
             }
 
@@ -84,9 +75,10 @@ namespace ELRakhawy.Web.Controllers
                 // Check if stakeholder type with same name exists
                 var existingType = _unitOfWork.Repository<StakeholderType>()
                     .GetOne(st => st.Type.ToLower() == viewModel.Type.ToLower());
+
                 if (existingType != null)
                 {
-                    ModelState.AddModelError("Type", "A stakeholder type with this name already exists.");
+                    ModelState.AddModelError("Type", "نوع صاحب المصلحة هذا موجود مسبقاً.");
                 }
                 else
                 {
@@ -96,8 +88,9 @@ namespace ELRakhawy.Web.Controllers
                         Comment = viewModel.Comment,
                         FinancialTransactionTypeId = viewModel.FinancialTransactionTypeId
                     };
+
                     _unitOfWork.Repository<StakeholderType>().Add(stakeholderType);
-                    _unitOfWork.Complete();
+                     _unitOfWork.Complete();
 
                     // Save selected forms
                     if (viewModel.SelectedFormIds != null && viewModel.SelectedFormIds.Any())
@@ -114,17 +107,37 @@ namespace ELRakhawy.Web.Controllers
                         _unitOfWork.Complete();
                     }
 
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = true, message = "تم إضافة النوع بنجاح" });
+                    }
+
                     return RedirectToAction(nameof(Index));
                 }
             }
 
-            // If model state is invalid or type exists, repopulate the view model
+            // Repopulate for AJAX or normal request
             viewModel.FinancialTransactionTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().ToList();
             viewModel.AvailableForms = _unitOfWork.Repository<FormStyle>().GetAll().ToList();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("_CreatePartial", viewModel);
+            }
+
             return View(viewModel);
         }
+        // GET: StakeholderTypes/CreatePopup (for modal)
+        public IActionResult CreatePopup()
+        {
+            var viewModel = new StakeholderTypeViewModel
+            {
+                FinancialTransactionTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().ToList(),
+                AvailableForms = _unitOfWork.Repository<FormStyle>().GetAll().ToList()
+            };
 
-
+            return PartialView("_CreatePartial", viewModel);
+        }
         // GET: StakeholderTypes/Edit/5
         public IActionResult Edit(int id)
         {
@@ -153,11 +166,40 @@ namespace ELRakhawy.Web.Controllers
         // POST: StakeholderTypes/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Edit(int id, StakeholderTypeViewModel viewModel)
+        public async Task<IActionResult> Edit(int id, StakeholderTypeViewModel viewModel)
         {
             if (id != viewModel.Id)
             {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, message = "معرف غير متطابق" });
+                }
                 return NotFound();
+            }
+
+            // Normalize SelectedFormIds (same as Create)
+            if (viewModel.SelectedFormIds == null || viewModel.SelectedFormIds.Count == 0)
+            {
+                var rawValues = Request.Form["SelectedFormIds"].ToArray();
+                var normalizedIds = new List<int>();
+
+                foreach (var raw in rawValues)
+                {
+                    if (!string.IsNullOrWhiteSpace(raw))
+                    {
+                        var normalized = raw
+                            .Replace('٠', '0').Replace('١', '1').Replace('٢', '2')
+                            .Replace('٣', '3').Replace('٤', '4').Replace('٥', '5')
+                            .Replace('٦', '6').Replace('٧', '7').Replace('٨', '8')
+                            .Replace('٩', '9');
+
+                        if (int.TryParse(normalized, out var formId))
+                        {
+                            normalizedIds.Add(formId);
+                        }
+                    }
+                }
+                viewModel.SelectedFormIds = normalizedIds;
             }
 
             if (ModelState.IsValid)
@@ -167,41 +209,99 @@ namespace ELRakhawy.Web.Controllers
 
                 if (stakeholderType == null)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = false, message = "لم يتم العثور على النوع" });
+                    }
                     return NotFound();
                 }
 
-                stakeholderType.Type = viewModel.Type;
-                stakeholderType.Comment = viewModel.Comment;
-                stakeholderType.FinancialTransactionTypeId = viewModel.FinancialTransactionTypeId;
+                // Check for duplicate name (excluding current record)
+                var existingType = _unitOfWork.Repository<StakeholderType>()
+                    .GetOne(st => st.Type.ToLower() == viewModel.Type.ToLower() && st.Id != id);
 
-                _unitOfWork.Repository<StakeholderType>().Update(stakeholderType);
-
-                // Remove existing form associations
-                var existingForms = _unitOfWork.Repository<StakeholderTypeForm>()
-                    .GetAll(stf => stf.StakeholderTypeId == id);
-                _unitOfWork.Repository<StakeholderTypeForm>().RemoveRange(existingForms);
-
-                // Add new form associations
-                foreach (var formId in viewModel.SelectedFormIds)
+                if (existingType != null)
                 {
-                    var stakeholderTypeForm = new StakeholderTypeForm
-                    {
-                        StakeholderTypeId = stakeholderType.Id,
-                        FormId = formId
-                    };
-                    _unitOfWork.Repository<StakeholderTypeForm>().Add(stakeholderTypeForm);
+                    ModelState.AddModelError("Type", "نوع صاحب المصلحة هذا موجود مسبقاً.");
                 }
+                else
+                {
+                    stakeholderType.Type = viewModel.Type;
+                    stakeholderType.Comment = viewModel.Comment;
+                    stakeholderType.FinancialTransactionTypeId = viewModel.FinancialTransactionTypeId;
 
-                _unitOfWork.Complete();
-                return RedirectToAction(nameof(Index));
+                    _unitOfWork.Repository<StakeholderType>().Update(stakeholderType);
+
+                    // Remove existing form associations
+                    var existingForms = _unitOfWork.Repository<StakeholderTypeForm>()
+                        .GetAll(stf => stf.StakeholderTypeId == id);
+                    _unitOfWork.Repository<StakeholderTypeForm>().RemoveRange(existingForms);
+
+                    // Add new form associations
+                    if (viewModel.SelectedFormIds != null && viewModel.SelectedFormIds.Any())
+                    {
+                        foreach (var formId in viewModel.SelectedFormIds)
+                        {
+                            var stakeholderTypeForm = new StakeholderTypeForm
+                            {
+                                StakeholderTypeId = stakeholderType.Id,
+                                FormId = formId
+                            };
+                            _unitOfWork.Repository<StakeholderTypeForm>().Add(stakeholderTypeForm);
+                        }
+                    }
+
+                     _unitOfWork.Complete();
+
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = true, message = "تم تحديث النوع بنجاح" });
+                    }
+
+                    return RedirectToAction(nameof(Index));
+                }
             }
 
-            // If model state is invalid, repopulate the view model
+            // Repopulate for AJAX or normal request
             viewModel.FinancialTransactionTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().ToList();
             viewModel.AvailableForms = _unitOfWork.Repository<FormStyle>().GetAll().ToList();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("_EditPartial", viewModel);
+            }
+
             return View(viewModel);
         }
+        // GET: StakeholderTypes/EditPopup/5 (for modal)
+        public IActionResult EditPopup(int? id)
+        {
+            if (id == null)
+            {
+                return NotFound();
+            }
 
+            var stakeholderType = _unitOfWork.Repository<StakeholderType>()
+                .GetOne(st => st.Id == id, includeEntities: "StakeholderTypeForms.Form");
+
+            if (stakeholderType == null)
+            {
+                return NotFound();
+            }
+
+            var viewModel = new StakeholderTypeViewModel
+            {
+                Id = stakeholderType.Id,
+                Type = stakeholderType.Type,
+                Comment = stakeholderType.Comment,
+                FinancialTransactionTypeId = stakeholderType.FinancialTransactionTypeId,
+                FinancialTransactionTypes = _unitOfWork.Repository<FinancialTransactionType>().GetAll().ToList(),
+                AvailableForms = _unitOfWork.Repository<FormStyle>().GetAll().ToList(),
+                SelectedFormIds = stakeholderType.StakeholderTypeForms?.Select(stf => stf.FormId).ToList() ?? new List<int>()
+            };
+
+            return PartialView("_EditPartial", viewModel);
+        }
         // GET: StakeholderTypes/Delete/5
         public IActionResult Delete(int id)
         {

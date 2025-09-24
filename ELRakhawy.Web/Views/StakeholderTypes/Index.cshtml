@@ -73,9 +73,10 @@
                         <button class="btn btn-outline-info" id="refreshData">
                             <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
                         </button>
-                        <a asp-action="Create" class="btn btn-success">
+                        <!-- Updated Create Button -->
+                        <button class="btn btn-success" id="createStakeholderTypeBtn">
                             <i class="fas fa-plus-circle me-1"></i>إضافة نوع جديد
-                        </a>
+                        </button>
                         <div class="btn-group export-btn-group ms-2">
                             <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
                                 <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
@@ -242,21 +243,23 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
-                                            <a asp-action="Edit" asp-route-id="@type.Id"
-                                               class="btn btn-sm btn-outline-info"
-                                               title="تعديل @type.Type">
+                                            <button class="btn btn-sm btn-outline-info edit-stakeholder-type"
+                                                    data-id="@type.Id"
+                                                    title="تعديل @type.Type">
                                                 <i class="fas fa-edit"></i>
-                                            </a>
+                                            </button>
                                             <button class="btn btn-sm btn-outline-secondary view-details"
                                                     data-id="@type.Id"
                                                     title="تفاصيل @type.Type">
                                                 <i class="fas fa-info-circle"></i>
                                             </button>
-                                            <a asp-action="Delete" asp-route-id="@type.Id"
-                                               class="btn btn-sm btn-outline-danger"
-                                               title="حذف @type.Type">
+                                            <button class="btn btn-sm btn-outline-danger delete-stakeholder-type"
+                                                    data-id="@type.Id"
+                                                    data-name="@type.Type"
+                                                    data-forms-count="@(type.StakeholderTypeForms?.Count ?? 0)"
+                                                    title="حذف @type.Type">
                                                 <i class="fas fa-trash"></i>
-                                            </a>
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>
@@ -371,7 +374,104 @@
         </div>
     </div>
 </div>
+<!-- Create Stakeholder Type Modal -->
+<div class="modal fade" id="createModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-plus-circle me-2"></i>إضافة نوع جديد
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="createModalContent">
+                <!-- Content will be loaded via AJAX -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2 text-muted">جاري تحميل النموذج...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Edit Stakeholder Type Modal -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-edit me-2"></i>تعديل نوع صاحب المصلحة
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="editModalContent">
+                <!-- Content will be loaded via AJAX -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2 text-muted">جاري تحميل النموذج...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Enhanced Delete Confirmation Modal -->
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-md">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <div class="delete-icon mb-3">
+                        <i class="fas fa-trash-alt fa-4x text-danger"></i>
+                    </div>
+                    <h6 class="fw-bold text-dark mb-3">هل أنت متأكد من رغبتك في الحذف؟</h6>
 
+                    <div class="alert alert-dark">
+                        <i class="fas fa-tag me-2"></i>
+                        <span id="deleteItemName" class="fw-bold"></span>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning mb-3">
+                    <i class="fas fa-link me-2"></i>
+                    <span id="deleteFormsCount"></span>
+                </div>
+
+                <div class="alert alert-danger">
+                    <div class="d-flex">
+                        <i class="fas fa-exclamation-circle me-3 fa-lg mt-1"></i>
+                        <div>
+                            <strong>تحذير:</strong> هذا الإجراء لا يمكن التراجع عنه!
+                        </div>
+                    </div>
+                </div>
+
+                <form id="deleteForm" method="post">
+                    <input type="hidden" id="deleteId" name="id" />
+                    @Html.AntiForgeryToken()
+                </form>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="fas fa-trash me-1"></i>تأكيد الحذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 <!-- Enhanced Toast Notifications -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
     <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
@@ -578,12 +678,64 @@
             }
         }
     </script>
-
+    <!--Delete cript>-->
+    <script>
+        $(document).ready(function() {
+            // Delete button click
+            $('.delete-stakeholder-type').click(function() {
+                const id = $(this).data('id');
+                const name = $(this).data('name');
+                const formsCount = $(this).data('forms-count');
+                $('#deleteId').val(id);
+                $('#deleteItemName').text(name);
+                $('#deleteFormsCount').html(formsCount > 0
+                    ? `هذا النوع مرتبط بـ <strong>${formsCount}</strong> واجهة. حذف هذا النوع سيؤدي إلى إزالة هذه الواجهات أيضاً.`
+                    : 'هذا النوع غير مرتبط بأي واجهات.');
+                $('#deleteModal').modal('show');
+            });
+            // Confirm delete
+            $('#confirmDelete').click(function() {
+                const id = $('#deleteId').val();
+                const token = $('input[name="__RequestVerificationToken"]').val();
+                $.ajax({
+                    url: '@Url.Action("Delete", "StakeholderTypes")',
+                    type: 'POST',
+                    data: { id: id, __RequestVerificationToken: token },
+                    success: function(response) {
+                        if (response.success) {
+                            // Remove the deleted row
+                            $(`tr[data-id="${id}"]`).remove();
+                            updateCounts();
+                            performSearch(); // Reapply search to update visibility
+                            $('#deleteModal').modal('hide');
+                            showNotification('تم حذف نوع صاحب المصلحة بنجاح', 'success');
+                            // If no rows left, show empty state
+                            if ($('.stakeholder-type-row').length === 0) {
+                                $('#emptyState').show();
+                                $('#stakeholderTypesContainer').hide();
+                            }
+                        } else {
+                            $('#deleteModal').modal('hide');
+                            showNotification(response.message || 'حدث خطأ أثناء الحذف', 'error');
+                        }
+                    },
+                    error: function() {
+                        $('#deleteModal').modal('hide');
+                        showNotification('حدث خطأ أثناء الحذف', 'error');
+                    }
+                });
+            });
+            });
+    </script>
     <script>
         $(document).ready(function() {
             const CURRENT_TIME = '2025-09-04 16:33:23';
             const CURRENT_USER = 'Ammar-Yasser8';
-
+            const createModal = new bootstrap.Modal(document.getElementById('createModal'));
+            const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+                    let currentEditId = null;
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+             
             console.log('Enhanced stakeholder types with Arabic numbers loaded:', {
                 time: CURRENT_TIME,
                 user: CURRENT_USER
@@ -837,6 +989,331 @@
                 const id = $(this).data('id');
                 loadStakeholderTypeDetails(id);
             });
+            // Load Edit Form when edit button clicked
+            $(document).on('click', '.edit-stakeholder-type', function() {
+                const id = $(this).data('id');
+                currentEditId = id;
+                loadEditForm(id);
+            });
+                  
+            // Load Edit Form via AJAX
+            function loadEditForm(id) {
+            $('#editModalContent').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-warning" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <p class="mt-2 text-muted">جاري تحميل بيانات التعديل...</p>
+                </div>
+            `);
+
+            $.get(`/StakeholderTypes/EditPopup/${id}`, function(data) {
+                $('#editModalContent').html(data);
+                initializeEditForm();
+            }).fail(function() {
+                $('#editModalContent').html(`
+                    <div class="alert alert-danger text-center">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        فشل في تحميل البيانات. يرجى المحاولة مرة أخرى.
+                    </div>
+                `);
+            });
+
+            editModal.show();
+        }
+
+            // Initialize Edit Form
+            function initializeEditForm() {
+                // Initialize Select2
+                if ($.fn.select2) {
+                    $('#FinancialTransactionTypeId').select2({
+                        placeholder: "-- اختر نوع المعاملة المالية --",
+                        dir: "rtl",
+                        language: "ar",
+                        width: '100%',
+                        dropdownParent: $('#editModal')
+                    });
+                }
+
+                // Form validation
+                $('#editForm').on('submit', function(e) {
+                    e.preventDefault();
+
+                    if (!validateEditForm()) {
+                        return false;
+                    }
+
+                    submitEditForm();
+                });
+
+                // Checkbox handlers
+                $('#selectAllFormsEdit').click(function() {
+                    $("input[name='SelectedFormIds']").prop("checked", true);
+                    $("#formsValidationMsgEdit").addClass("d-none");
+                });
+
+                $('#deselectAllFormsEdit').click(function() {
+                    $("input[name='SelectedFormIds']").prop("checked", false);
+                    validateFormsSelectionEdit();
+                });
+
+                $("input[name='SelectedFormIds']").change(function() {
+                    validateFormsSelectionEdit();
+                });
+            }
+
+            // Validate Edit Form
+            function validateEditForm() {
+                let isValid = true;
+
+                // Check Type field
+                const typeValue = $('#Type').val().trim();
+                if (!typeValue) {
+                    $('#Type').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#Type').removeClass('is-invalid');
+                }
+
+                // Check Financial Transaction Type
+                const financialValue = $('#FinancialTransactionTypeId').val();
+                if (!financialValue) {
+                    $('#FinancialTransactionTypeId').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#FinancialTransactionTypeId').removeClass('is-invalid');
+                }
+
+                // Check Forms selection
+                if (!$("input[name='SelectedFormIds']:checked").length) {
+                    $("#formsValidationMsgEdit").removeClass("d-none");
+                    isValid = false;
+                }
+
+                return isValid;
+            }
+
+            // Validate Forms Selection for Edit
+            function validateFormsSelectionEdit() {
+                if ($("input[name='SelectedFormIds']:checked").length) {
+                    $("#formsValidationMsgEdit").addClass("d-none");
+                } else {
+                    $("#formsValidationMsgEdit").removeClass("d-none");
+                }
+            }
+
+            // Submit Edit Form via AJAX
+            function submitEditForm() {
+                const formData = new FormData($('#editForm')[0]);
+                const submitBtn = $('#editSubmitBtn');
+
+                // Disable submit button
+                submitBtn.prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ التحديث...');
+
+                $.ajax({
+                    url: `/StakeholderTypes/Edit/${currentEditId}`,
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('تم تحديث النوع بنجاح', 'success');
+                            editModal.hide();
+
+                            // Refresh the page or update table
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            // Handle validation errors
+                            $('#editModalContent').html(response);
+                            initializeEditForm();
+                            showNotification('يرجى تصحيح الأخطاء في النموذج', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showNotification('حدث خطأ أثناء التحديث. يرجى المحاولة مرة أخرى.', 'error');
+                        submitBtn.prop('disabled', false)
+                            .html('<i class="fas fa-save me-1"></i>تحديث');
+                    }
+                });
+            }
+                    // Load Create Form when button clicked
+            $('#createStakeholderTypeBtn').click(function() {
+            loadCreateForm();
+        });
+
+            // Load Create Form via AJAX
+            function loadCreateForm() {
+                $('#createModalContent').html(`
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">جاري التحميل...</span>
+                        </div>
+                        <p class="mt-2 text-muted">جاري تحميل النموذج...</p>
+                    </div>
+                `);
+
+                $.get('/StakeholderTypes/CreatePopup', function(data) {
+                    $('#createModalContent').html(data);
+                    initializeCreateForm();
+                }).fail(function() {
+                    $('#createModalContent').html(`
+                        <div class="alert alert-danger text-center">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            فشل في تحميل النموذج. يرجى المحاولة مرة أخرى.
+                        </div>
+                    `);
+                });
+
+                createModal.show();
+            }
+
+            // Initialize Create Form
+            function initializeCreateForm() {
+                // Initialize Select2
+                if ($.fn.select2) {
+                    $('#FinancialTransactionTypeId').select2({
+                        placeholder: "-- اختر نوع المعاملة المالية --",
+                        dir: "rtl",
+                        language: "ar",
+                        width: '100%',
+                        dropdownParent: $('#createModal')
+                    });
+                }
+
+                // Form validation
+                $('#createForm').on('submit', function(e) {
+                    e.preventDefault();
+
+                    if (!validateCreateForm()) {
+                        return false;
+                    }
+
+                    submitCreateForm();
+                });
+
+                // Checkbox handlers
+                $('#selectAllForms').click(function() {
+                    $("input[name='SelectedFormIds']").prop("checked", true);
+                    $("#formsValidationMsg").addClass("d-none");
+                });
+
+                $('#deselectAllForms').click(function() {
+                    $("input[name='SelectedFormIds']").prop("checked", false);
+                    validateFormsSelection();
+                });
+
+                $("input[name='SelectedFormIds']").change(function() {
+                    validateFormsSelection();
+                });
+            }
+
+            // Validate Create Form
+            function validateCreateForm() {
+                let isValid = true;
+
+                // Check Type field
+                const typeValue = $('#Type').val().trim();
+                if (!typeValue) {
+                    $('#Type').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#Type').removeClass('is-invalid');
+                }
+
+                // Check Financial Transaction Type
+                const financialValue = $('#FinancialTransactionTypeId').val();
+                if (!financialValue) {
+                    $('#FinancialTransactionTypeId').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#FinancialTransactionTypeId').removeClass('is-invalid');
+                }
+
+                // Check Forms selection
+                if (!$("input[name='SelectedFormIds']:checked").length) {
+                    $("#formsValidationMsg").removeClass("d-none");
+                    isValid = false;
+                }
+
+                return isValid;
+            }
+
+            // Validate Forms Selection
+            function validateFormsSelection() {
+                if ($("input[name='SelectedFormIds']:checked").length) {
+                    $("#formsValidationMsg").addClass("d-none");
+                } else {
+                    $("#formsValidationMsg").removeClass("d-none");
+                }
+            }
+
+            // Submit Create Form via AJAX
+            function submitCreateForm() {
+                const formData = new FormData($('#createForm')[0]);
+                const submitBtn = $('#submitBtn');
+
+                // Disable submit button
+                submitBtn.prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+
+                $.ajax({
+                    url: '/StakeholderTypes/Create',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('تم إضافة النوع بنجاح', 'success');
+                            createModal.hide();
+
+                            // Refresh the page or update table
+                            setTimeout(() => {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            // Handle validation errors
+                            $('#createModalContent').html(response);
+                            initializeCreateForm();
+                            showNotification('يرجى تصحيح الأخطاء في النموذج', 'error');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        showNotification('حدث خطأ أثناء الحفظ. يرجى المحاولة مرة أخرى.', 'error');
+                        submitBtn.prop('disabled', false)
+                            .html('<i class="fas fa-save me-1"></i>حفظ');
+                    }
+                });
+            }
+
+            // Enhanced notification function
+            function showNotification(message, type = 'success') {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+
+                const colors = {
+                    success: 'bg-success',
+                    error: 'bg-danger',
+                    warning: 'bg-warning',
+                    info: 'bg-info'
+                };
+
+                $('#toastIcon').removeClass().addClass(`fas ${icons[type]} me-2`);
+                $('#toastMessage').text(message);
+                $('#notificationToast').removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
+                    .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
+
+                const toast = new bootstrap.Toast(document.getElementById('notificationToast'));
+                toast.show();
+            }
 
             // Enhanced load stakeholder type details with Arabic numbers
             function loadStakeholderTypeDetails(id) {
