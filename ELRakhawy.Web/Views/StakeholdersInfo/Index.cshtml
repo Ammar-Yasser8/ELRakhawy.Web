@@ -23,7 +23,7 @@
                 </li>
                 <li class="breadcrumb-item active d-flex align-items-center">
                     <i class="fas fa-users text-success me-2"></i>
-                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                    <span class="fw-bold text-dark>@ViewData["Title"]</span>
                 </li>
             </ol>
         </div>
@@ -70,15 +70,26 @@
                         <button class="btn btn-outline-info" id="refreshData">
                             <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
                         </button>
-                        <a asp-action="Create" class="btn btn-success">
-                            <i class="fas fa-plus-circle me-1"></i>إضافة جهة جديدة
-                        </a>
+                        <div class="d-flex justify-content-end mb-3">
+                            <button class="btn btn-primary" id="btnAddStakeholder">
+                                <i class="fas fa-plus"></i> إضافة جهة
+                            </button>
+                        </div>
+                        <div class="btn-group export-btn-group ms-2">
+                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
+                            </button>
+                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
+                                <i class="fas fa-print me-1"></i>طباعة
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 <div class="table-responsive">
+                    <div class="table-toolbar mb-2"></div>
                     <table class="table table-hover align-middle mb-0" id="stakeholdersTable">
                         <thead class="table-light">
                             <tr>
@@ -197,6 +208,56 @@
                         </tbody>
                     </table>
                 </div>
+                <script>
+                    document.addEventListener("DOMContentLoaded", function () {
+                        document.querySelectorAll("#stakeholdersTable").forEach((table, tableIndex) => {
+                            const headers = table.querySelectorAll("thead tr:first-child th");
+                            if (headers.length === 0) return;
+
+                            const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
+                            if (!toolbar) return;
+
+                            const btnGroup = document.createElement("div");
+                            btnGroup.className = "btn-group mb-2";
+                            btnGroup.innerHTML = `
+                                <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                                    <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
+                                </button>
+                                <ul class="dropdown-menu column-toggle-menu"></ul>
+                            `;
+                            toolbar.appendChild(btnGroup);
+
+                            const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
+
+                            headers.forEach((th, index) => {
+                                const title = th.innerText.trim() || `عمود ${index + 1}`;
+                                const li = document.createElement("li");
+                                li.innerHTML = `
+                                    <label class="dropdown-item">
+                                        <input type="checkbox" class="me-2 column-toggle" data-table="${tableIndex}" data-index="${index}" checked>
+                                        ${title}
+                                    </label>`;
+                                toggleMenu.appendChild(li);
+                            });
+                        });
+
+                        document.body.addEventListener("change", function (e) {
+                            if (!e.target.classList.contains("column-toggle")) return;
+
+                            const tableIndex = e.target.getAttribute("data-table");
+                            const colIndex = e.target.getAttribute("data-index");
+                            const isVisible = e.target.checked;
+
+                            const table = document.querySelectorAll("#stakeholdersTable")[tableIndex];
+                            table.querySelectorAll("tr").forEach(row => {
+                                const cell = row.querySelectorAll("th, td")[colIndex];
+                                if (cell) {
+                                    cell.style.display = isVisible ? "" : "none";
+                                }
+                            });
+                        });
+                    });
+                </script>
             </div>
         </div>
     </div>
@@ -254,7 +315,6 @@
         </div>
     </div>
 </div>
-
 <!-- Enhanced Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -291,6 +351,20 @@
         </div>
     </div>
 </div>
+<!-- Modal -->
+<div class="modal fade" id="stakeholderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-light">
+                <h5 class="modal-title fw-bold">إضافة / تعديل جهة</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- هنا الـ Partial هيترندر -->
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Enhanced Toast Notifications -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3">
@@ -316,746 +390,1471 @@
 </div>
 
 @section Scripts {
-    <script>
-        $(document).ready(function() {
-            const CURRENT_TIME = '2025-09-04 16:36:08';
-            const CURRENT_USER = 'Ammar-Yasser8';
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+              <!-- Export and Print Functions -->
+        <script>
+            // Export to Excel function for Stakeholders Table
+            function exportToExcel() {
+                try {
+                    // Get table data
+                    const table = document.getElementById('stakeholdersTable');
+                    const rows = table.querySelectorAll('tr:not(.search-row)');
 
-            console.log('Enhanced stakeholders info with Arabic numbers loaded:', {
-                time: CURRENT_TIME,
-                user: CURRENT_USER
-            });
+                    // Create Excel workbook
+                    const wb = XLSX.utils.book_new();
+                    const wsData = [];
 
-            // Arabic number conversion functions
-            function toArabicDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-            }
+                    // Add header row (skip actions column - index 6)
+                    const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+                    const headers = headerCells
+                        .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
+                        .filter(item => item.index !== 6) // Skip actions column (index 6)
+                        .map(item => item.text);
 
-            function toLatinDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-            }
+                    wsData.push(headers);
 
-            function isArabicChar(c) {
-                return /[\u0600-\u06FF]/.test(c);
-            }
+                    // Add data rows
+                    rows.forEach(row => {
+                        // Skip search row and header
+                        if (row.classList.contains('search-row') || row.querySelector('th')) return;
 
-            function isEnglishChar(c) {
-                return /[a-zA-Z]/.test(c);
-            }
+                        const rowData = [];
+                        const cols = row.querySelectorAll('td');
 
-            function getLastLetter(str) {
-                if (!str || str.trim().length === 0) {
-                    return 'arabic';
-                }
+                        cols.forEach((col, index) => {
+                            // Skip actions column (index 6)
+                            if (index === 6) return;
 
-                for (let i = str.length - 1; i >= 0; i--) {
-                    let char = str[i];
-                    if (isArabicChar(char)) {
-                        return 'arabic';
-                    } else if (isEnglishChar(char)) {
-                        return 'english';
-                    }
-                }
-                return 'arabic'; // default is Arabic
-            }
+                            let text = col.textContent.trim().replace(/\s+/g, ' ');
 
-            // Apply Arabic number conversion to search inputs
-            function applyNumberConversion($input) {
-                let val = $input.val();
+                            // For stakeholder name, extract just the text without icons
+                            if (index === 0) {
+                                text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                            }
 
-                if (val && val.length > 0) {
-                    let lastLetterLang = getLastLetter(val);
-                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
+                            rowData.push(text);
+                        });
 
-                    if (newVal !== val) {
-                        let cursorPos = $input[0].selectionStart;
-                        $input.val(newVal);
-                        try {
-                            $input[0].setSelectionRange(cursorPos, cursorPos);
-                        } catch (ex) {
-                            $input.focus();
+                        if (rowData.length > 0) {
+                            wsData.push(rowData);
                         }
+                    });
+
+                    // Create worksheet
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                    // Set column widths
+                    const colWidths = [
+                        { wch: 30 }, // Stakeholder name
+                        { wch: 20 }, // Type
+                        { wch: 15 }, // Status
+                        { wch: 25 }, // Financial transaction type
+                        { wch: 20 }, // Phone
+                        { wch: 40 }  // Comment
+                    ];
+                    ws['!cols'] = colWidths;
+
+                    // Add worksheet to workbook
+                    XLSX.utils.book_append_sheet(wb, ws, 'الجهات');
+
+                    // Generate Excel file and trigger download
+                    const currentDate = new Date().toISOString().slice(0, 10);
+                    XLSX.writeFile(wb, `الجهات_${currentDate}.xlsx`);
+
+                    // Show success notification
+                    if (typeof showNotification === 'function') {
+                        showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+                    }
+
+                } catch (error) {
+                    console.error('Error exporting to Excel:', error);
+                    if (typeof showNotification === 'function') {
+                        showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
                     }
                 }
             }
 
-            // Enhanced search input event handler with Arabic support - excluding phone field from conversion
-            $(document).on("input keyup paste", "#searchByName, #searchByType, #searchByFinancial, #searchByComment", function(e) {
-                const $input = $(this);
-                applyNumberConversion($input);
-            });
+            // Print function for Stakeholders Table
+            function printTable() {
+                try {
+                    // Create a print-friendly version of the table
+                    const printContent = document.createElement('div');
+                    printContent.id = 'printSection';
 
-            // Phone field gets special treatment - no conversion
-            $(document).on("input keyup paste", "#searchByPhone", function(e) {
-                // No conversion for phone numbers - keep as entered
-            });
+                    // Add title and date
+                    const title = document.createElement('h4');
+                    title.textContent = 'قائمة الجهات';
+                    title.className = 'text-center mb-3';
+                    printContent.appendChild(title);
 
-            // Direct number key conversion for immediate Arabic conversion - excluding phone field
-            $(document).on("keypress", "#searchByName, #searchByType, #searchByFinancial, #searchByComment", function(e) {
-                // Convert English digits to Arabic immediately
-                if (e.which >= 48 && e.which <= 57) { // 0-9
+                    const date = document.createElement('p');
+                    date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                    date.className = 'text-center mb-4 text-muted';
+                    printContent.appendChild(date);
+
+                    // Create print table
+                    const printTable = document.createElement('table');
+                    printTable.className = 'print-table';
+
+                    // Create table header
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+
+                    ['الجهة', 'نوع الجهة', 'الحالة', 'نوع المعاملة المالية', 'التليفون', 'البيان'].forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        th.className = 'bg-light';
+                        headerRow.appendChild(th);
+                    });
+
+                    thead.appendChild(headerRow);
+                    printTable.appendChild(thead);
+
+                    // Create table body with data
+                    const tbody = document.createElement('tbody');
+                    const visibleRows = document.querySelectorAll('.stakeholder-row:not([style*="display: none"])');
+
+                    if (visibleRows.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.textContent = 'لا توجد بيانات للعرض';
+                        cell.colSpan = 6;
+                        cell.className = 'text-center py-4 text-muted';
+                        row.appendChild(cell);
+                        tbody.appendChild(row);
+                    } else {
+                        visibleRows.forEach(row => {
+                            const dataRow = document.createElement('tr');
+
+                            // Stakeholder name
+                            const nameCell = document.createElement('td');
+                            const name = row.querySelector('.stakeholder-name .fw-semibold')?.textContent.trim() || '';
+                            nameCell.textContent = name;
+                            dataRow.appendChild(nameCell);
+
+                            // Type
+                            const typeCell = document.createElement('td');
+                            const type = row.querySelector('.stakeholder-type').textContent.trim() || '-';
+                            typeCell.textContent = type;
+                            dataRow.appendChild(typeCell);
+
+                            // Status
+                            const statusCell = document.createElement('td');
+                            const status = row.querySelector('.stakeholder-status .form-check-label').textContent.trim() || '-';
+                            statusCell.textContent = status;
+                            dataRow.appendChild(statusCell);
+
+                            // Financial transaction type
+                            const financialCell = document.createElement('td');
+                            const financial = row.querySelector('.stakeholder-financial').textContent.trim() || '-';
+                            financialCell.textContent = financial;
+                            dataRow.appendChild(financialCell);
+
+                            // Phone
+                            const phoneCell = document.createElement('td');
+                            const phone = row.querySelector('.stakeholder-phone').textContent.trim() || '-';
+                            phoneCell.textContent = phone;
+                            dataRow.appendChild(phoneCell);
+
+                            // Comment
+                            const commentCell = document.createElement('td');
+                            const comment = row.querySelector('.stakeholder-comment').textContent.trim() || '-';
+                            commentCell.textContent = comment;
+                            dataRow.appendChild(commentCell);
+
+                            tbody.appendChild(dataRow);
+                        });
+                    }
+
+                    printTable.appendChild(tbody);
+                    printContent.appendChild(printTable);
+
+                    // Add summary
+                    const summary = document.createElement('p');
+                    summary.className = 'mt-3 text-muted text-center';
+                    summary.textContent = `عدد الجهات: ${visibleRows.length}`;
+                    printContent.appendChild(summary);
+
+                    // Add to document and print
+                    document.body.appendChild(printContent);
+                    window.print();
+
+                    // Clean up
+                    document.body.removeChild(printContent);
+
+                } catch (error) {
+                    console.error('Error printing table:', error);
+                    if (typeof showNotification === 'function') {
+                        showNotification('حدث خطأ أثناء الطباعة', 'error');
+                    }
+                }
+            }
+        </script>
+
+    <script>
+$(document).ready(function() {
+    const CURRENT_TIME = '2025-09-04 16:36:08';
+    const CURRENT_USER = 'Ammar-Yasser8';
+
+    console.log('Enhanced stakeholders info with modal Arabic numbers loaded:', {
+        time: CURRENT_TIME,
+        user: CURRENT_USER
+    });
+             function openStakeholderModal() {
+            var stakeholderModal = new bootstrap.Modal(document.getElementById('stakeholderModal'));
+            stakeholderModal.show();
+        }
+
+     
+    // ==================== ARABIC NUMBER CONVERSION FUNCTIONS ====================
+    
+    // Convert English digits to Arabic digits
+    function toArabicDigits(str) {
+        if (typeof str !== 'string' && typeof str !== 'number') return str;
+        return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    }
+
+    // Convert Arabic digits to English digits
+    function toLatinDigits(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+    }
+
+    // Check if text contains Arabic characters
+    function containsArabicText(str) {
+        if (!str) return false;
+        return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str);
+    }
+
+    // Determine appropriate number format based on text content
+    function getAppropriateNumberFormat(text) {
+        if (!text || typeof text !== 'string') return 'arabic'; // Default to Arabic
+        
+        // If contains Arabic characters → use Arabic numbers
+        if (containsArabicText(text)) {
+            return 'arabic';
+        }
+        
+        // If purely English text → use English numbers
+        if (/^[a-zA-Z0-9\s\-_@@.]+$/.test(text)) {
+            return 'latin';
+        }
+        
+        // Default to Arabic for interface elements
+        return 'arabic';
+    }
+
+    // Apply appropriate number format to text
+    function applyAppropriateNumberFormat(text, context = '') {
+        if (!text) return text;
+        
+        // Get context from multiple sources for better detection
+        const combinedContext = context + ' ' + $('#Name').val() + ' ' + $('#Comment').val();
+        const format = getAppropriateNumberFormat(combinedContext);
+        
+        return format === 'arabic' ? toArabicDigits(text) : toLatinDigits(text);
+    }
+
+    // ==================== MODAL HANDLING FUNCTIONS ====================
+    
+    // Initialize modal content with Arabic detection
+    function initializeModalContent() {
+        console.log('Initializing modal content with Arabic detection');
+        
+        // Setup auto-formatting for form inputs (excluding phone numbers)
+        $('#modalBody input[type="text"], #modalBody textarea').not('[name="ContactNumber"]').on('input blur keyup', function() {
+            const $this = $(this);
+            setTimeout(() => {
+                updateElementDisplay($this[0]);
+                updateAllCounters();
+            }, 50);
+        });
+
+        // Setup direct number key conversion for immediate Arabic conversion (excluding phone field)
+        $('#modalBody input[type="text"], #modalBody textarea').not('[name="ContactNumber"]').on('keypress', function(e) {
+            if (e.which >= 48 && e.which <= 57) { // 0-9 keys
+                const nameText = $('#Name').val() || '';
+                const commentText = $('#Comment').val() || '';
+                const combinedText = nameText + ' ' + commentText;
+                
+                // Only convert to Arabic if context suggests Arabic should be used
+                if (getAppropriateNumberFormat(combinedText) === 'arabic') {
                     e.preventDefault();
                     let digit = String.fromCharCode(e.which);
                     let arabicDigit = toArabicDigits(digit);
-
+                    
                     let input = e.target;
                     let cursorPos = input.selectionStart || 0;
                     let currentValue = input.value;
-
+                    
                     let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
                     input.value = newValue;
-
                     input.setSelectionRange(cursorPos + 1, cursorPos + 1);
-
-                    // Trigger search
+                    
+                    // Trigger input event
                     $(input).trigger('input');
                 }
-            });
-
-            // Initialize components
-            const toastElement = document.getElementById('notificationToast');
-            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
-
-            let stakeholdersData = [];
-            let currentDetailsId = null;
-
-            // Enhanced notification function
-            function showNotification(message, type = 'success') {
-                const icons = {
-                    success: 'fa-check-circle',
-                    error: 'fa-exclamation-circle',
-                    warning: 'fa-exclamation-triangle',
-                    info: 'fa-info-circle'
-                };
-
-                const colors = {
-                    success: 'bg-success',
-                    error: 'bg-danger',
-                    warning: 'bg-warning',
-                    info: 'bg-info'
-                };
-
-                $('#toastIcon').removeClass().addClass(`fas ${icons[type]} me-2`);
-                $('#toastMessage').text(message);
-                $('#notificationToast').removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
-                    .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
-
-                toast.show();
             }
+        });
 
-            // Loading functions
-            function showLoading() {
-                $('#loadingOverlay').removeClass('d-none');
+        // Initialize all counters and UI elements
+        updateAllCounters();
+        
+        // Setup form submission handler
+        setupModalFormSubmission();
+    }
+
+    // Update element display based on context
+    function updateElementDisplay(element) {
+        const $element = $(element);
+        let text = $element.val() || $element.text();
+        
+        if (!text) return;
+        
+        // Skip phone number fields
+        if ($element.attr('name') === 'ContactNumber') {
+            return;
+        }
+        
+        const formattedText = applyAppropriateNumberFormat(text, text);
+        
+        if ($element.is('input, textarea, select')) {
+            if ($element.val() !== formattedText) {
+                const cursorPos = element.selectionStart || 0;
+                $element.val(formattedText);
+                try {
+                    element.setSelectionRange(cursorPos, cursorPos);
+                } catch (ex) {
+                    $element.focus();
+                }
             }
-
-            function hideLoading() {
-                $('#loadingOverlay').addClass('d-none');
+        } else {
+            if ($element.text() !== formattedText) {
+                $element.text(formattedText);
             }
+        }
+    }
 
-            // Enhanced load stakeholders data via API with Arabic numbers
-            function loadStakeholders() {
-                showLoading();
+    // Update all counters in the modal
+    function updateAllCounters() {
+        updateCharCounter();
+        updateTypeCounter();
+        updateValidationCounter();
+    }
 
-                $.ajax({
-                    url: '/api/StakeholdersInfo',
-                    method: 'GET',
-                    success: function(response) {
-                        hideLoading();
+    // Update character counter with context-aware formatting
+    function updateCharCounter() {
+        const $comment = $('#Comment');
+        if ($comment.length === 0) return;
+        
+        const maxLength = 1000;
+        const currentLength = $comment.val().length;
+        const commentText = $comment.val();
+        const nameText = $('#Name').val() || '';
+        
+        // Determine format based on form content
+        const combinedText = nameText + ' ' + commentText;
+        const format = getAppropriateNumberFormat(combinedText);
+        
+        const formattedCurrent = format === 'arabic' ? toArabicDigits(currentLength.toString()) : currentLength.toString();
+        const formattedMax = format === 'arabic' ? toArabicDigits(maxLength.toString()) : maxLength.toString();
 
-                        if (response.success) {
-                            stakeholdersData = response.data;
-                            renderStakeholders(stakeholdersData);
-                            updateCounts(stakeholdersData.length);
+        let $counter = $('#commentCounter');
+        if ($counter.length === 0) {
+            $comment.after(`
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <small class="text-muted">عدد الأحرف: <span id="commentCounter">${formattedCurrent}/${formattedMax}</span></small>
+                </div>
+            `);
+            $counter = $('#commentCounter');
+        } else {
+            $counter.text(`${formattedCurrent}/${formattedMax}`);
+        }
 
-                            if (stakeholdersData.length === 0) {
-                                $('#emptyState').show();
-                                $('#stakeholdersContainer').hide();
+        $counter.removeClass("text-warning text-danger");
+        if (currentLength > maxLength * 0.8) {
+            $counter.addClass("text-warning");
+        }
+        if (currentLength >= maxLength) {
+            $counter.addClass("text-danger").removeClass("text-warning");
+        }
+    }
+
+    // Update type selection counter
+    function updateTypeCounter() {
+        const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
+        const totalCount = $("input[name='SelectedTypeIds']").length;
+        
+        if (totalCount === 0) return;
+        
+        const nameText = $('#Name').val() || '';
+        const commentText = $('#Comment').val() || '';
+        const combinedText = nameText + ' ' + commentText;
+        const format = getAppropriateNumberFormat(combinedText);
+        
+        const formattedSelected = format === 'arabic' ? toArabicDigits(selectedCount.toString()) : selectedCount.toString();
+        const formattedTotal = format === 'arabic' ? toArabicDigits(totalCount.toString()) : totalCount.toString();
+
+        let $typeControls = $('#typeControls');
+        if ($typeControls.length === 0) {
+            const $firstTypeLabel = $("label[for*='type_']").first().parent().parent();
+            if ($firstTypeLabel.length > 0) {
+                $firstTypeLabel.before(`
+                    <div class="row mb-3" id="typeControls">
+                        <div class="col-12">
+                            <div class="btn-group" role="group">
+                                <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllTypes">
+                                    <i class="fas fa-check-double me-1"></i>تحديد الكل (<span class="type-counter">${formattedSelected}/${formattedTotal}</span>)
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllTypes">
+                                    <i class="fas fa-times me-1"></i>إلغاء الكل
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            }
+        } else {
+            $typeControls.find('.type-counter').text(`${formattedSelected}/${formattedTotal}`);
+        }
+    }
+
+    // Update validation error counter
+    function updateValidationCounter() {
+        const $validationSummary = $('#validationSummary');
+        if ($validationSummary.length === 0) return;
+        
+        const errorCount = $validationSummary.find('li').length;
+        const nameText = $('#Name').val() || '';
+        const format = getAppropriateNumberFormat(nameText);
+        const formattedCount = format === 'arabic' ? toArabicDigits(errorCount.toString()) : errorCount.toString();
+        
+        $validationSummary.find('h6').html(`<i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء`);
+    }
+
+    // Setup form submission with proper handling
+    function setupModalFormSubmission() {
+        // Remove any existing handlers to prevent duplicates
+        $('#modalBody').off('submit', '#stakeholderForm');
+        
+        // Add new handler
+        $('#modalBody').on('submit', '#stakeholderForm', function(e) {
+            e.preventDefault();
+            
+            const form = $(this);
+            const formData = new FormData(this);
+            
+            // Show loading state
+            const $submitBtn = form.find('button[type="submit"]');
+            const originalText = $submitBtn.html();
+            $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+            
+            // Get action URL and method
+            const actionUrl = form.attr('action');
+            const method = form.attr('method') || 'POST';
+
+                               $.ajax({
+                        url: actionUrl,
+                        type: method,
+                        data: formData,
+                        processData: false,
+                        contentType: false,
+                        success: function(response) {
+                            $submitBtn.prop('disabled', false).html(originalText);
+
+                            if (response.success) {
+                                $('#stakeholderModal').modal('hide');
+                                showNotification(response.message || 'تم الحفظ بنجاح', 'success');
+
+                                // Reload the stakeholders table
+                                if (typeof loadStakeholders === 'function') {
+                                    loadStakeholders();
+                                } else {
+                                    location.reload();
+                                }
                             } else {
-                                $('#emptyState').hide();
-                                $('#stakeholdersContainer').show();
+                                        showNotification(response.message || 'تم الحفظ بنجاح', 'success');
+
+                                        // Reload the stakeholders table
+                                        if (typeof loadStakeholders === 'function') {
+                                            loadStakeholders();
+                                        } else {
+                                            location.reload();
+                                        }
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            $submitBtn.prop('disabled', false).html(originalText);
+                            console.error('Form submission error:', { xhr, status, error });
+
+                            let errorMessage = 'حدث خطأ أثناء حفظ البيانات';
+                            if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
                             }
 
-                            console.log('Loaded stakeholders via API:', {
-                                count: stakeholdersData.length,
-                                time: CURRENT_TIME,
-                                user: CURRENT_USER
-                            });
-                        } else {
-                            showNotification('حدث خطأ أثناء تحميل البيانات', 'error');
-                            $('#emptyState').show();
-                            $('#stakeholdersContainer').hide();
+                            // Check if the response contains a success flag despite being in the error callback
+                            if (xhr.responseJSON && xhr.responseJSON.success) {
+                                $('#stakeholderModal').modal('hide');
+                                showNotification(xhr.responseJSON.message || 'تم الحفظ بنجاح', 'success');
+
+                                // Reload the stakeholders table
+                                if (typeof loadStakeholders === 'function') {
+                                    loadStakeholders();
+                                } else {
+                                    location.reload();
+                                }
+                            } else {
+                                showNotification(errorMessage, 'error');
+                            }
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        hideLoading();
-                        showNotification('حدث خطأ أثناء تحميل بيانات الجهات', 'error');
-                        console.error('Load error:', { xhr, status, error, time: CURRENT_TIME });
+                    });
+        });
+    }
+
+    // Display validation errors
+    function displayValidationErrors(errors) {
+        // Remove existing validation summary
+        $('#validationSummary').remove();
+        
+        if (Object.keys(errors).length === 0) return;
+        
+        const nameText = $('#Name').val() || '';
+        const format = getAppropriateNumberFormat(nameText);
+        const errorCount = Object.keys(errors).length;
+        const formattedCount = format === 'arabic' ? toArabicDigits(errorCount.toString()) : errorCount.toString();
+        
+        let errorHtml = '';
+        Object.keys(errors).forEach(key => {
+            if (Array.isArray(errors[key])) {
+                errors[key].forEach(error => {
+                    errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${error}</li>`;
+                });
+            }
+        });
+        
+        const validationSummary = `
+            <div class="alert alert-danger mb-4" id="validationSummary">
+                <h6><i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء</h6>
+                <ul class="mb-0">${errorHtml}</ul>
+            </div>
+        `;
+        
+        $('#modalBody form').prepend(validationSummary);
+    }
+
+    // ==================== MODAL EVENT HANDLERS ====================
+    
+    // Handle modal show events
+    $('#stakeholderModal').on('shown.bs.modal', function() {
+        setTimeout(() => {
+            initializeModalContent();
+            $('#Name').focus();
+        }, 100);
+    });
+    
+    // Handle modal hide events
+    $('#stakeholderModal').on('hidden.bs.modal', function() {
+        $('#modalBody').empty();
+    });
+
+    // Handle dynamic type selection events
+    $(document).on('change', "input[name='SelectedTypeIds']", function() {
+        updateTypeCounter();
+        updatePrimaryTypeOptions();
+    });
+
+    // Handle select all types button
+    $(document).on('click', '#selectAllTypes', function() {
+        const totalCount = $("input[name='SelectedTypeIds']").length;
+        const nameText = $('#Name').val() || '';
+        const format = getAppropriateNumberFormat(nameText);
+        const formattedTotal = format === 'arabic' ? toArabicDigits(totalCount.toString()) : totalCount.toString();
+
+        showArabicConfirm(
+            'تحديد الكل',
+            `هل تريد تحديد جميع الأنواع (${formattedTotal} نوع)؟`,
+            'تحديد الكل',
+            'إلغاء'
+        ).then((result) => {
+            if (result.isConfirmed) {
+                $("input[name='SelectedTypeIds']").prop("checked", true);
+                updateTypeCounter();
+                updatePrimaryTypeOptions();
+            }
+        });
+    });
+
+    // Handle deselect all types button
+    $(document).on('click', '#deselectAllTypes', function() {
+        const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
+        if (selectedCount === 0) return;
+
+        const nameText = $('#Name').val() || '';
+        const format = getAppropriateNumberFormat(nameText);
+        const formattedCount = format === 'arabic' ? toArabicDigits(selectedCount.toString()) : selectedCount.toString();
+
+        showArabicConfirm(
+            'إلغاء التحديد',
+            `هل تريد إلغاء تحديد ${formattedCount} نوع؟`,
+            'إلغاء التحديد',
+            'تراجع'
+        ).then((result) => {
+            if (result.isConfirmed) {
+                $("input[name='SelectedTypeIds']").prop("checked", false);
+                $("#PrimaryTypeId").val("");
+                updateTypeCounter();
+                updatePrimaryTypeOptions();
+            }
+        });
+    });
+
+    // Update primary type options based on selected types
+    function updatePrimaryTypeOptions() {
+        const selectedTypes = $("input[name='SelectedTypeIds']:checked").map(function() {
+            return $(this).val();
+        }).get();
+
+        $("#PrimaryTypeId option").each(function() {
+            const value = $(this).val();
+            if (value && !selectedTypes.includes(value)) {
+                $(this).prop("disabled", true);
+                if ($(this).prop("selected")) {
+                    $(this).prop("selected", false);
+                }
+            } else {
+                $(this).prop("disabled", false);
+            }
+        });
+    }
+
+    // Enhanced popup functions with context awareness
+    function showArabicPopup(title, message, type = 'info') {
+        const format = getAppropriateNumberFormat(message.toString());
+        const formattedTitle = format === 'arabic' ? toArabicDigits(title.toString()) : title.toString();
+        const formattedMessage = format === 'arabic' ? toArabicDigits(message.toString()) : message.toString();
+
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                title: formattedTitle,
+                text: formattedMessage,
+                icon: type,
+                confirmButtonText: 'موافق',
+                confirmButtonColor: '#3085d6',
+                customClass: {
+                    popup: 'arabic-popup'
+                }
+            });
+        } else {
+            alert(`${formattedTitle}: ${formattedMessage}`);
+        }
+    }
+
+    function showArabicConfirm(title, message, confirmText = 'نعم', cancelText = 'لا') {
+        const format = getAppropriateNumberFormat(message.toString());
+        const formattedTitle = format === 'arabic' ? toArabicDigits(title.toString()) : title.toString();
+        const formattedMessage = format === 'arabic' ? toArabicDigits(message.toString()) : message.toString();
+
+        if (typeof Swal !== 'undefined') {
+            return Swal.fire({
+                title: formattedTitle,
+                text: formattedMessage,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: confirmText,
+                cancelButtonText: cancelText,
+                customClass: {
+                    popup: 'arabic-popup'
+                }
+            });
+        } else {
+            return Promise.resolve({ isConfirmed: confirm(`${formattedTitle}: ${formattedMessage}`) });
+        }
+    }
+
+    // ==================== EXISTING INDEX PAGE FUNCTIONALITY ====================
+    
+    // Keep all your existing index page functions here...
+    
+    // Convert English digits to Arabic digits for search
+    function toArabicDigits_search(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    }
+
+    // Convert Arabic digits to English digits for search
+    function toLatinDigits_search(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+    }
+
+    // Check if the string contains Arabic characters for search
+    function containsArabic_search(str) {
+        return /[\u0600-\u06FF]/.test(str);
+    }
+
+    function shouldUseArabicNumbers_search(str) {
+        if (!str || str.trim().length === 0) {
+            return true; // Default Arabic when empty
+        }
+
+        // If contains Arabic letters → use Arabic
+        if (containsArabic_search(str)) {
+            return true;
+        }
+
+        // If contains only numbers → default Arabic
+        if (/^[0-9٠-٩]+$/.test(str)) {
+            return true;
+        }
+
+        // Otherwise English
+        return false;
+    }
+
+    // Apply number conversion based on the input content for search
+    function applyNumberConversion_search($input) {
+        let val = $input.val();
+        let useArabicNumbers = shouldUseArabicNumbers_search(val || "");
+        let newVal = useArabicNumbers ? toArabicDigits_search(val || "") : toLatinDigits_search(val || "");
+
+        if (newVal !== val) {
+            let cursorPos = $input[0].selectionStart || 0;
+            $input.val(newVal);
+            try {
+                $input[0].setSelectionRange(cursorPos, cursorPos);
+            } catch (ex) {
+                $input.focus();
+            }
+        }
+    }
+
+    // Enhanced search input event handler with Arabic support - excluding phone field from conversion
+    $(document).on("input keyup paste", "#searchByName, #searchByType, #searchByFinancial, #searchByComment", function(e) {
+        const $input = $(this);
+        applyNumberConversion_search($input);
+    });
+
+    // Phone field gets special treatment - no conversion
+    $(document).on("input keyup paste", "#searchByPhone", function(e) {
+        // No conversion for phone numbers - keep as entered
+    });
+
+    // Direct number key conversion for immediate Arabic conversion - excluding phone field
+    $(document).on("keypress", "#searchByName, #searchByType, #searchByFinancial, #searchByComment", function(e) {
+        // Convert English digits to Arabic immediately
+        if (e.which >= 48 && e.which <= 57) { // 0-9
+            e.preventDefault();
+            let digit = String.fromCharCode(e.which);
+            let arabicDigit = toArabicDigits_search(digit);
+
+            let input = e.target;
+            let cursorPos = input.selectionStart || 0;
+            let currentValue = input.value;
+
+            let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+            input.value = newValue;
+
+            input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+            // Trigger search
+            $(input).trigger('input');
+        }
+    });
+
+    // Initialize components
+    const toastElement = document.getElementById('notificationToast');
+    const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
+
+    let stakeholdersData = [];
+    let currentDetailsId = null;
+
+    // Enhanced notification function
+    function showNotification(message, type = 'success') {
+        const icons = {
+            success: 'fa-check-circle',
+            error: 'fa-exclamation-circle',
+            warning: 'fa-exclamation-triangle',
+            info: 'fa-info-circle'
+        };
+
+        const colors = {
+            success: 'bg-success',
+            error: 'bg-danger',
+            warning: 'bg-warning',
+            info: 'bg-info'
+        };
+
+        $('#toastIcon').removeClass().addClass(`fas ${icons[type]} me-2`);
+        $('#toastMessage').text(message);
+        $('#notificationToast').removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
+            .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
+
+        toast.show();
+    }
+
+    // Modal button handlers
+    $("#btnAddStakeholder").click(function () {
+        $.get("/StakeholdersInfo/Create", function (res) {
+            $("#modalBody").html(res);
+            $("#stakeholderModal").modal("show");
+        }).fail(function() {
+            showNotification('حدث خطأ أثناء تحميل نموذج الإضافة', 'error');
+        });
+    });
+
+    // Handle edit button clicks
+    $(document).on("click", ".btnEdit", function () {
+        var id = $(this).data("id");
+        $.get("/StakeholdersInfo/Edit/" + id, function (res) {
+            $("#modalBody").html(res);
+            $("#stakeholderModal").modal("show");
+        }).fail(function() {
+            showNotification('حدث خطأ أثناء تحميل نموذج التعديل', 'error');
+        });
+    });
+
+    // Loading functions
+    function showLoading() {
+        $('#loadingOverlay').removeClass('d-none');
+    }
+
+    function hideLoading() {
+        $('#loadingOverlay').addClass('d-none');
+    }
+
+    // Enhanced load stakeholders data via API with Arabic numbers
+    function loadStakeholders() {
+        showLoading();
+
+        $.ajax({
+            url: '/api/StakeholdersInfo',
+            method: 'GET',
+            success: function(response) {
+                hideLoading();
+
+                if (response.success) {
+                    stakeholdersData = response.data;
+                    renderStakeholders(stakeholdersData);
+                    updateCounts(stakeholdersData.length);
+
+                    if (stakeholdersData.length === 0) {
                         $('#emptyState').show();
                         $('#stakeholdersContainer').hide();
+                    } else {
+                        $('#emptyState').hide();
+                        $('#stakeholdersContainer').show();
                     }
-                });
+
+                    console.log('Loaded stakeholders via API:', {
+                        count: stakeholdersData.length,
+                        time: CURRENT_TIME,
+                        user: CURRENT_USER
+                    });
+                } else {
+                    showNotification('حدث خطأ أثناء تحميل البيانات', 'error');
+                    $('#emptyState').show();
+                    $('#stakeholdersContainer').hide();
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoading();
+                showNotification('حدث خطأ أثناء تحميل بيانات الجهات', 'error');
+                console.error('Load error:', { xhr, status, error, time: CURRENT_TIME });
+                $('#emptyState').show();
+                $('#stakeholdersContainer').hide();
+            }
+        });
+    }
+
+    // Load stakeholder details via API
+    function loadStakeholderDetails(id) {
+        showLoading();
+
+        $.ajax({
+            url: `/api/StakeholdersInfo/${id}`,
+            method: 'GET',
+            success: function(response) {
+                hideLoading();
+
+                if (response.success) {
+                    renderDetailsModal(response.data);
+                    currentDetailsId = id;
+                    detailsModal.show();
+
+                    console.log('Loaded stakeholder details via API:', {
+                        id: id,
+                        name: response.data.name,
+                        time: CURRENT_TIME,
+                        user: CURRENT_USER
+                    });
+                } else {
+                    showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                hideLoading();
+                showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
+                console.error('Details load error:', { xhr, status, error, time: CURRENT_TIME });
+            }
+        });
+    }
+
+           // Enhanced render details modal content with Arabic numbers
+              function renderDetailsModal(stakeholder) {
+            const arabicTypesCount = toArabicDigits_search(
+                (stakeholder.types ? stakeholder.types.length : 0).toString()
+            );
+
+            // ✅ Build types
+            const typesHtml = stakeholder.types && stakeholder.types.length > 0
+                ? stakeholder.types.map(type =>
+                    `<div class="col-auto">
+                        <span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"} fs-6 py-2 px-3">
+                            <i class="fas fa-tag me-1"></i>${type.typeName}
+                            ${type.isPrimary ? '<i class="fas fa-star ms-1" title="النوع الرئيسي"></i>' : ''}
+                        </span>
+                    </div>`
+                ).join('')
+                : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا توجد أنواع مرتبطة</span></div>';
+
+            // ✅ Primary type + financial transaction
+            const primaryType = stakeholder.types ? stakeholder.types.find(t => t.isPrimary) : null;
+            const financialTypeHtml = primaryType && primaryType.financialTransactionType
+                ? `<div class="alert alert-light border-start border-4 border-warning">
+                    <h6 class="alert-heading mb-2">
+                        <i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية
+                    </h6>
+                    <p class="mb-0">${primaryType.financialTransactionType}</p>
+                   </div>`
+                : '<div class="alert alert-light text-muted text-center"><i class="fas fa-comment-slash me-2"></i>لا يوجد بيان أو تعليقات</div>';
+
+            // ✅ Contacts (string → list)
+            let contactHtml = "";
+            if (stakeholder.contactNumbers && stakeholder.contactNumbers.trim() !== "") {
+                let numbers = stakeholder.contactNumbers
+                    .split(/[,;\n]/) // بيفصل على فاصلة أو سطر جديد أو ;
+                    .map(num => num.trim())
+                    .filter(num => num !== "");
+
+                if (numbers.length > 0) {
+                    contactHtml = `
+                        <div>
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fas fa-phone text-success me-2"></i>أرقام التواصل
+                            </h6>
+                            ${numbers.map(num => `
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-phone-alt text-success me-2"></i>
+                                    <span dir="ltr">${num}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                } else {
+                    contactHtml = `<span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا يوجد أرقام تواصل</span>`;
+                }
+            } else {
+                contactHtml = `<span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا يوجد أرقام تواصل</span>`;
             }
 
-            // Load stakeholder details via API
-            function loadStakeholderDetails(id) {
-                showLoading();
-
-                $.ajax({
-                    url: `/api/StakeholdersInfo/${id}`,
-                    method: 'GET',
-                    success: function(response) {
-                        hideLoading();
-
-                        if (response.success) {
-                            renderDetailsModal(response.data);
-                            currentDetailsId = id;
-                            detailsModal.show();
-
-                            console.log('Loaded stakeholder details via API:', {
-                                id: id,
-                                name: response.data.name,
-                                time: CURRENT_TIME,
-                                user: CURRENT_USER
-                            });
-                        } else {
-                            showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        hideLoading();
-                        showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
-                        console.error('Details load error:', { xhr, status, error, time: CURRENT_TIME });
-                    }
-                });
-            }
-
-            // Enhanced render details modal content with Arabic numbers
-            function renderDetailsModal(stakeholder) {
-                const arabicTypesCount = toArabicDigits((stakeholder.types ? stakeholder.types.length : 0).toString());
-
-                const typesHtml = stakeholder.types && stakeholder.types.length > 0
-                    ? stakeholder.types.map(type =>
-                        `<div class="col-auto">
-                            <span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"} fs-6 py-2 px-3">
-                                <i class="fas fa-tag me-1"></i>${type.typeName}
-                                ${type.isPrimary ? '<i class="fas fa-star ms-1" title="النوع الرئيسي"></i>' : ''}
-                            </span>
-                        </div>`
-                      ).join('')
-                    : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا توجد أنواع مرتبطة</span></div>';
-
-                const primaryType = stakeholder.types ? stakeholder.types.find(t => t.isPrimary) : null;
-                const financialTypeHtml = primaryType && primaryType.financialTransactionType
-                    ? `<div class="alert alert-light border-start border-4 border-warning">
-                        <h6 class="alert-heading mb-2">
-                            <i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية
-                        </h6>
-                        <p class="mb-0">${primaryType.financialTransactionType}</p>
-                       </div>`
-                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-info-circle me-2"></i>لا يوجد نوع معاملة مالية محدد</div>';
-
-                const contactHtml = stakeholder.contactNumbers
-                    ? `<div class="alert alert-light border-start border-4 border-info">
-                        <h6 class="alert-heading mb-2">
-                            <i class="fas fa-phone text-info me-2"></i>بيانات الاتصال
-                        </h6>
-                        <p class="mb-0" dir="ltr">${stakeholder.contactNumbers}</p>
-                       </div>`
-                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-phone-slash me-2"></i>لا توجد بيانات اتصال</div>';
-
-                const commentHtml = stakeholder.comment
-                    ? `<div class="alert alert-light border-start border-4 border-secondary">
-                        <h6 class="alert-heading mb-2">
-                            <i class="fas fa-comment-alt text-secondary me-2"></i>البيان والتعليقات
+            // ✅ Comment
+            let commentHtml = "";
+            if (stakeholder.comment && stakeholder.comment.trim() !== "") {
+                commentHtml = `
+                    <div>
+                        <h6 class="fw-bold text-dark mb-3">
+                            <i class="fas fa-comment text-primary me-2"></i>ملاحظات
                         </h6>
                         <p class="mb-0">${stakeholder.comment}</p>
-                       </div>`
-                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-comment-slash me-2"></i>لا يوجد بيان أو تعليقات</div>';
+                    </div>
+                `;
+            } else {
+                commentHtml = `<span class="text-muted fst-italic"><i class="fas fa-comment-slash me-2"></i>لا توجد ملاحظات</span>`;
+            }
 
-                const detailsContent = `
-                    <div class="p-4">
-                        <!-- Header Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <div class="d-flex align-items-center p-3 bg-light rounded">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="icon-circle bg-info text-white">
-                                            <i class="fas fa-building fa-2x"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <small class="text-muted">
-                                                    <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
-                                                    الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
-                                                </small>
-                                            </div>
-                                        </div>
+            // ✅ Final content
+            const detailsContent = `
+                <div class="p-4">
+                    <!-- Header Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="icon-circle bg-info text-white">
+                                        <i class="fas fa-building fa-2x"></i>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-
-                        <!-- Types Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <h6 class="fw-bold text-dark mb-3">
-                                    <i class="fas fa-tags text-info me-2"></i>أنواع الجهة
-                                </h6>
-                                <div class="row g-2">
-                                    ${typesHtml}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Financial Transaction Type Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                ${financialTypeHtml}
-                            </div>
-                        </div>
-
-                        <!-- Contact Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                ${contactHtml}
-                            </div>
-                        </div>
-
-                        <!-- Comment Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                ${commentHtml}
-                            </div>
-                        </div>
-
-                        <!-- Meta Information -->
-                        <div class="row mt-4 pt-3 border-top">
-                            <div class="col-12">
-                                <div class="row text-center">
-                                    <div class="col-md-4">
-                                        <div class="p-2">
-                                            <div class="text-primary fs-5 fw-bold">${arabicTypesCount}</div>
-                                            <small class="text-muted">أنواع مرتبطة</small>
+                                <div class="flex-grow-1">
+                                    <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <small class="text-muted">
+                                                <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
+                                                الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
+                                            </small>
                                         </div>
                                     </div>
-
                                 </div>
                             </div>
                         </div>
                     </div>
+
+                    <!-- Types Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <h6 class="fw-bold text-dark mb-3">
+                                <i class="fas fa-tags text-info me-2"></i>أنواع الجهة
+                            </h6>
+                            <div class="row g-2">
+                                ${typesHtml}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Financial Transaction Type Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            ${financialTypeHtml}
+                        </div>
+                    </div>
+
+                    <!-- Contact Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            ${contactHtml}
+                        </div>
+                    </div>
+
+                    <!-- Comment Section -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            ${commentHtml}
+                        </div>
+                    </div>
+
+                    <!-- Meta Information -->
+                    <div class="row mt-4 pt-3 border-top">
+                        <div class="col-12">
+                            <div class="row text-center">
+                                <div class="col-md-4">
+                                    <div class="p-2">
+                                        <div class="text-primary fs-5 fw-bold">${arabicTypesCount}</div>
+                                        <small class="text-muted">أنواع مرتبطة</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#detailsContent').html(detailsContent);
+        }
+
+
+            function renderStakeholders(data) {
+            const tbody = $('#stakeholdersTableBody');
+            tbody.empty();
+
+            if (!data || data.length === 0) return;
+
+            data.forEach(stakeholder => {
+                const typesHtml = (stakeholder.types?.length > 0)
+                    ? stakeholder.types.map(type =>
+                        `<span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"} rounded-pill">
+                            ${type.typeName}
+                            ${type.isPrimary ? '<i class="fas fa-star ms-1 small" title="النوع الرئيسي"></i>' : ''}
+                        </span>`
+                      ).join(' ')
+                    : '<span class="text-muted fst-italic">لا يوجد نوع</span>';
+
+                const statusHtml = `
+                    <div class="form-check form-switch">
+                        <input type="checkbox" class="form-check-input status-toggle"
+                               ${stakeholder.status ? "checked" : ""}
+                               data-id="${stakeholder.id}"
+                               data-name="${stakeholder.name}">
+                        <label class="form-check-label">${stakeholder.status ? "نشط" : "غير نشط"}</label>
+                    </div>
                 `;
 
-                $('#detailsContent').html(detailsContent);
-            }
+                const primaryType = stakeholder.types?.find(t => t.isPrimary);
+                const financialType = primaryType?.financialTransactionType || '<span class="text-muted">-</span>';
 
-            // Render stakeholders table
-            function renderStakeholders(data) {
-                const tbody = $('#stakeholdersTableBody');
-                tbody.empty();
-
-                if (!data || data.length === 0) {
-                    return;
-                }
-
-                data.forEach(function(stakeholder) {
-                    const typesHtml = stakeholder.types && stakeholder.types.length > 0
-                        ? stakeholder.types.map(type =>
-                            `<span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"}">
-                                ${type.typeName}
-                                ${type.isPrimary ? '<i class="fas fa-star ms-1 small" title="النوع الرئيسي"></i>' : ''}
-                            </span>`
-                          ).join(' ')
-                        : '<span class="text-muted fst-italic">لا يوجد نوع</span>';
-
-                    const statusHtml = `
-                        <div class="form-check form-switch">
-                            <input type="checkbox" class="form-check-input status-toggle"
-                                   ${stakeholder.status ? "checked" : ""}
-                                   data-id="${stakeholder.id}"
-                                   data-name="${stakeholder.name}">
-                            <label class="form-check-label">
-                                ${stakeholder.status ? "نشط" : "غير نشط"}
-                            </label>
-                        </div>
-                    `;
-
-                    const primaryType = stakeholder.types ? stakeholder.types.find(t => t.isPrimary) : null;
-                    const financialType = primaryType && primaryType.financialTransactionType
-                        ? primaryType.financialTransactionType
-                        : '<span class="text-muted">-</span>';
-
-                    const phoneHtml = stakeholder.contactNumbers
-                        ? `<div class="d-flex align-items-center gap-2">
-                            <i class="fas fa-phone text-primary"></i>
-                            <span dir="ltr" class="small">${stakeholder.contactNumbers}</span>
-                           </div>`
-                        : '<span class="text-muted">-</span>';
-
-                    const commentHtml = stakeholder.comment
-                        ? `<span title="${stakeholder.comment}" class="comment-text">
-                            ${stakeholder.comment.length > 60 ? stakeholder.comment.substring(0, 57) + '...' : stakeholder.comment}
-                           </span>`
-                        : '<span class="text-muted">-</span>';
-
-                    const row = `
-                        <tr data-id="${stakeholder.id}" class="stakeholder-row">
-                            <td class="stakeholder-name">
-                                <div class="d-flex align-items-center">
-                                    <div class="stakeholder-icon me-2">
-                                        <i class="fas fa-building text-success"></i>
-                                    </div>
-                                    <div>
-                                        <span class="fw-semibold">${stakeholder.name}</span>
-                                        <br>
-
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="stakeholder-type">
-                                <div class="d-flex flex-wrap gap-1">
-                                    ${typesHtml}
-                                </div>
-                            </td>
-                            <td class="stakeholder-status">${statusHtml}</td>
-                            <td class="stakeholder-financial">${financialType}</td>
-                            <td class="stakeholder-phone">${phoneHtml}</td>
-                            <td class="stakeholder-comment">${commentHtml}</td>
-                            <td class="text-center">
-                                <div class="btn-group" role="group">
-                                    <a href="/StakeholdersInfo/Edit/${stakeholder.id}"
-                                       class="btn btn-sm btn-outline-info"
-                                       title="تعديل ${stakeholder.name}">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-outline-secondary view-details"
-                                            data-id="${stakeholder.id}"
-                                            title="تفاصيل ${stakeholder.name}">
-                                        <i class="fas fa-info-circle"></i>
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-stakeholder"
-                                            data-id="${stakeholder.id}"
-                                            data-name="${stakeholder.name}"
-                                            title="حذف ${stakeholder.name}">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
-                    `;
-                    tbody.append(row);
-                });
-            }
-
-            // Enhanced search functionality with Arabic number support
-            function performSearch() {
-                const nameSearch = $('#searchByName').val().toLowerCase().trim();
-                const nameSearchLatin = toLatinDigits(nameSearch);
-                const nameSearchArabic = toArabicDigits(nameSearch);
-
-                const typeSearch = $('#searchByType').val().toLowerCase().trim();
-                const typeSearchLatin = toLatinDigits(typeSearch);
-                const typeSearchArabic = toArabicDigits(typeSearch);
-
-                const statusSearch = $('#searchByStatus').val();
-
-                const financialSearch = $('#searchByFinancial').val().toLowerCase().trim();
-                const financialSearchLatin = toLatinDigits(financialSearch);
-                const financialSearchArabic = toArabicDigits(financialSearch);
-
-                const phoneSearch = $('#searchByPhone').val().toLowerCase().trim();
-                // Note: Phone search does not convert numbers - searches as entered
-
-                const commentSearch = $('#searchByComment').val().toLowerCase().trim();
-                const commentSearchLatin = toLatinDigits(commentSearch);
-                const commentSearchArabic = toArabicDigits(commentSearch);
-
-                let visibleCount = 0;
-
-                $('.stakeholder-row').each(function() {
-                    const row = $(this);
-                    const name = row.find('.stakeholder-name').text().toLowerCase();
-                    const type = row.find('.stakeholder-type').text().toLowerCase();
-                    const status = row.find('.status-toggle').prop('checked') ? 'active' : 'inactive';
-                    const financial = row.find('.stakeholder-financial').text().toLowerCase();
-                    const phone = row.find('.stakeholder-phone').text().toLowerCase();
-                    const comment = row.find('.stakeholder-comment').text().toLowerCase();
-
-                    // Enhanced matching with Arabic/English number support
-                    const nameMatch = !nameSearch ||
-                        name.includes(nameSearch) ||
-                        name.includes(nameSearchLatin) ||
-                        name.includes(nameSearchArabic);
-
-                    const typeMatch = !typeSearch ||
-                        type.includes(typeSearch) ||
-                        type.includes(typeSearchLatin) ||
-                        type.includes(typeSearchArabic);
-
-                    const statusMatch = !statusSearch || status === statusSearch;
-
-                    const financialMatch = !financialSearch ||
-                        financial.includes(financialSearch) ||
-                        financial.includes(financialSearchLatin) ||
-                        financial.includes(financialSearchArabic);
-
-                    // Phone search - no number conversion, search as entered
-                    const phoneMatch = !phoneSearch || phone.includes(phoneSearch);
-
-                    const commentMatch = !commentSearch ||
-                        comment.includes(commentSearch) ||
-                        comment.includes(commentSearchLatin) ||
-                        comment.includes(commentSearchArabic);
-
-                    const shouldShow = nameMatch && typeMatch && statusMatch && financialMatch && phoneMatch && commentMatch;
-                    row.toggle(shouldShow);
-
-                    if (shouldShow) visibleCount++;
-                });
-
-                updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch);
-            }
-
-            // Enhanced updateSearchInfo with Arabic numbers
-            function updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch) {
-                $('#visibleCount').text(toArabicDigits(visibleCount.toString()));
-                $('#badgeCount').text(toArabicDigits(visibleCount.toString()));
-
-                // Show/hide clear buttons
-                $('#clearNameSearch').toggle(nameSearch.length > 0);
-                $('#clearTypeSearch').toggle(typeSearch.length > 0);
-                $('#clearFinancialSearch').toggle(financialSearch.length > 0);
-                $('#clearPhoneSearch').toggle(phoneSearch.length > 0);
-                $('#clearCommentSearch').toggle(commentSearch.length > 0);
-
-                const hasAnySearch = nameSearch.length > 0 || typeSearch.length > 0 || statusSearch ||
-                                   financialSearch.length > 0 || phoneSearch.length > 0 || commentSearch.length > 0;
-                $('#clearAllSearch').toggle(hasAnySearch);
-
-                // Keep table always visible - no modal overlays
-                $('#stakeholdersContainer .section-card').show();
-
-                // Add visual feedback to search inputs
-                $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
-                $('#searchByType').toggleClass('border-primary', typeSearch.length > 0);
-                $('#searchByStatus').toggleClass('border-primary', statusSearch);
-                $('#searchByFinancial').toggleClass('border-primary', financialSearch.length > 0);
-                $('#searchByPhone').toggleClass('border-primary', phoneSearch.length > 0);
-                $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
-            }
-
-            // Enhanced updateCounts with Arabic numbers
-            function updateCounts(count) {
-                const arabicCount = toArabicDigits(count.toString());
-                $('#totalCount').text(arabicCount);
-                $('#visibleCount').text(arabicCount);
-                $('#badgeCount').text(arabicCount);
-            }
-
-            // Search events
-            let searchTimeout;
-            $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').on('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(performSearch, 200);
-            });
-
-            $('#searchByStatus').on('change', function() {
-                performSearch();
-            });
-
-            // Clear search buttons
-            $('#clearNameSearch').click(function() {
-                $('#searchByName').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByName').focus();
-            });
-
-            $('#clearTypeSearch').click(function() {
-                $('#searchByType').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByType').focus();
-            });
-
-            $('#clearFinancialSearch').click(function() {
-                $('#searchByFinancial').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByFinancial').focus();
-            });
-
-            $('#clearPhoneSearch').click(function() {
-                $('#searchByPhone').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByPhone').focus();
-            });
-
-            $('#clearCommentSearch').click(function() {
-                $('#searchByComment').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByComment').focus();
-            });
-
-            $('#clearAllSearch, #resetSearch').click(function() {
-                $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
-                $('#searchByStatus').val('').removeClass('border-primary');
-                performSearch();
-            });
-
-            // View details handler
-            $(document).on('click', '.view-details', function() {
-                const id = $(this).data('id');
-                loadStakeholderDetails(id);
-            });
-
-            // Edit from details modal
-            $('#editFromDetails').click(function() {
-                if (currentDetailsId) {
-                    detailsModal.hide();
-                    window.location.href = `/StakeholdersInfo/Edit/${currentDetailsId}`;
-                }
-            });
-
-            // Delete handlers
-            $(document).on('click', '.delete-stakeholder', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
-
-                $('#deleteStakeholderId').val(id);
-                $('#deleteStakeholderName').text(name);
-                deleteModal.show();
-            });
-
-            // Delete stakeholder via API
-            $('#confirmDelete').click(function() {
-                const id = $('#deleteStakeholderId').val();
-                const btn = $(this);
-                const originalText = btn.html();
-
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
-
-                $.ajax({
-                    url: `/StakeholdersInfo/${id}`,
-                    method: 'DELETE',
-                    success: function(response) {
-                        btn.prop('disabled', false).html(originalText);
-
-                        if (response.success) {
-                            showNotification(response.message, 'success');
-                            deleteModal.hide();
-
-                            // Remove from UI and update data
-                            $(`tr[data-id="${id}"]`).fadeOut(300, function() {
-                                $(this).remove();
-                                stakeholdersData = stakeholdersData.filter(s => s.id != id);
-                                updateCounts(stakeholdersData.length);
-
-                                if (stakeholdersData.length === 0) {
-                                    $('#emptyState').show();
-                                    $('#stakeholdersContainer').hide();
-                                }
-                            });
-                        } else {
-                            showNotification(response.message || 'حدث خطأ أثناء الحذف', 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        btn.prop('disabled', false).html(originalText);
-                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة';
-                        showNotification(errorMessage, 'error');
-                        console.error('Delete error:', { xhr, status, error, time: CURRENT_TIME });
+                // معالجة أرقام الهاتف
+                let phoneHtml = '<span class="text-muted">-</span>';
+                if (stakeholder.contactNumbers) {
+                    const phones = stakeholder.contactNumbers.split(/[;,]/).map(p => p.trim()).filter(p => p);
+                    if (phones.length > 0) {
+                        phoneHtml = phones.map(p => `
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="fas fa-phone text-primary"></i>
+                                <span dir="ltr" class="small">${p}</span>
+                            </div>
+                        `).join('');
                     }
-                });
-            });
-
-            // Status toggle via API
-            $(document).on('change', '.status-toggle', function() {
-                const checkbox = $(this);
-                const id = checkbox.data('id');
-                const name = checkbox.data('name');
-                const newStatus = checkbox.prop('checked');
-
-                $.ajax({
-                    url: `/api/StakeholdersInfo/${id}/status`,
-                    method: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ status: newStatus }),
-                    success: function(response) {
-                        if (response.success) {
-                            // Update all instances of this stakeholder's status
-                            $(`.status-toggle[data-id="${id}"]`)
-                                .prop('checked', newStatus)
-                                .closest('.form-switch')
-                                .find('.form-check-label')
-                                .text(newStatus ? 'نشط' : 'غير نشط');
-
-                            // Update data
-                            const stakeholder = stakeholdersData.find(s => s.id == id);
-                            if (stakeholder) {
-                                stakeholder.status = newStatus;
-                            }
-
-                            showNotification(response.message, 'success');
-                        } else {
-                            checkbox.prop('checked', !newStatus);
-                            showNotification(response.message || 'حدث خطأ أثناء تحديث الحالة', 'error');
-                        }
-                    },
-                    error: function(xhr) {
-                        checkbox.prop('checked', !newStatus);
-                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة';
-                        showNotification(errorMessage, 'error');
-                    }
-                });
-            });
-
-            // Refresh data
-            $('#refreshData').click(function() {
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
-
-                loadStakeholders();
-
-                setTimeout(() => {
-                    btn.prop('disabled', false).html(originalText);
-                }, 1000);
-            });
-
-            // Auto-dismiss success alerts after 5 seconds
-            setTimeout(function() {
-                $('.alert-success, .alert-danger').fadeOut(350);
-            }, 5000);
-
-            // Keyboard shortcuts
-            $(document).keydown(function(e) {
-                if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
-                    e.preventDefault();
-                    $('#searchByName').focus();
                 }
-                if (e.keyCode === 27) { // Escape
-                    $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
-                    $('#searchByStatus').val('').removeClass('border-primary');
-                    performSearch();
-                }
+
+                const commentHtml = stakeholder.comment
+                    ? `<span title="${stakeholder.comment}" class="comment-text">
+                        ${stakeholder.comment.length > 60 ? stakeholder.comment.substring(0, 57) + '...' : stakeholder.comment}
+                       </span>`
+                    : '<span class="text-muted">-</span>';
+
+                tbody.append(`
+                    <tr data-id="${stakeholder.id}" class="stakeholder-row">
+                        <td class="stakeholder-name">
+                            <div class="d-flex align-items-center">
+                                <div class="stakeholder-icon me-2"><i class="fas fa-building text-success"></i></div>
+                                <div><span class="fw-semibold">${stakeholder.name}</span></div>
+                            </div>
+                        </td>
+                        <td class="stakeholder-type"><div class="d-flex flex-wrap gap-1">${typesHtml}</div></td>
+                        <td class="stakeholder-status">${statusHtml}</td>
+                        <td class="stakeholder-financial">${financialType}</td>
+                        <td class="stakeholder-phone">${phoneHtml}</td>
+                        <td class="stakeholder-comment">${commentHtml}</td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-info btnEdit" data-id="${stakeholder.id}" title="تعديل ${stakeholder.name}">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary view-details" data-id="${stakeholder.id}" title="تفاصيل ${stakeholder.name}">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-stakeholder" data-id="${stakeholder.id}" data-name="${stakeholder.name}" title="حذف ${stakeholder.name}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `);
             });
+        }
 
-            // Test number conversion functions
-            console.log('Testing Arabic number conversion:');
-            console.log('123 to Arabic:', toArabicDigits('123'));
-            console.log('١٢٣ to Latin:', toLatinDigits('١٢٣'));
-            console.log('Test text with 123:', toArabicDigits('نص تجريبي 123'));
+    // Enhanced search functionality with Arabic number support
+    function performSearch() {
+        const nameSearch = $('#searchByName').val().toLowerCase().trim();
+        const nameSearchLatin = toLatinDigits_search(nameSearch);
+        const nameSearchArabic = toArabicDigits_search(nameSearch);
 
-            // Initialize page
-            loadStakeholders();
+        const typeSearch = $('#searchByType').val().toLowerCase().trim();
+        const typeSearchLatin = toLatinDigits_search(typeSearch);
+        const typeSearchArabic = toArabicDigits_search(typeSearch);
 
-            console.log('Enhanced stakeholders info page with Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        const statusSearch = $('#searchByStatus').val();
+
+        const financialSearch = $('#searchByFinancial').val().toLowerCase().trim();
+        const financialSearchLatin = toLatinDigits_search(financialSearch);
+        const financialSearchArabic = toArabicDigits_search(financialSearch);
+
+        const phoneSearch = $('#searchByPhone').val().toLowerCase().trim();
+        // Note: Phone search does not convert numbers - searches as entered
+
+        const commentSearch = $('#searchByComment').val().toLowerCase().trim();
+        const commentSearchLatin = toLatinDigits_search(commentSearch);
+        const commentSearchArabic = toArabicDigits_search(commentSearch);
+
+        let visibleCount = 0;
+
+        $('.stakeholder-row').each(function() {
+            const row = $(this);
+            const name = row.find('.stakeholder-name').text().toLowerCase();
+            const type = row.find('.stakeholder-type').text().toLowerCase();
+            const status = row.find('.status-toggle').prop('checked') ? 'active' : 'inactive';
+            const financial = row.find('.stakeholder-financial').text().toLowerCase();
+            const phone = row.find('.stakeholder-phone').text().toLowerCase();
+            const comment = row.find('.stakeholder-comment').text().toLowerCase();
+
+            // Enhanced matching with Arabic/English number support
+            const nameMatch = !nameSearch ||
+                name.includes(nameSearch) ||
+                name.includes(nameSearchLatin) ||
+                name.includes(nameSearchArabic);
+
+            const typeMatch = !typeSearch ||
+                type.includes(typeSearch) ||
+                type.includes(typeSearchLatin) ||
+                type.includes(typeSearchArabic);
+
+            const statusMatch = !statusSearch || status === statusSearch;
+
+            const financialMatch = !financialSearch ||
+                financial.includes(financialSearch) ||
+                financial.includes(financialSearchLatin) ||
+                financial.includes(financialSearchArabic);
+
+            // Phone search - no number conversion, search as entered
+            const phoneMatch = !phoneSearch || phone.includes(phoneSearch);
+
+            const commentMatch = !commentSearch ||
+                comment.includes(commentSearch) ||
+                comment.includes(commentSearchLatin) ||
+                comment.includes(commentSearchArabic);
+
+            const shouldShow = nameMatch && typeMatch && statusMatch && financialMatch && phoneMatch && commentMatch;
+            row.toggle(shouldShow);
+
+            if (shouldShow) visibleCount++;
         });
+
+        updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch);
+    }
+
+    // Enhanced updateSearchInfo with Arabic numbers
+    function updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch) {
+        $('#visibleCount').text(toArabicDigits_search(visibleCount.toString()));
+        $('#badgeCount').text(toArabicDigits_search(visibleCount.toString()));
+
+        // Show/hide clear buttons
+        $('#clearNameSearch').toggle(nameSearch.length > 0);
+        $('#clearTypeSearch').toggle(typeSearch.length > 0);
+        $('#clearFinancialSearch').toggle(financialSearch.length > 0);
+        $('#clearPhoneSearch').toggle(phoneSearch.length > 0);
+        $('#clearCommentSearch').toggle(commentSearch.length > 0);
+
+        const hasAnySearch = nameSearch.length > 0 || typeSearch.length > 0 || statusSearch ||
+                           financialSearch.length > 0 || phoneSearch.length > 0 || commentSearch.length > 0;
+        $('#clearAllSearch').toggle(hasAnySearch);
+
+        // Keep table always visible
+        $('#stakeholdersContainer .section-card').show();
+
+        // Add visual feedback to search inputs
+        $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
+        $('#searchByType').toggleClass('border-primary', typeSearch.length > 0);
+        $('#searchByStatus').toggleClass('border-primary', statusSearch);
+        $('#searchByFinancial').toggleClass('border-primary', financialSearch.length > 0);
+        $('#searchByPhone').toggleClass('border-primary', phoneSearch.length > 0);
+        $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
+    }
+
+    // Enhanced updateCounts with Arabic numbers
+    function updateCounts(count) {
+        const arabicCount = toArabicDigits_search(count.toString());
+        $('#totalCount').text(arabicCount);
+        $('#visibleCount').text(arabicCount);
+        $('#badgeCount').text(arabicCount);
+    }
+
+    // Search events
+    let searchTimeout;
+    $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').on('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performSearch, 200);
+    });
+
+    $('#searchByStatus').on('change', function() {
+        performSearch();
+    });
+
+    // Clear search buttons
+    $('#clearNameSearch').click(function() {
+        $('#searchByName').val('').removeClass('border-primary');
+        performSearch();
+        $('#searchByName').focus();
+    });
+
+    $('#clearTypeSearch').click(function() {
+        $('#searchByType').val('').removeClass('border-primary');
+        performSearch();
+        $('#searchByType').focus();
+    });
+
+    $('#clearFinancialSearch').click(function() {
+        $('#searchByFinancial').val('').removeClass('border-primary');
+        performSearch();
+        $('#searchByFinancial').focus();
+    });
+
+    $('#clearPhoneSearch').click(function() {
+        $('#searchByPhone').val('').removeClass('border-primary');
+        performSearch();
+        $('#searchByPhone').focus();
+    });
+
+    $('#clearCommentSearch').click(function() {
+        $('#searchByComment').val('').removeClass('border-primary');
+        performSearch();
+        $('#searchByComment').focus();
+    });
+
+    $('#clearAllSearch, #resetSearch').click(function() {
+        $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
+        $('#searchByStatus').val('').removeClass('border-primary');
+        performSearch();
+    });
+
+    // View details handler
+    $(document).on('click', '.view-details', function() {
+        const id = $(this).data('id');
+        loadStakeholderDetails(id);
+    });
+
+           $('#editFromDetails').click(function () {
+            if (currentDetailsId) {
+                if (detailsModal) detailsModal.hide();
+
+                $.ajax({
+                    url: `/StakeholdersInfo/Edit/${currentDetailsId}`,
+                    type: "GET",
+                    success: function (response) {
+                        $("#modalBody").html(response);
+                        let stakeholderModal = new bootstrap.Modal(document.getElementById("stakeholderModal"));
+                        stakeholderModal.show();
+                    },
+                    error: function () {
+                        Swal.fire("خطأ", "تعذر تحميل بيانات الجهة", "error");
+                    }
+                });
+            }
+        });
+
+
+
+    // Delete handlers
+    $(document).on('click', '.delete-stakeholder', function() {
+        const id = $(this).data('id');
+        const name = $(this).data('name');
+
+        $('#deleteStakeholderId').val(id);
+        $('#deleteStakeholderName').text(name);
+        deleteModal.show();
+    });
+
+    // Delete stakeholder via API
+    $('#confirmDelete').click(function() {
+        const id = $('#deleteStakeholderId').val();
+        const btn = $(this);
+        const originalText = btn.html();
+
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
+
+        $.ajax({
+            url: `/StakeholdersInfo/${id}`,
+            method: 'DELETE',
+            success: function(response) {
+                btn.prop('disabled', false).html(originalText);
+
+                if (response.success) {
+                    showNotification(response.message, 'success');
+                    deleteModal.hide();
+
+                    // Remove from UI and update data
+                    $(`tr[data-id="${id}"]`).fadeOut(300, function() {
+                        $(this).remove();
+                        stakeholdersData = stakeholdersData.filter(s => s.id != id);
+                        updateCounts(stakeholdersData.length);
+
+                        if (stakeholdersData.length === 0) {
+                            $('#emptyState').show();
+                            $('#stakeholdersContainer').hide();
+                        }
+                    });
+                } else {
+                    showNotification(response.message || 'حدث خطأ أثناء الحذف', 'error');
+                }
+            },
+            error: function(xhr, status, error) {
+                btn.prop('disabled', false).html(originalText);
+                const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة';
+                showNotification(errorMessage, 'error');
+                console.error('Delete error:', { xhr, status, error, time: CURRENT_TIME });
+            }
+        });
+    });
+
+    // Status toggle via API
+    $(document).on('change', '.status-toggle', function() {
+        const checkbox = $(this);
+        const id = checkbox.data('id');
+        const name = checkbox.data('name');
+        const newStatus = checkbox.prop('checked');
+
+        $.ajax({
+            url: `/api/StakeholdersInfo/${id}/status`,
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ status: newStatus }),
+            success: function(response) {
+                if (response.success) {
+                    // Update all instances of this stakeholder's status
+                    $(`.status-toggle[data-id="${id}"]`)
+                        .prop('checked', newStatus)
+                        .closest('.form-switch')
+                        .find('.form-check-label')
+                        .text(newStatus ? 'نشط' : 'غير نشط');
+
+                    // Update data
+                    const stakeholder = stakeholdersData.find(s => s.id == id);
+                    if (stakeholder) {
+                        stakeholder.status = newStatus;
+                    }
+
+                    showNotification(response.message, 'success');
+                } else {
+                    checkbox.prop('checked', !newStatus);
+                    showNotification(response.message || 'حدث خطأ أثناء تحديث الحالة', 'error');
+                }
+            },
+            error: function(xhr) {
+                checkbox.prop('checked', !newStatus);
+                const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة';
+                showNotification(errorMessage, 'error');
+            }
+        });
+    });
+
+    // Refresh data
+    $('#refreshData').click(function() {
+        const btn = $(this);
+        const originalText = btn.html();
+        btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+
+        loadStakeholders();
+
+        setTimeout(() => {
+            btn.prop('disabled', false).html(originalText);
+        }, 1000);
+    });
+
+    // Auto-dismiss success alerts after 5 seconds
+    setTimeout(function() {
+        $('.alert-success, .alert-danger').fadeOut(350);
+    }, 5000);
+
+    // Keyboard shortcuts
+    $(document).keydown(function(e) {
+        if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+            e.preventDefault();
+            $('#searchByName').focus();
+        }
+        if (e.keyCode === 27) { // Escape
+            $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
+            $('#searchByStatus').val('').removeClass('border-primary');
+            performSearch();
+        }
+    });
+
+    // Test number conversion functions
+    console.log('Testing Arabic number conversion:');
+    console.log('123 to Arabic:', toArabicDigits_search('123'));
+    console.log('١٢٣ to Latin:', toLatinDigits_search('١٢٣'));
+    console.log('Test text with 123:', toArabicDigits_search('نص تجريبي 123'));
+
+    // Initialize page
+    loadStakeholders();
+
+    console.log('Enhanced stakeholders info page with modal Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+});
+
     </script>
+
     <style>
         /* Enhanced Styles for Stakeholders Management */
         .icon-circle {

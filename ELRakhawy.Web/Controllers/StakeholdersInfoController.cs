@@ -19,7 +19,6 @@ namespace ELRakhawy.Web.Controllers
         }
 
         #region MVC Actions (Original)
-
         public IActionResult Index()
         {
             try
@@ -54,24 +53,24 @@ namespace ELRakhawy.Web.Controllers
                         .ToList()
                 };
 
-                return View(viewModel);
+                ViewBag.Action = "Create";
+                return PartialView("_CreateOrEdit", viewModel);
+
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading Create view at {Time} by {User}", _currentTime, _currentUser);
-                TempData["Error"] = "حدث خطأ أثناء تحميل الصفحة";
-                return RedirectToAction(nameof(Index));
+                return StatusCode(500, "خطأ في تحميل الفورم");
             }
         }
 
-        // POST: StakeholdersInfo/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create(StakeholdersInfoViewModel viewModel)
         {
             try
             {
-                // Check for name uniqueness
+                // Validation
                 if (_unitOfWork.Repository<StakeholdersInfo>()
                     .GetAll(s => s.Name.Trim().ToLower() == viewModel.Name.Trim().ToLower())
                     .Any())
@@ -79,7 +78,6 @@ namespace ELRakhawy.Web.Controllers
                     ModelState.AddModelError("Name", "هذا الاسم موجود بالفعل");
                 }
 
-                // Validate primary type is among selected types
                 if (viewModel.PrimaryTypeId.HasValue &&
                     !viewModel.SelectedTypeIds.Contains(viewModel.PrimaryTypeId.Value))
                 {
@@ -87,7 +85,6 @@ namespace ELRakhawy.Web.Controllers
                 }
                 else if (!viewModel.PrimaryTypeId.HasValue && viewModel.SelectedTypeIds.Any())
                 {
-                    // If no primary type is selected, set the first selected type as primary
                     viewModel.PrimaryTypeId = viewModel.SelectedTypeIds.First();
                 }
 
@@ -96,52 +93,48 @@ namespace ELRakhawy.Web.Controllers
                     viewModel.AvailableTypes = _unitOfWork.Repository<StakeholderType>()
                         .GetAll(includeEntities: "FinancialTransactionType")
                         .ToList();
-                    return View(viewModel);
+                    return RedirectToAction("Index"); 
+                                                      // 👈 re-render form in modal
                 }
 
+                // Save
                 var stakeholder = new StakeholdersInfo
                 {
                     Name = viewModel.Name.Trim(),
                     Status = viewModel.Status,
-                    ContactNumbers = viewModel.ContactNumbers?.Trim(),
-                    Comment = viewModel.Comment?.Trim()
+                    // نجمع الكود + الرقم هنا
+                    ContactNumbers = $"{viewModel.CountryCode}{viewModel.ContactNumber}",
+                    Comment = viewModel.Comment?.Trim(),
+                    
                 };
 
                 _unitOfWork.Repository<StakeholdersInfo>().Add(stakeholder);
                 _unitOfWork.Complete();
 
-                // Add type relations with primary type flag
                 if (viewModel.SelectedTypeIds.Any())
                 {
                     var relations = viewModel.SelectedTypeIds.Select(typeId => new StakeholderInfoType
                     {
                         StakeholdersInfoId = stakeholder.Id,
                         StakeholderTypeId = typeId,
-                        IsPrimary = typeId == viewModel.PrimaryTypeId
+                        IsPrimary = typeId == viewModel.PrimaryTypeId,
+                        
+
                     }).ToList();
 
                     _unitOfWork.Repository<StakeholderInfoType>().AddRange(relations);
                     _unitOfWork.Complete();
                 }
 
-                _logger.LogInformation("Created new stakeholder {Name} at {Time} by {User}",
-                    stakeholder.Name, _currentTime, _currentUser);
-
-                TempData["Success"] = "تم إضافة الجهة بنجاح";
-                return RedirectToAction(nameof(Index));
+                 return RedirectToAction("Index"); // 👈 JSON for ajax
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating stakeholder at {Time} by {User}", _currentTime, _currentUser);
-                ModelState.AddModelError("", "حدث خطأ أثناء حفظ البيانات");
-                viewModel.AvailableTypes = _unitOfWork.Repository<StakeholderType>()
-                    .GetAll(includeEntities: "FinancialTransactionType")
-                    .ToList();
-                return View(viewModel);
+                return Json(new { success = false, message = "حدث خطأ أثناء الحفظ" });
             }
         }
 
-        // GET: StakeholdersInfo/Edit/5
         public IActionResult Edit(int id)
         {
             try
@@ -149,21 +142,18 @@ namespace ELRakhawy.Web.Controllers
                 var stakeholder = _unitOfWork.Repository<StakeholdersInfo>()
                     .GetOne(s => s.Id == id, "StakeholderInfoTypes");
 
-                if (stakeholder == null)
-                {
-                    _logger.LogWarning("Edit attempt for non-existent StakeholdersInfo ID: {Id} at {Time} by {User}",
-                        id, _currentTime, _currentUser);
-                    return NotFound();
-                }
+                if (stakeholder == null) return NotFound();
 
                 var viewModel = new StakeholdersInfoViewModel
                 {
                     Id = stakeholder.Id,
                     Name = stakeholder.Name,
                     Status = stakeholder.Status,
-                    ContactNumbers = stakeholder.ContactNumbers,
+                    ContactNumber = stakeholder.ContactNumbers,
                     Comment = stakeholder.Comment,
-                    SelectedTypeIds = stakeholder.StakeholderInfoTypes.Select(st => st.StakeholderTypeId).ToList(),
+                    SelectedTypeIds = stakeholder.StakeholderInfoTypes
+                        .Select(st => st.StakeholderTypeId)
+                        .ToList(),
                     PrimaryTypeId = stakeholder.StakeholderInfoTypes
                         .FirstOrDefault(st => st.IsPrimary)?.StakeholderTypeId,
                     AvailableTypes = _unitOfWork.Repository<StakeholderType>()
@@ -171,33 +161,27 @@ namespace ELRakhawy.Web.Controllers
                         .ToList()
                 };
 
-                _logger.LogInformation("Edit view accessed for StakeholdersInfo ID: {Id} at {Time} by {User}",
-                    id, _currentTime, _currentUser);
+                ViewBag.Action = "Edit";
 
-                return View(viewModel);
+                // ✅ لازم PartialView مش Redirect
+                return PartialView("_CreateOrEdit", viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading edit view for StakeholdersInfo ID: {Id} at {Time} by {User}",
                     id, _currentTime, _currentUser);
-                TempData["Error"] = "حدث خطأ أثناء تحميل صفحة التعديل";
-                return RedirectToAction(nameof(Index));
+                return StatusCode(500, "خطأ في تحميل الفورم");
             }
         }
 
-        // POST: StakeholdersInfo/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, StakeholdersInfoViewModel viewModel)
         {
             try
             {
-                if (id != viewModel.Id)
-                {
-                    return NotFound();
-                }
+                if (id != viewModel.Id) return NotFound();
 
-                // Check name uniqueness (excluding current stakeholder)
                 if (_unitOfWork.Repository<StakeholdersInfo>()
                     .GetAll(s => s.Name.Trim().ToLower() == viewModel.Name.Trim().ToLower() && s.Id != id)
                     .Any())
@@ -205,7 +189,6 @@ namespace ELRakhawy.Web.Controllers
                     ModelState.AddModelError("Name", "هذا الاسم موجود بالفعل");
                 }
 
-                // Validate primary type is among selected types
                 if (viewModel.PrimaryTypeId.HasValue &&
                     !viewModel.SelectedTypeIds.Contains(viewModel.PrimaryTypeId.Value))
                 {
@@ -217,31 +200,23 @@ namespace ELRakhawy.Web.Controllers
                     viewModel.AvailableTypes = _unitOfWork.Repository<StakeholderType>()
                         .GetAll(includeEntities: "FinancialTransactionType")
                         .ToList();
-                    return View(viewModel);
+                    return RedirectToAction("Index"); // 👈 return modal with validation
                 }
 
                 var stakeholder = _unitOfWork.Repository<StakeholdersInfo>()
                     .GetOne(s => s.Id == id, "StakeholderInfoTypes");
+                if (stakeholder == null) return NotFound();
 
-                if (stakeholder == null)
-                {
-                    return NotFound();
-                }
-
-                // Update basic info
                 stakeholder.Name = viewModel.Name.Trim();
                 stakeholder.Status = viewModel.Status;
-                stakeholder.ContactNumbers = viewModel.ContactNumbers?.Trim();
+                stakeholder.ContactNumbers = $"{viewModel.CountryCode}{viewModel.ContactNumber}".Trim();
                 stakeholder.Comment = viewModel.Comment?.Trim();
 
-                // Update types
-                // Remove existing types
                 var existingTypes = _unitOfWork.Repository<StakeholderInfoType>()
                     .GetAll(st => st.StakeholdersInfoId == id)
                     .ToList();
                 _unitOfWork.Repository<StakeholderInfoType>().RemoveRange(existingTypes);
 
-                // Add new types
                 if (viewModel.SelectedTypeIds.Any())
                 {
                     var newTypes = viewModel.SelectedTypeIds.Select(typeId => new StakeholderInfoType
@@ -256,22 +231,14 @@ namespace ELRakhawy.Web.Controllers
 
                 _unitOfWork.Complete();
 
-                _logger.LogInformation("Updated StakeholdersInfo ID: {Id} at {Time} by {User}",
-                    id, _currentTime, _currentUser);
-
-                TempData["Success"] = "تم تحديث الجهة بنجاح";
-                return RedirectToAction(nameof(Index));
+                return RedirectToAction("Index");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating StakeholdersInfo ID: {Id} at {Time} by {User}",
                     id, _currentTime, _currentUser);
 
-                ModelState.AddModelError("", "حدث خطأ أثناء حفظ البيانات");
-                viewModel.AvailableTypes = _unitOfWork.Repository<StakeholderType>()
-                    .GetAll(includeEntities: "FinancialTransactionType")
-                    .ToList();
-                return View(viewModel);
+                return RedirectToAction("Index");
             }
         }
 

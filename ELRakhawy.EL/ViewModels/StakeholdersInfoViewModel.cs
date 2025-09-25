@@ -11,19 +11,19 @@ namespace ELRakhawy.EL.ViewModels
     public class StakeholdersInfoViewModel
     {
         public int Id { get; set; }
-
-        [Required]
         public string Name { get; set; }
 
+        // بدلاً من ContactNumbers (String واحدة)
+        public string CountryCode { get; set; }
+        public string ContactNumber { get; set; }
+
         public bool Status { get; set; }
-
-        public string? ContactNumbers { get; set; }
-
         public string? Comment { get; set; }
 
-        public List<int> SelectedTypeIds { get; set; } = new List<int>();
+        public List<int> SelectedTypeIds { get; set; } = new();
         public int? PrimaryTypeId { get; set; }
-
-        public List<StakeholderType> AvailableTypes { get; set; } = new List<StakeholderType>();
+        public IEnumerable<StakeholderType> AvailableTypes { get; set; } = new List<StakeholderType>();
     }
+
+
 }
