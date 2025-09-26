@@ -298,9 +298,7 @@
                     نشطة: <span class="badge bg-success">@activeItems</span>
                 </small>
             </div>
-            <div class="col-md-6 text-end">
-                <small class="text-muted">آخر تحديث: @DateTime.Now.ToString("yyyy/MM/dd HH:mm")</small>
-            </div>
+            
         </div>
     </div>
 </div>
@@ -437,44 +435,85 @@
 
     <!-- Export Functions -->
     <script>
-        function exportToExcel() {
-            try {
-                const table = document.getElementById('itemsTable');
-                const wb = XLSX.utils.book_new();
-                const wsData = [];
+                     function exportToExcel() {
+                try {
+                    // Get table data
+                    const table = document.getElementById('itemsTable');
+                    const rows = table.querySelectorAll('tr:not(.search-row)');
 
-                // Headers
-                wsData.push(['الصنف', 'الشركة المصنعة', 'الغزل المكون', 'الحالة', 'الرصيد الحالي', 'رصيد العدد']);
+                    // Create Excel workbook
+                    const wb = XLSX.utils.book_new();
+                    const wsData = [];
 
-                // Data rows
-                const visibleRows = table.querySelectorAll('tbody tr:not([style*="display: none"])');
-                visibleRows.forEach(row => {
-                    const cols = row.querySelectorAll('td');
-                    if (cols.length >= 6) {
-                        const rowData = [
-                            cols[0].querySelector('.fw-semibold').textContent.trim(),
-                            cols[1].textContent.trim(),
-                            cols[2].textContent.trim(),
-                            cols[3].textContent.trim(),
-                            cols[4].textContent.trim(),
-                            cols[5].textContent.trim()
-                        ];
-                        wsData.push(rowData);
+                    // Add header row (skip actions column - index 6)
+                    const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
+                    const headers = headerCells
+                        .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
+                        .filter(item => item.index !== 7) // Skip actions column (index 6)
+                        .map(item => item.text);
+
+                    wsData.push(headers);
+
+                    // Add data rows
+                    rows.forEach(row => {
+                        // Skip search row and header
+                        if (row.classList.contains('search-row') || row.querySelector('th')) return;
+
+                        const rowData = [];
+                        const cols = row.querySelectorAll('td');
+
+                        cols.forEach((col, index) => {
+                            // Skip actions column (index 6)
+                            if (index === 6) return;
+
+                            let text = col.textContent.trim().replace(/\s+/g, ' ');
+
+                            // For yarn item name, extract just the text without icons
+                            if (index === 0) {
+                                text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                            }
+
+                            rowData.push(text);
+                        });
+
+                        if (rowData.length > 0) {
+                            wsData.push(rowData);
+                        }
+                    });
+
+                    // Create worksheet
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                    // Set column widths
+                    const colWidths = [
+                        { wch: 25 }, // Yarn item name
+                        { wch: 20 }, // Manufacturer
+                        { wch: 15 }, // Origin Yarn
+                        { wch: 10 }, // Status
+                        { wch: 12 }, // Balance
+                        { wch: 8 },  // Count
+                    ];
+                    ws['!cols'] = colWidths;
+
+                    // Add worksheet to workbook
+                    XLSX.utils.book_append_sheet(wb, ws, 'أصناف الغزل');
+
+                    // Generate Excel file and trigger download
+                    const currentDate = new Date().toISOString().slice(0, 10);
+                    XLSX.writeFile(wb, `أصناف_الغزل_${currentDate}.xlsx`);
+
+                    // Show success notification
+                    if (typeof showNotification === 'function') {
+                        showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
                     }
-                });
 
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-                XLSX.utils.book_append_sheet(wb, ws, 'أصناف الغزل');
-                
-                const currentDate = new Date().toISOString().slice(0, 10);
-                XLSX.writeFile(wb, `أصناف_الغزل_${currentDate}.xlsx`);
-                
-                showNotification('تم تصدير البيانات بنجاح', 'success');
-            } catch (error) {
-                showNotification('حدث خطأ أثناء التصدير', 'error');
+                } catch (error) {
+                    console.error('Error exporting to Excel:', error);
+                    if (typeof showNotification === 'function') {
+                        showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+                    }
+                }
             }
-        }
-
         function printTable() {
             window.print();
         }
