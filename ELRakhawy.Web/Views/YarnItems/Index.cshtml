@@ -2,550 +2,504 @@
 @model IEnumerable<YarnItemViewModel>
 @{
     ViewData["Title"] = "إدارة أصناف الغزل";
-    var currentTime = "2025-08-12 13:39:38";
-    var currentUser = "Ammar-Yasser8";
-
-    // Enhanced statistics
     var totalItems = Model.Count();
     var activeItems = Model.Count(x => x.Status);
-    var totalBalance = Model.Sum(x => x.CurrentBalance);
-    var lowStockItems = Model.Count(x => x.CurrentBalance <= 10 && x.CurrentBalance > 0);
-    var zeroStockItems = Model.Count(x => x.CurrentBalance <= 0);
-    var withManufacturer = Model.Count(x => x.ManufacturerNames != null && x.ManufacturerNames.Any());
-    var withOriginYarn = Model.Count(x => !string.IsNullOrEmpty(x.OriginYarnName));
 }
 
-<!-- Enhanced Navigation Bar -->
+<!-- Enhanced Navigation Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-4">
-    <ol class="breadcrumb bg-light rounded-3 px-3 py-2 shadow-sm">
-        <li class="breadcrumb-item">
-            <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
-                <i class="fas fa-home text-primary"></i>
-                <span class="ms-1">الرئيسية</span>
-            </a>
-        </li>
-        <li class="breadcrumb-item">
-            <i class="fas fa-yarn text-info me-1"></i>قسم الغزل
-        </li>
-        <li class="breadcrumb-item active">
-            <i class="fas fa-cogs text-secondary me-1"></i>@ViewData["Title"]
-        </li>
-    </ol>
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Dashboard", "YarnItems")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+             
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-box text-success me-2"></i>
+                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                </li>
+            </ol>
+        </div>
+    </div>
 </nav>
 
-<div class="row">
-    <!-- Enhanced Sidebar -->
-    <div class="col-xl-2 col-lg-3 col-md-4">
-        <!-- Enhanced Stats Card -->
-        <div class="card mb-4 shadow-sm border-0">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-gradient-dark text-white">
-                    <h6 class="mb-0">
-                        <i class="fas fa-bolt me-2"></i>إجراءات سريعة
-                    </h6>
-                </div>
-                <div class="card-body p-2">
-                    <div class="d-grid gap-1">
-                        <a href="@Url.Action("Create")" class="btn btn-primary btn-sm">
-                            <i class="fas fa-plus-circle me-1"></i>إضافة صنف جديد
-                        </a>
-                        <button type="button" class="btn btn-info btn-sm" id="clearAllSearches">
-                            <i class="fas fa-broom me-1"></i>مسح جميع البحوث
-                        </button>
-                        <button type="button" class="btn btn-secondary btn-sm" id="refreshData">
-                            <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <div class="card-header bg-gradient-info text-white">
-                <h6 class="mb-0">
-                    <i class="fas fa-chart-bar me-2"></i>إحصائيات تفصيلية
-                </h6>
-            </div>
-            <div class="card-body p-2">
-                <div class="row g-1">
-                    <div class="col-6">
-                        <div class="stat-card bg-primary bg-opacity-10 rounded p-2 text-center h-100">
-                            <div class="stat-icon text-primary mb-1">
-                                <i class="fas fa-boxes fa-lg"></i>
-                            </div>
-                            <div class="h6 mb-1 text-primary" id="sidebarTotalItems">@totalItems</div>
-                            <small class="text-muted" style="font-size: 0.7rem;">إجمالي الأصناف</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-card bg-success bg-opacity-10 rounded p-2 text-center h-100">
-                            <div class="stat-icon text-success mb-1">
-                                <i class="fas fa-check-circle fa-lg"></i>
-                            </div>
-                            <div class="h6 mb-1 text-success" id="sidebarActiveItems">@activeItems</div>
-                            <small class="text-muted" style="font-size: 0.7rem;">الأصناف النشطة</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-card bg-warning bg-opacity-10 rounded p-2 text-center h-100">
-                            <div class="stat-icon text-warning mb-1">
-                                <i class="fas fa-exclamation-triangle fa-lg"></i>
-                            </div>
-                            <div class="h6 mb-1 text-warning" id="sidebarLowStock">@lowStockItems</div>
-                            <small class="text-muted" style="font-size: 0.7rem;">رصيد منخفض</small>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="stat-card bg-danger bg-opacity-10 rounded p-2 text-center h-100">
-                            <div class="stat-icon text-danger mb-1">
-                                <i class="fas fa-ban fa-lg"></i>
-                            </div>
-                            <div class="h6 mb-1 text-danger" id="sidebarZeroStock">@zeroStockItems</div>
-                            <small class="text-muted" style="font-size: 0.7rem;">بدون رصيد</small>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Balance Summary -->
-                <hr class="my-2">
-                <div class="balance-summary">
-                    <h6 class="text-primary mb-2" style="font-size: 0.9rem;">
-                        <i class="fas fa-calculator me-1"></i>ملخص الأرصدة
-                    </h6>
-                    <div class="bg-light rounded p-2">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted" style="font-size: 0.75rem;">إجمالي الرصيد:</span>
-                            <span class="fw-bold text-primary" style="font-size: 0.8rem;">@totalBalance.ToString("N3") كجم</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <span class="text-muted" style="font-size: 0.75rem;">متوسط الرصيد:</span>
-                            <span class="fw-bold text-info" style="font-size: 0.8rem;">@((totalItems > 0 ? totalBalance / totalItems : 0).ToString("N2")) كجم</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted" style="font-size: 0.75rem;">نسبة النشطة:</span>
-                            <span class="fw-bold text-success" style="font-size: 0.8rem;">@((totalItems > 0 ? (activeItems * 100.0 / totalItems) : 0).ToString("N1"))%</span>
-                        </div>
-                    </div>
+<!-- Alerts -->
+@if (TempData["Success"] != null || TempData["Error"] != null)
+{
+    <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-3">
+        <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-2"></i>
+        @(TempData["Success"] ?? TempData["Error"])
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Main Content -->
+<div class="card shadow-sm">
+    <!-- Compact Header -->
+    <div class="card-header bg-white border-bottom py-2">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <h5 class="mb-0">
+                    <i class="fas fa-box text-primary me-2"></i>
+                    أصناف الغزل
+                    <small class="text-muted ms-2">(<span id="visibleCount">@totalItems</span> من @totalItems)</small>
+                </h5>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-success btn-sm me-2" id="openCreateModal">
+                    <i class="fas fa-plus me-1"></i>إضافة جديد
+                </button>
+                <div class="btn-group">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><button class="dropdown-item" id="clearAllSearches">
+                            <i class="fas fa-eraser me-1"></i>مسح البحث
+                        </button></li>
+                        <li><button class="dropdown-item" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                        </button></li>
+                        <li><button class="dropdown-item" onclick="printTable()">
+                            <i class="fas fa-print me-1"></i>طباعة
+                        </button></li>
+                    </ul>
                 </div>
             </div>
         </div>
-        <!-- Quick Actions -->
-       
     </div>
 
-    <!-- Enhanced Main Content -->
-    <div class="col-xl-10 col-lg-9 col-md-8">
-        <!-- الكارد الكبير -->        <!-- Alerts -->
-        @if (TempData["Success"] != null || TempData["Error"] != null)
-        {
-            <div class="alert @(TempData["Success"] != null ? "alert-success" : "alert-danger") alert-dismissible fade show mb-4 shadow-sm border-0">
-                <div class="d-flex align-items-center">
-                    <i class="fas @(TempData["Success"] != null ? "fa-check-circle" : "fa-exclamation-circle") me-3 fa-lg"></i>
-                    <div>
-                        <strong>@(TempData["Success"] != null ? "نجح!" : "خطأ!")</strong>
-                        <span class="ms-2">@(TempData["Success"] ?? TempData["Error"])</span>
+    <div class="card-body p-0">
+        <!-- Mobile Cards View -->
+        <div class="d-block d-lg-none" id="mobileCards">
+            <!-- Mobile Global Search -->
+            <div class="p-3 border-bottom bg-light">
+                <input type="text" class="form-control" id="mobileGlobalSearch" placeholder="بحث سريع...">
+            </div>
+
+            @foreach (var item in Model)
+            {
+                <div class="border-bottom p-3 mobile-item-card"
+                     data-status="@(item.Status ? "active" : "inactive")"
+                     data-balance="@item.CurrentBalance"
+                     data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")">
+                    
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0 text-primary fw-bold">@item.Item</h6>
+                        <span class="badge bg-@(item.Status ? "success" : "secondary")">
+                            @(item.Status ? "نشط" : "غير نشط")
+                        </span>
+                    </div>
+
+                    <div class="row g-2 small text-muted mb-2">
+                        <div class="col-6">
+                            <strong>الشركة:</strong> @(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? string.Join(", ", item.ManufacturerNames) : "غير محدد")
+                        </div>
+                        <div class="col-6">
+                            <strong>الرصيد:</strong> 
+                            <span class="text-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success")">
+                                @item.CurrentBalance.ToString("N1") كجم
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-1">
+                        <button class="btn btn-sm btn-outline-info view-details flex-fill" data-id="@item.Id">
+                            <i class="fas fa-info-circle"></i> تفاصيل
+                        </button>
+                        <button class="btn btn-sm btn-outline-primary edit-btn flex-fill" data-id="@item.Id">
+                            <i class="fas fa-edit"></i> تعديل
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-item" data-id="@item.Id" data-name="@item.Item">
+                            <i class="fas fa-trash"></i>
+                        </button>
                     </div>
                 </div>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        }
+            }
+        </div>
 
-        <!-- Search Summary -->
-        <div class="search-summary" id="searchSummary">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <i class="fas fa-filter text-primary me-2"></i>
-                    <span class="fw-bold">البحوث النشطة:</span>
-                    <div class="d-inline-block ms-2" id="searchTags"></div>
+        <!-- Desktop Table -->
+        <div class="d-none d-lg-block">
+            <div class="table-responsive">
+                <div class="table-toolbar mb-2"></div>
+                <table id="itemsTable" class="table table-hover table-sm mb-0">
+
+                    <thead class="table-light">
+                        <!-- Headers -->
+                        <tr>
+                            <th style="width: 25%;">الصنف</th>
+                            <th style="width: 20%;">الشركة المصنعة</th>
+                            <th style="width: 15%;">الغزل المكون</th>
+                            <th style="width: 10%;">الحالة</th>
+                            <th style="width: 12%;">الرصيد</th>
+                            <th style="width: 8%;">العدد</th>
+                            <th style="width: 7%;">الإجراءات</th>
+                        </tr>
+                        <!-- Instant Search Row -->
+                        <tr class="search-row">
+                            <th>
+                                <input type="text" class="form-control form-control-sm instant-search" 
+                                       placeholder="بحث الأصناف..." data-column="0">
+                            </th>
+                            <th>
+                                <input type="text" class="form-control form-control-sm instant-search" 
+                                       placeholder="بحث الشركات..." data-column="1">
+                            </th>
+                            <th>
+                                <input type="text" class="form-control form-control-sm instant-search" 
+                                       placeholder="بحث الغزل..." data-column="2">
+                            </th>
+                            <th>
+                                <select class="form-select form-select-sm instant-search" data-column="3">
+                                    <option value="">الكل</option>
+                                    <option value="نشط">نشط</option>
+                                    <option value="غير نشط">غير نشط</option>
+                                </select>
+                            </th>
+                            <th>
+                                <select class="form-select form-select-sm instant-search" data-column="4">
+                                    <option value="">جميع الأرصدة</option>
+                                    <option value="zero">بدون رصيد</option>
+                                    <option value="low">رصيد منخفض</option>
+                                    <option value="high">رصيد عالي</option>
+                                </select>
+                            </th>
+                            <th>
+                                <input type="number" class="form-control form-control-sm instant-search" 
+                                       placeholder="العدد..." data-column="5">
+                            </th>
+                            <th>
+                                <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="clearAllFilters">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr data-status="@(item.Status ? "active" : "inactive")"
+                                data-balance="@item.CurrentBalance"
+                                data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
+                                class="table-row">
+                                <td>
+                                    <div class="fw-semibold">@item.Item</div>
+                                    @if (!string.IsNullOrEmpty(item.Comment))
+                                    {
+                                        <small class="text-muted d-block text-truncate" style="max-width: 200px;">@item.Comment</small>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "text-success" : "text-muted")">
+                                        @(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? string.Join(", ", item.ManufacturerNames) : "غير محدد")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "text-info" : "text-muted")">
+                                        @(item.OriginYarnName ?? "غير محدد")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-@(item.Status ? "success" : "secondary") text-white">
+                                        @(item.Status ? "نشط" : "غير نشط")
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold text-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success")">
+                                        @item.CurrentBalance.ToString("N1")
+                                    </span>
+                                    <small class="text-muted d-block">كجم</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="fw-bold">@item.CurrentCountBalance</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-info btn-sm view-details" data-id="@item.Id" title="عرض التفاصيل">
+                                            <i class="fas fa-info-circle"></i>
+                                        </button>
+                                        <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-outline-primary btn-sm" title="تعديل">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-outline-danger btn-sm delete-item" 
+                                                data-id="@item.Id" data-name="@item.Item" title="حذف">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <script>
+                document.addEventListener("DOMContentLoaded", function () {
+                    const table = document.getElementById("itemsTable");
+                    if (!table) return;
+
+                    const headers = table.querySelectorAll("thead tr:first-child th");
+                    if (headers.length === 0) return;
+
+                    const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
+                    if (!toolbar) return;
+
+                    const btnGroup = document.createElement("div");
+                    btnGroup.className = "btn-group mb-2";
+                    btnGroup.innerHTML = `
+                        <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
+                            <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
+                        </button>
+                        <ul class="dropdown-menu column-toggle-menu"></ul>
+                    `;
+                    toolbar.appendChild(btnGroup);
+
+                    const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
+
+                    headers.forEach((th, index) => {
+                        const title = th.innerText.trim() || `عمود ${index + 1}`;
+                        const li = document.createElement("li");
+                        li.innerHTML = `
+                            <label class="dropdown-item">
+                                <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                                ${title}
+                            </label>`;
+                        toggleMenu.appendChild(li);
+                    });
+
+                    document.body.addEventListener("change", function (e) {
+                        if (!e.target.classList.contains("column-toggle")) return;
+
+                        const colIndex = e.target.getAttribute("data-index");
+                        const isVisible = e.target.checked;
+
+                        table.querySelectorAll("tr").forEach(row => {
+                            const cells = row.querySelectorAll("th, td");
+                            if (cells[colIndex]) {
+                                cells[colIndex].style.display = isVisible ? "" : "none";
+                            }
+                        });
+                    });
+                });
+            </script>
+        </div>
+    </div>
+
+    <!-- Compact Footer -->
+    <div class="card-footer bg-light py-2">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    إجمالي: <span class="badge bg-primary">@totalItems</span>
+                    نشطة: <span class="badge bg-success">@activeItems</span>
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <small class="text-muted">آخر تحديث: @DateTime.Now.ToString("yyyy/MM/dd HH:mm")</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Modal -->
+<div class="modal fade" id="yarnItemModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-plus-circle me-2" id="modalIcon"></i>
+                    <span id="modalTitle">إضافة صنف جديد</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="yarnItemForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <input type="hidden" id="yarnItemId" name="Id" value="0">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="yarnItemName" class="form-label fw-semibold required">اسم الصنف *</label>
+                            <input type="text" class="form-control" id="yarnItemName" name="Item" required maxlength="200">
+                            <div class="invalid-feedback" id="itemError"></div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">الحالة</label>
+                            <div class="form-check form-switch mt-2">
+                                <input class="form-check-input" type="checkbox" id="yarnItemStatus" name="Status" checked>
+                                <label class="form-check-label fw-semibold" for="yarnItemStatus">
+                                    <span class="status-text">نشط</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="originYarnSelect" class="form-label fw-semibold">الغزل المكون</label>
+                            <div class="input-group">
+                                <select class="form-select" id="originYarnSelect" name="OriginYarnId">
+                                    <option value="">-- اختر الغزل المكون --</option>
+                                </select>
+                                <button type="button" class="btn btn-outline-secondary" id="refreshOriginYarns" title="تحديث القائمة">
+                                    <i class="fas fa-sync-alt"></i>
+                                </button>
+                            </div>
+                            <div class="invalid-feedback" id="originYarnError"></div>
+                        </div>
+                        <div class="col-md-6" id="manufacturerSection">
+                            <label class="form-label fw-semibold">الشركات المصنعة</label>
+                            <div class="card border">
+                                <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                                    <span class="fw-semibold small">اختر الشركات</span>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-outline-success" id="selectAllManufacturers">
+                                            <i class="fas fa-check-double me-1"></i>الكل
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="clearAllManufacturers">
+                                            <i class="fas fa-times me-1"></i>مسح
+                                        </button>
+                                    </div>
+                                </div>
+                                <div id="manufacturersContainer" class="card-body p-2" style="max-height: 120px; overflow-y: auto;">
+                                    <!-- Will be populated by JavaScript -->
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="yarnItemComment" class="form-label">البيان</label>
+                            <textarea class="form-control" id="yarnItemComment" name="Comment" rows="2"></textarea>
+                        </div>
+                    </div>
                 </div>
-                <button class="btn btn-sm btn-outline-primary" id="clearAllFilters">
-                    <i class="fas fa-times me-1"></i>مسح الكل
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                    <button type="submit" class="btn btn-success" id="saveButton">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Details Modal (restored from original) -->
+<div class="modal fade" id="yarnDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل صنف الغزل
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="detailsContent">
+                <!-- Details content will be loaded here -->
+            </div>
+            <div class="modal-footer bg-light border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+                <button type="button" class="btn btn-primary me-2" id="editFromDetails">
+                    <i class="fas fa-edit me-1"></i>تعديل
+                </button>
+                <button type="button" class="btn btn-danger" id="deleteFromDetails">
+                    <i class="fas fa-trash me-1"></i>حذف
                 </button>
             </div>
         </div>
+    </div>
+</div>
 
-        <!-- Mobile Search Controls -->
-        <div class="d-block d-lg-none mobile-search-controls">
-            <h6 class="mb-3"><i class="fas fa-search me-2"></i>البحث السريع</h6>
-            <input type="text" class="form-control mobile-search-input mb-2" id="mobileGlobalSearch" placeholder="بحث في جميع الحقول...">
-            <div class="row g-2">
-                <div class="col-6">
-                    <input type="text" class="form-control mobile-search-input" id="mobileItemSearch" placeholder="اسم الصنف...">
-                </div>
-                <div class="col-6">
-                    <input type="text" class="form-control mobile-search-input" id="mobileManufacturerSearch" placeholder="الشركة المصنعة...">
-                </div>
-                <div class="col-6">
-                    <input type="text" class="form-control mobile-search-input" id="mobileOriginSearch" placeholder="الغزل المكون...">
-                </div>
-                <div class="col-6">
-                    <select class="form-control mobile-search-input" id="mobileStatusSearch">
-                        <option value="">جميع الحالات</option>
-                        <option value="نشط">نشط</option>
-                        <option value="غير نشط">غير نشط</option>
-                    </select>
-                </div>
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">تأكيد الحذف</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-        </div>
-
-        <!-- Enhanced Main Card -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom-0">
-                <div class="row align-items-center">
-                    <div class="col-lg-6">
-                        <div class="d-flex align-items-center">
-                            <div class="icon-circle bg-primary text-white me-3">
-                                <i class="fas fa-list-alt"></i>
-                            </div>
-                            <div>
-                                <h5 class="mb-0 text-dark fw-bold">قائمة أصناف الغزل</h5>
-                                <small class="text-muted"><span id="visibleCount">@totalItems</span> من أصل <span id="totalCount">@totalItems</span> صنف</small>
-                            </div>
-                        </div>
-                    </div>
-                   
-                </div>
+            <div class="modal-body text-center">
+                <i class="fas fa-trash-alt fa-3x text-danger mb-3"></i>
+                <h6>هل أنت متأكد من حذف هذا الصنف؟</h6>
+                <p class="text-muted mb-0"><strong id="deleteItemName"></strong></p>
+                <input type="hidden" id="deleteItemId">
             </div>
-
-            <div class="card-body p-0">
-                <!-- Mobile Cards View -->
-                <div class="d-block d-lg-none" id="mobileCards">
-                    @foreach (var item in Model)
-                    {
-                        <div class="card m-3 mobile-item-card border-start-primary"
-                             data-status="@(item.Status ? "active" : "inactive")"
-                             data-balance="@item.CurrentBalance"
-                             data-manufacturer="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "yes" : "no")"
-                             data-origin="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "yes" : "no")"
-                             data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div class="flex-grow-1">
-                                        <h6 class="card-title mb-1 text-primary fw-bold">
-                                            <i class="fas fa-box me-2"></i>@item.Item
-                                        </h6>
-                                    </div>
-                                    <span class="badge bg-@(item.Status ? "success" : "secondary") px-3 py-2">
-                                        <i class="fas fa-@(item.Status ? "check" : "times") me-1"></i>
-                                        @(item.Status ? "نشط" : "غير نشط")
-                                    </span>
-                                </div>
-
-                                <div class="row g-3 mb-3">
-                                    <div class="col-6">
-                                        <div class="info-item">
-                                            <small class="text-muted d-block">الشركة المصنعة</small>
-                                            <span class="fw-bold">@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? string.Join(", ", item.ManufacturerNames) : "غير محدد")</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="info-item">
-                                            <small class="text-muted d-block">الغزل المكون</small>
-                                            <span class="fw-bold">@(item.OriginYarnName ?? "غير محدد")</span>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="info-item">
-                                            <small class="text-muted d-block">الرصيد الحالي</small>
-                                            <span class="badge bg-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success") fs-6">
-                                                @item.CurrentBalance.ToString("N3") كجم
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="col-6">
-                                        <div class="info-item">
-                                            <small class="text-muted d-block">رصيد العدد</small>
-                                            <span class="fw-bold text-info">@item.CurrentCountBalance</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                @if (!string.IsNullOrEmpty(item.Comment))
-                                {
-                                    <div class="mb-3">
-                                        <div class="bg-light rounded p-2">
-                                            <small class="text-muted d-block fw-bold">البيان:</small>
-                                            <p class="mb-0 small">@item.Comment</p>
-                                        </div>
-                                    </div>
-                                }
-
-                                <div class="d-flex gap-2 flex-wrap">
-                                    <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i> تعديل
-                                    </a>
-                                    <button type="button" class="btn btn-sm btn-outline-danger" id="delete-item"
-                                            data-id="@item.Id" data-name="@item.Item">
-                                        <i class="fas fa-trash"></i> حذف
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    }
-                </div>
-
-                <!-- Enhanced Desktop Table with Inline Search -->
-                <div class="table-responsive d-none d-lg-block">
-                    <table id="itemsTable" class="table table-hover align-middle mb-0">
-                        <thead>
-                            <!-- Header Row -->
-                            <tr class="table-dark">
-                                <th style="width: 20%;">
-                                    <i class="fas fa-box text-white me-2"></i>الصنف
-                                </th>
-                                <th style="width: 18%;">
-                                    <i class="fas fa-industry text-white me-2"></i>الشركة المصنعة
-                                </th>
-                                <th style="width: 18%;">
-                                    <i class="fas fa-link text-white me-2"></i>الغزل المكون
-                                </th>
-                                <th style="width: 10%;">
-                                    <i class="fas fa-toggle-on text-white me-2"></i>الحالة
-                                </th>
-                                <th style="width: 12%;">
-                                    <i class="fas fa-calculator text-white me-2"></i>الرصيد الحالي
-                                </th>
-                                <th style="width: 8%;">
-                                    <i class="fas fa-hashtag text-white me-2"></i>رصيد العدد
-                                </th>
-                                <th style="width: 10%;">
-                                    <i class="fas fa-comment text-white me-2"></i>بيان
-                                </th>
-                                <th style="width: 4%;" class="text-center">
-                                    <i class="fas fa-cogs text-white me-2"></i>الإجراءات
-                                </th>
-                            </tr>
-                            <!-- Inline Search Row -->
-                            <tr class="column-search-row">
-                                <th>
-                                    <div class="position-relative">
-                                        <input type="text" class="column-search-input" id="searchItem" placeholder="بحث في الأصناف..." data-column="0">
-                                        <button class="search-clear-btn" type="button" data-target="searchItem">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="position-relative">
-                                        <input type="text" class="column-search-input" id="searchManufacturer" placeholder="بحث في الشركات..." data-column="1">
-                                        <button class="search-clear-btn" type="button" data-target="searchManufacturer">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="position-relative">
-                                        <input type="text" class="column-search-input" id="searchOriginYarn" placeholder="بحث في الغزل المكون..." data-column="2">
-                                        <button class="search-clear-btn" type="button" data-target="searchOriginYarn">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="position-relative">
-                                        <select class="column-search-input" id="searchStatus" data-column="3">
-                                            <option value="">جميع الحالات</option>
-                                            <option value="نشط">نشط فقط</option>
-                                            <option value="غير نشط">غير نشط فقط</option>
-                                        </select>
-                                        <button class="search-clear-btn" type="button" data-target="searchStatus" style="right: 35px;">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="position-relative">
-                                        <select class="column-search-input" id="searchBalance" data-column="4">
-                                            <option value="">جميع الأرصدة</option>
-                                            <option value="zero">بدون رصيد (0)</option>
-                                            <option value="low">رصيد منخفض (1-10)</option>
-                                            <option value="medium">رصيد متوسط (11-100)</option>
-                                            <option value="high">رصيد عالي (100+)</option>
-                                        </select>
-                                        <button class="search-clear-btn" type="button" data-target="searchBalance" style="right: 35px;">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="position-relative">
-                                        <input type="number" class="column-search-input" id="searchCountBalance" placeholder="رصيد العدد..." data-column="5" min="0">
-                                        <button class="search-clear-btn" type="button" data-target="searchCountBalance">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="position-relative">
-                                        <input type="text" class="column-search-input" id="searchComment" placeholder="بحث في البيان..." data-column="6">
-                                        <button class="search-clear-btn" type="button" data-target="searchComment">
-                                            <i class="fas fa-times"></i>
-                                        </button>
-                                        <div class="search-status-indicator"></div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="text-center">
-                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="clearColumnSearches" title="مسح جميع البحوث">
-                                            <i class="fas fa-eraser"></i>
-                                        </button>
-                                    </div>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var item in Model)
-                            {
-                                <tr data-status="@(item.Status ? "active" : "inactive")"
-                                    data-balance="@item.CurrentBalance"
-                                    data-manufacturer="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "yes" : "no")"
-                                    data-origin="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "yes" : "no")"
-                                    data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
-                                    class="table-row-hover">
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="item-icon bg-primary bg-opacity-10 rounded-circle me-3">
-                                                <i class="fas fa-box text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <div class="fw-bold text-dark">@item.Item</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @if (item.ManufacturerNames != null && item.ManufacturerNames.Any())
-                                        {
-                                            <div class="d-flex align-items-center">
-                                                <div class="manufacturer-icon bg-success bg-opacity-10 rounded-circle me-2">
-                                                    <i class="fas fa-industry text-success"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold text-success">@string.Join(", ", item.ManufacturerNames)</div>
-                                                    <small class="text-muted">شركة مصنعة</small>
-                                                </div>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="text-center">
-                                                <div class="text-muted">
-                                                    <i class="fas fa-minus-circle me-1"></i>غير محدد
-                                                </div>
-                                            </div>
-                                        }
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(item.OriginYarnName))
-                                        {
-                                            <div class="d-flex align-items-center">
-                                                <div class="origin-icon bg-info bg-opacity-10 rounded-circle me-2">
-                                                    <i class="fas fa-link text-info"></i>
-                                                </div>
-                                                <div>
-                                                    <div class="fw-bold text-info">@item.OriginYarnName</div>
-                                                    <small class="text-muted">غزل مكون</small>
-                                                </div>
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <div class="text-center">
-                                                <div class="text-muted">
-                                                    <i class="fas fa-minus-circle me-1"></i>غير محدد
-                                                </div>
-                                            </div>
-                                        }
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-@(item.Status ? "success" : "secondary") px-3 py-2">
-                                            <i class="fas @(item.Status ? "fa-check" : "fa-times") me-1"></i>
-                                            @(item.Status ? "نشط" : "غير نشط")
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="text-center">
-                                            <span class="badge bg-@(item.CurrentBalance <= 0 ? "danger" : item.CurrentBalance <= 10 ? "warning" : "success") px-3 py-2 fs-6">
-                                                <i class="fas fa-calculator me-1"></i>
-                                                @item.CurrentBalance.ToString("N3")
-                                            </span>
-                                            <small class="d-block text-muted mt-1">كجم</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="text-center">
-                                            <span class="fw-bold h6 text-primary">@item.CurrentCountBalance</span>
-                                            <small class="d-block text-muted">وحدة</small>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        @if (!string.IsNullOrEmpty(item.Comment))
-                                        {
-                                            <span class="text-truncate d-inline-block" style="max-width: 120px;"
-                                                  data-bs-toggle="tooltip" title="@item.Comment">
-                                                <i class="fas fa-comment-alt text-info me-1"></i>
-                                                <small>@item.Comment</small>
-                                            </span>
-                                        }
-                                        else
-                                        {
-                                            <div class="text-center text-muted">
-                                                <i class="fas fa-minus"></i>
-                                            </div>
-                                        }
-                                    </td>
-                                    <td>
-                                        <div class="btn-group" role="group">
-                                            <a href="@Url.Action("Edit", new { id = item.Id })"
-                                               class="btn btn-sm btn-outline-primary" title="تعديل">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                            <button type="button" class="btn btn-sm btn-outline-danger delete-item"
-                                                    data-id="@item.Id" data-name="@item.Item" title="حذف">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            <!-- Enhanced Footer -->
-            <div class="card-footer bg-light border-top">
-                <div class="row align-items-center">
-                    
-                    <div class="col-lg-6 text-lg-end mt-2 mt-lg-0">
-                        <small class="text-muted">
-                            <span class="badge bg-primary me-1">@totalItems</span>إجمالي
-                            <span class="mx-2">•</span>
-                            <span class="badge bg-success me-1">@activeItems</span>نشطة
-                            <span class="mx-2">•</span>
-                            <span class="badge bg-info me-1">@withManufacturer</span>مع شركة
-                            <span class="mx-2">•</span>
-                            <span class="badge bg-warning me-1">@withOriginYarn</span>مع غزل مكون
-                        </small>
-                    </div>
-                </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                <button type="button" class="btn btn-danger" id="confirmDeleteButton">حذف</button>
             </div>
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+    <!-- Export Functions -->
+    <script>
+        function exportToExcel() {
+            try {
+                const table = document.getElementById('itemsTable');
+                const wb = XLSX.utils.book_new();
+                const wsData = [];
+
+                // Headers
+                wsData.push(['الصنف', 'الشركة المصنعة', 'الغزل المكون', 'الحالة', 'الرصيد الحالي', 'رصيد العدد']);
+
+                // Data rows
+                const visibleRows = table.querySelectorAll('tbody tr:not([style*="display: none"])');
+                visibleRows.forEach(row => {
+                    const cols = row.querySelectorAll('td');
+                    if (cols.length >= 6) {
+                        const rowData = [
+                            cols[0].querySelector('.fw-semibold').textContent.trim(),
+                            cols[1].textContent.trim(),
+                            cols[2].textContent.trim(),
+                            cols[3].textContent.trim(),
+                            cols[4].textContent.trim(),
+                            cols[5].textContent.trim()
+                        ];
+                        wsData.push(rowData);
+                    }
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                XLSX.utils.book_append_sheet(wb, ws, 'أصناف الغزل');
+                
+                const currentDate = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(wb, `أصناف_الغزل_${currentDate}.xlsx`);
+                
+                showNotification('تم تصدير البيانات بنجاح', 'success');
+            } catch (error) {
+                showNotification('حدث خطأ أثناء التصدير', 'error');
+            }
+        }
+
+        function printTable() {
+            window.print();
+        }
+    </script>
+
+    <!-- Main JavaScript -->
     <script>
         $(document).ready(function() {
-            const CURRENT_TIME = '2025-09-04 16:06:24';
-            const CURRENT_USER = 'Ammar-Yasser8';
-            const TOTAL_ITEMS = @totalItems;
+            // Replace existing "Add New" button with popup trigger (like original)
+            $('a[href*="Create"]').replaceWith(`
+                <button class="btn btn-success btn-sm" id="openCreateModal">
+                    <i class="fas fa-plus me-1"></i>إضافة جديد
+                </button>
+            `);
 
-            console.log('Enhanced Index page with Arabic numbers loaded at', CURRENT_TIME, 'by', CURRENT_USER, 'with', TOTAL_ITEMS, 'items');
+            const yarnItemModal = new bootstrap.Modal(document.getElementById('yarnItemModal'));
+            const detailsModal = new bootstrap.Modal(document.getElementById('yarnDetailsModal'));
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+            
+            let isEditMode = false;
+            let availableManufacturers = [];
+            let availableOriginYarns = [];
+            let currentItemId = null;
 
-            // Arabic number conversion functions
+            // Number conversion functions (restored from original)
             function toArabicDigits(str) {
                 if (typeof str !== 'string') return str;
                 return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
@@ -556,799 +510,882 @@
                 return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
             }
 
-            function isArabicChar(c) {
-                return /[\u0600-\u06FF]/.test(c);
+            function containsArabic(str) {
+                return /[\u0600-\u06FF]/.test(str);
             }
 
-            function isEnglishChar(c) {
-                return /[a-zA-Z]/.test(c);
-            }
-
-            function getLastLetter(str) {
+            function shouldUseArabicNumbers(str) {
                 if (!str || str.trim().length === 0) {
-                    return 'arabic';
+                    return true; // Default Arabic when empty
                 }
-
-                for (let i = str.length - 1; i >= 0; i--) {
-                    let char = str[i];
-                    if (isArabicChar(char)) {
-                        return 'arabic';
-                    } else if (isEnglishChar(char)) {
-                        return 'english';
-                    }
+                if (containsArabic(str)) {
+                    return true;
                 }
-                return 'arabic'; // default is Arabic
+                if (/^[0-9٠-٩]+$/.test(str)) {
+                    return true;
+                }
+                return false;
             }
 
-            // Apply Arabic number conversion to all search inputs
-            function applyNumberConversion($input) {
+            function applySmartNumberConversion($input) {
                 let val = $input.val();
+                let useArabicNumbers = shouldUseArabicNumbers(val || "");
+                let newVal = useArabicNumbers ? toArabicDigits(val || "") : toLatinDigits(val || "");
 
-                if (val && val.length > 0) {
-                    let lastLetterLang = getLastLetter(val);
-                    let newVal = lastLetterLang === 'arabic' ? toArabicDigits(val) : toLatinDigits(val);
-
-                    if (newVal !== val) {
-                        let cursorPos = $input[0].selectionStart;
-                        $input.val(newVal);
-                        try {
-                            $input[0].setSelectionRange(cursorPos, cursorPos);
-                        } catch (ex) {
-                            $input.focus();
-                        }
+                if (newVal !== val) {
+                    let cursorPos = $input[0].selectionStart || 0;
+                    $input.val(newVal);
+                    try {
+                        $input[0].setSelectionRange(cursorPos, cursorPos);
+                    } catch (ex) {
+                        $input.focus();
                     }
                 }
             }
 
-            // Enhanced search input event handler with Arabic support
-            $(document).on("input keyup paste", ".column-search-input, #globalSearch, #mobileGlobalSearch, .mobile-search-input", function(e) {
-                const $input = $(this);
-
-                // Skip number conversion for count balance field (should stay as entered)
-                if ($input.attr('id') !== 'searchCountBalance') {
-                    applyNumberConversion($input);
-                }
+            // Apply number conversion on inputs
+            $(document).on("input keyup paste", "input[type='text'], textarea, .smart-number", function () {
+                applySmartNumberConversion($(this));
             });
 
-            // Direct number key conversion for immediate Arabic conversion
-            $(document).on("keypress", ".column-search-input, #globalSearch, #mobileGlobalSearch, .mobile-search-input", function(e) {
-                const $input = $(this);
-
-                // Skip conversion for count balance field
-                if ($input.attr('id') === 'searchCountBalance') {
-                    return;
-                }
-
-                // Convert English digits to Arabic immediately
-                if (e.which >= 48 && e.which <= 57) { // 0-9
-                    e.preventDefault();
-                    let digit = String.fromCharCode(e.which);
-                    let arabicDigit = toArabicDigits(digit);
-
-                    let input = e.target;
-                    let cursorPos = input.selectionStart || 0;
-                    let currentValue = input.value;
-
-                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
-                    input.value = newValue;
-
-                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
-
-                    // Trigger search
-                    $input.trigger('input');
-                }
+            // Instant Search Implementation
+            $('.instant-search, #mobileGlobalSearch').on('input keyup', function() {
+                performInstantSearch();
             });
 
-            // Initialize enhanced search functionality
-            let activeSearches = {};
-            let filteredRows = [];
+            function performInstantSearch() {
+                const searchValues = {};
+                
+                // Get desktop search values
+                $('.instant-search').each(function() {
+                    const column = $(this).data('column');
+                    const value = $(this).val().toLowerCase().trim();
+                    if (value) searchValues[column] = value;
+                });
 
-            // Column search functionality with Arabic number support
-            $('.column-search-input').on('input change', function() {
-                const $input = $(this);
-                const column = $input.data('column');
-                const value = $input.val().toLowerCase().trim();
-                const inputId = $input.attr('id');
+                // Get mobile search value
+                const mobileSearch = $('#mobileGlobalSearch').val().toLowerCase().trim();
+                
+                let visibleCount = 0;
 
-                // Update visual indicators
-                if (value) {
-                    $input.addClass('has-value');
-                    activeSearches[inputId] = {
-                        column: column,
-                        value: value,
-                        label: getSearchLabel(inputId, value)
-                    };
-                } else {
-                    $input.removeClass('has-value');
-                    delete activeSearches[inputId];
-                }
-
-                // Apply all filters
-                applyColumnFilters();
-                updateSearchSummary();
-                updateVisibleCount();
-            });
-
-            // Clear individual search
-            $('.search-clear-btn').click(function() {
-                const targetId = $(this).data('target');
-                const $input = $('#' + targetId);
-                $input.val('').removeClass('has-value').trigger('input');
-            });
-
-            // Clear all column searches
-            $('#clearColumnSearches, #clearAllSearches, #clearAllFilters').click(function() {
-                $('.column-search-input').val('').removeClass('has-value');
-                activeSearches = {};
-                applyColumnFilters();
-                updateSearchSummary();
-                updateVisibleCount();
-            });
-
-            // Enhanced global search with Arabic number support
-            $('#globalSearch, #mobileGlobalSearch').on('input', function() {
-                const searchTerm = $(this).val().toLowerCase().trim();
-                const searchTermLatin = toLatinDigits(searchTerm);
-                const searchTermArabic = toArabicDigits(searchTerm);
-
-                if (searchTerm === '') {
-                    $('#itemsTable tbody tr, .mobile-item-card').show();
-                } else {
-                    // Filter desktop table
-                    $('#itemsTable tbody tr').each(function() {
-                        const $row = $(this);
-                        const searchContent = $row.data('search-content').toLowerCase();
-
-                        // Check for matches with original, Latin, and Arabic versions
-                        if (searchContent.includes(searchTerm) ||
-                            searchContent.includes(searchTermLatin) ||
-                            searchContent.includes(searchTermArabic)) {
-                            $row.show();
-                        } else {
-                            $row.hide();
-                        }
-                    });
-
-                    // Filter mobile cards
-                    $('.mobile-item-card').each(function() {
-                        const $card = $(this);
-                        const searchContent = $card.data('search-content').toLowerCase();
-
-                        if (searchContent.includes(searchTerm) ||
-                            searchContent.includes(searchTermLatin) ||
-                            searchContent.includes(searchTermArabic)) {
-                            $card.show();
-                        } else {
-                            $card.hide();
-                        }
-                    });
-                }
-
-                updateVisibleCount();
-            });
-
-            // Mobile search controls with Arabic support
-            $('#mobileItemSearch').on('input', function() {
-                applyNumberConversion($(this));
-                $('#searchItem').val($(this).val()).trigger('input');
-            });
-
-            $('#mobileManufacturerSearch').on('input', function() {
-                applyNumberConversion($(this));
-                $('#searchManufacturer').val($(this).val()).trigger('input');
-            });
-
-            $('#mobileOriginSearch').on('input', function() {
-                applyNumberConversion($(this));
-                $('#searchOriginYarn').val($(this).val()).trigger('input');
-            });
-
-            $('#mobileStatusSearch').on('change', function() {
-                $('#searchStatus').val($(this).val()).trigger('change');
-            });
-
-            // Enhanced filter matching with Arabic number support
-            function matchesFilter($element, search) {
-                const column = search.column;
-                const value = search.value;
-                const valueLatin = toLatinDigits(value);
-                const valueArabic = toArabicDigits(value);
-
-                switch(column) {
-                    case 0: // Item name
-                        const itemText = $element.find('td:eq(0)').text().toLowerCase() || $element.find('.card-title').text().toLowerCase();
-                        return itemText.includes(value) || itemText.includes(valueLatin) || itemText.includes(valueArabic);
-
-                    case 1: // Manufacturer
-                        const manufacturerText = $element.find('td:eq(1)').text().toLowerCase() || $element.data('search-content').toLowerCase();
-                        return manufacturerText.includes(value) || manufacturerText.includes(valueLatin) || manufacturerText.includes(valueArabic) ||
-                               (value === '' && manufacturerText.includes('غير محدد'));
-
-                    case 2: // Origin yarn
-                        const originText = $element.find('td:eq(2)').text().toLowerCase() || $element.data('search-content').toLowerCase();
-                        return originText.includes(value) || originText.includes(valueLatin) || originText.includes(valueArabic) ||
-                               (value === '' && originText.includes('غير محدد'));
-
-                    case 3: // Status
-                        const status = $element.data('status');
-                        if (value === 'نشط') return status === 'active';
-                        if (value === 'غير نشط') return status === 'inactive';
-                        return true;
-
-                    case 4: // Balance
-                        const balance = parseFloat($element.data('balance')) || 0;
-                        switch(value) {
-                            case 'zero': return balance <= 0;
-                            case 'low': return balance > 0 && balance <= 10;
-                            case 'medium': return balance > 10 && balance <= 100;
-                            case 'high': return balance > 100;
-                            default: return true;
-                        }
-
-                    case 5: // Count balance - enhanced with Arabic number support
-                        const countBalanceText = $element.find('td:eq(5)').text().toLowerCase();
-                        const countBalanceNumber = parseFloat(toLatinDigits(value));
-
-                        if (!isNaN(countBalanceNumber)) {
-                            // Extract number from count balance text
-                            const elementCountBalance = parseFloat($element.find('td:eq(5) .h6').text() || '0');
-                            return elementCountBalance === countBalanceNumber;
-                        } else {
-                            return countBalanceText.includes(value) || countBalanceText.includes(valueLatin) || countBalanceText.includes(valueArabic);
-                        }
-
-                    case 6: // Comment
-                        const commentText = $element.find('td:eq(6)').text().toLowerCase() || $element.data('search-content').toLowerCase();
-                        return commentText.includes(value) || commentText.includes(valueLatin) || commentText.includes(valueArabic);
-
-                    default:
-                        return true;
-                }
-            }
-
-            // Apply column filters function
-            function applyColumnFilters() {
-                if (Object.keys(activeSearches).length === 0) {
-                    $('#itemsTable tbody tr, .mobile-item-card').show();
-                    return;
-                }
-
-                // Filter desktop table
+                // Filter table rows (desktop)
                 $('#itemsTable tbody tr').each(function() {
                     const $row = $(this);
                     let showRow = true;
 
-                    for (let searchId in activeSearches) {
-                        const search = activeSearches[searchId];
-                        if (!matchesFilter($row, search)) {
-                            showRow = false;
-                            break;
+                    // Check each column search
+                    Object.keys(searchValues).forEach(column => {
+                        const searchValue = searchValues[column];
+                        const cellText = $row.find(`td:eq(${column})`).text().toLowerCase();
+                        
+                        if (column == '4') { // Balance column
+                            const balance = parseFloat($row.data('balance') || 0);
+                            if (searchValue === 'zero' && balance > 0) showRow = false;
+                            else if (searchValue === 'low' && (balance <= 0 || balance > 10)) showRow = false;
+                            else if (searchValue === 'high' && balance <= 100) showRow = false;
+                        } else {
+                            if (!cellText.includes(searchValue)) showRow = false;
                         }
-                    }
+                    });
 
-                    if (showRow) {
-                        $row.show();
-                    } else {
-                        $row.hide();
-                    }
+                    $row.toggle(showRow);
+                    if (showRow) visibleCount++;
                 });
 
                 // Filter mobile cards
                 $('.mobile-item-card').each(function() {
                     const $card = $(this);
-                    let showCard = true;
+                    const searchContent = $card.data('search-content').toLowerCase();
+                    const showCard = !mobileSearch || searchContent.includes(mobileSearch);
+                    $card.toggle(showCard);
+                });
 
-                    for (let searchId in activeSearches) {
-                        const search = activeSearches[searchId];
-                        if (!matchesFilter($card, search)) {
-                            showCard = false;
-                            break;
+                $('#visibleCount').text(visibleCount);
+            }
+
+            // Clear all filters
+            $('#clearAllFilters, #clearAllSearches').click(function() {
+                $('.instant-search, #mobileGlobalSearch').val('');
+                $('#itemsTable tbody tr, .mobile-item-card').show();
+                $('#visibleCount').text(@totalItems);
+            });
+
+            // Replace edit links with popup triggers (restored from original)
+            $(document).on('click', 'a[href*="Edit"]', function(e) {
+                e.preventDefault();
+                const href = $(this).attr('href');
+                const id = href.split('/').pop();
+                openEditModal(parseInt(id));
+            });
+
+            // Add detail view triggers (restored from original)
+            $(document).on('click', '.view-details', function(e) {
+                e.preventDefault();
+                const id = $(this).data('id');
+                if (id) {
+                    openDetailsModal(id);
+                }
+            });
+
+            // Modal handlers
+            $('#openCreateModal').click(function() {
+                openCreateModal();
+            });
+
+            $(document).on('click', '.edit-btn', function() {
+                const itemId = $(this).data('id');
+                openEditModal(itemId);
+            });
+
+            $(document).on('click', '.delete-item', function() {
+                const itemId = $(this).data('id');
+                const itemName = $(this).data('name');
+                showDeleteConfirm(itemId, itemName);
+            });
+
+            // Open create modal function (restored from original)
+            function openCreateModal() {
+                isEditMode = false;
+                currentItemId = null;
+                resetForm();
+                updateModalTitle('إضافة صنف غزل جديد', 'fa-plus-circle', 'bg-success');
+                loadDataAndShowModal();
+            }
+
+            // Open edit modal function (restored from original)
+            function openEditModal(itemId) {
+                isEditMode = true;
+                currentItemId = itemId;
+                resetForm();
+                updateModalTitle('تعديل صنف الغزل', 'fa-edit', 'bg-primary');
+                loadItemForEdit(itemId);
+            }
+
+            // Open details modal (restored from original)
+            function openDetailsModal(itemId) {
+                currentItemId = itemId;
+                loadItemDetails(itemId);
+            }
+
+            // Update modal title and styling (restored from original)
+            function updateModalTitle(title, iconClass, bgClass) {
+                $('#modalTitle').text(title);
+                $('#modalIcon').removeClass().addClass(`fas ${iconClass} me-2`);
+                $('.modal-header').removeClass('bg-success bg-primary bg-warning').addClass(bgClass);
+                $('#saveButton').html(`<i class="fas fa-save me-1"></i>${isEditMode ? 'تحديث الصنف' : 'حفظ الصنف'}`);
+            }
+
+            // Load item details (restored from original)
+            function loadItemDetails(itemId) {
+                $('#detailsContent').html(`
+                    <div class="text-center py-4">
+                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                        <div class="text-muted">جاري تحميل التفاصيل...</div>
+                    </div>
+                `);
+                detailsModal.show();
+
+                // Extract details from existing table row
+                const row = $(`tr:has([data-id="${itemId}"])`);
+                if (row.length) {
+                    const itemName = row.find('.fw-semibold, .fw-bold').first().text().trim();
+                    const status = row.data('status') === 'active';
+                    const manufacturer = row.find('td:eq(1)').text().trim() || 'غير محدد';
+                    const originYarn = row.find('td:eq(2)').text().trim() || 'غير محدد';
+                    const balance = row.find('td:eq(4) .fw-bold').text().trim() + ' كجم';
+                    const countBalance = row.find('td:eq(5) .fw-bold').text().trim();
+                    const comment = row.find('small').text().trim() || 'لا يوجد بيان';
+
+                    const detailsHtml = `
+                        <div class="p-4">
+                            <!-- Header -->
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center p-3 bg-light rounded">
+                                        <div class="icon-circle bg-primary text-white me-3">
+                                            <i class="fas fa-box fa-2x"></i>
+                                        </div>
+                                        <div>
+                                            <h4 class="mb-1 fw-bold text-dark">${itemName}</h4>
+                                            <span class="badge bg-${status ? 'success' : 'secondary'} px-3 py-2">
+                                                <i class="fas fa-${status ? 'check' : 'times'} me-1"></i>
+                                                ${status ? 'نشط' : 'غير نشط'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Details Grid -->
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-success">
+                                                <i class="fas fa-industry me-2"></i>الشركة المصنعة
+                                            </h6>
+                                            <p class="card-text">${manufacturer}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-info">
+                                                <i class="fas fa-link me-2"></i>الغزل المكون
+                                            </h6>
+                                            <p class="card-text">${originYarn}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-warning">
+                                                <i class="fas fa-calculator me-2"></i>الرصيد الحالي
+                                            </h6>
+                                            <p class="card-text fs-5 fw-bold">${balance}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card h-100">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-primary">
+                                                <i class="fas fa-hashtag me-2"></i>رصيد العدد
+                                            </h6>
+                                            <p class="card-text fs-5 fw-bold">${countBalance} وحدة</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h6 class="card-title text-secondary">
+                                                <i class="fas fa-comment-alt me-2"></i>البيان والملاحظات
+                                            </h6>
+                                            <p class="card-text">${comment}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    $('#detailsContent').html(detailsHtml);
+                }
+            }
+
+            // Edit from details (restored from original)
+            $('#editFromDetails').click(function() {
+                detailsModal.hide();
+                if (currentItemId) {
+                    setTimeout(() => openEditModal(currentItemId), 300);
+                }
+            });
+
+            // Delete from details (restored from original)
+            $('#deleteFromDetails').click(function() {
+                detailsModal.hide();
+                if (currentItemId) {
+                    setTimeout(() => showDeleteConfirm(currentItemId), 300);
+                }
+            });
+
+            // Reset form
+            function resetForm() {
+                $('#yarnItemForm')[0].reset();
+                $('#yarnItemId').val('0');
+                $('#yarnItemStatus').prop('checked', true);
+                $('#manufacturersContainer').empty();
+                $('#originYarnSelect').empty().append('<option value="">-- اختياري --</option>');
+            }
+
+            // Load data and show modal
+            function loadDataAndShowModal() {
+                Promise.all([loadManufacturers(), loadOriginYarns()])
+                .then(() => yarnItemModal.show())
+                .catch(() => showNotification('حدث خطأ أثناء تحميل البيانات', 'error'));
+            }
+
+            // Load manufacturers (restored original logic)
+            function loadManufacturers() {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: '/api/YarnItems/GetManufacturers',
+                        method: 'GET',
+                        success: function(response) {
+                            if (response.success) {
+                                availableManufacturers = response.data;
+                                renderManufacturers();
+                                resolve();
+                            } else {
+                                reject('Failed to load manufacturers');
+                            }
+                        },
+                        error: function() {
+                            // Fallback with mock data
+                            availableManufacturers = [
+                                {id: 1, name: 'الشركة الأولى للغزل', status: true},
+                                {id: 2, name: 'مصانع النسيج المتطورة', status: true},
+                                {id: 3, name: 'شركة الغزل الذهبي', status: true}
+                            ];
+                            renderManufacturers();
+                            resolve();
                         }
-                    }
+                    });
+                });
+            }
 
-                    if (showCard) {
-                        $card.show();
+            // Load origin yarns (restored original logic)
+            function loadOriginYarns(excludeId = null) {
+                return new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: '/api/YarnItems/GetOriginYarns',
+                        method: 'GET',
+                        data: excludeId ? { excludeId: excludeId } : {},
+                        success: function(response) {
+                            if (response.success) {
+                                availableOriginYarns = response.data;
+                                renderOriginYarns();
+                                resolve();
+                            } else {
+                                reject('Failed to load origin yarns');
+                            }
+                        },
+                        error: function() {
+                            reject('Failed to load origin yarns');
+                        }
+                    });
+                });
+            }
+
+            // Render manufacturers (enhanced from original)
+            function renderManufacturers() {
+                const container = $('#manufacturersContainer');
+                container.empty();
+                
+                availableManufacturers.forEach(manufacturer => {
+                    if (manufacturer.status) {
+                        const checkboxHtml = `
+                            <div class="form-check form-check-sm">
+                                <input class="form-check-input manufacturer-checkbox" type="checkbox" 
+                                       value="${manufacturer.id}" id="manufacturer_${manufacturer.id}" name="ManufacturerIds">
+                                <label class="form-check-label small" for="manufacturer_${manufacturer.id}">
+                                    ${manufacturer.name}
+                                </label>
+                            </div>
+                        `;
+                        container.append(checkboxHtml);
+                    }
+                });
+
+                // Add event listeners
+                $('.manufacturer-checkbox').on('change', updateSelectedManufacturers);
+            }
+
+            // Update selected manufacturers count
+            function updateSelectedManufacturers() {
+                const selectedCount = $('.manufacturer-checkbox:checked').length;
+                // Visual feedback could be added here
+            }
+
+            // Render origin yarns (restored original)
+            function renderOriginYarns() {
+                const select = $('#originYarnSelect');
+                select.empty().append('<option value="">-- اختر الغزل المكون --</option>');
+
+                availableOriginYarns.forEach(yarn => {
+                    select.append(`<option value="${yarn.value}">${yarn.text}</option>`);
+                });
+            }
+
+            // Load item for edit (restored original complex logic)
+            function loadItemForEdit(itemId) {
+                $('#formLoading').show();
+
+                Promise.all([
+                    loadManufacturers(),
+                    loadOriginYarns(itemId),
+                    loadItemData(itemId)
+                ]).then(() => {
+                    $('#formLoading').hide();
+                    yarnItemModal.show();
+                }).catch(error => {
+                    $('#formLoading').hide();
+                    showNotification('حدث خطأ أثناء تحميل بيانات الصنف', 'error');
+                    console.error('Error loading item data:', error);
+                });
+            }
+
+            // Load item data (restored original with API fallback)
+            function loadItemData(itemId) {
+                return new Promise((resolve, reject) => {
+                    // Try to find in DOM first
+                    const row = $(`tr[data-id="${itemId}"], .mobile-item-card[data-id="${itemId}"]`);
+                    if (row.length) {
+                        // Extract data from DOM
+                        const itemName = row.find('.fw-bold, .fw-semibold').first().text().trim();
+                        const status = row.data('status') === 'active';
+                        const comment = row.find('[title]').attr('title') || 
+                                       row.find('small').text().trim() || '';
+
+                        // Populate form
+                        $('#yarnItemId').val(itemId);
+                        $('#yarnItemName').val(itemName);
+                        $('#yarnItemStatus').prop('checked', status);
+                        $('#yarnItemComment').val(comment);
+
+                        updateStatusText();
+                        resolve();
                     } else {
-                        $card.hide();
+                        // Fallback: API call
+                               $.ajax({
+            url: `/api/YarnItems/${itemId}`,   // ✅ Correct
+            method: 'GET',
+            success: function (response) {
+                if (response.success) {
+                    const item = response.data;
+
+                    $('#yarnItemId').val(item.id);
+                    $('#yarnItemName').val(item.item);
+                    $('#yarnItemStatus').prop('checked', item.status);
+                    $('#yarnItemComment').val(item.comment);
+
+                    updateStatusText();
+                    resolve();
+                } else {
+                    reject(response.message || 'Failed to load item from API');
+                }
+            },
+            error: function () {
+                reject('API error loading item');
+            }
+        });
+
                     }
                 });
             }
 
-            // Get search label for summary with Arabic numbers
-            function getSearchLabel(inputId, value) {
-                const labels = {
-                    'searchItem': `الصنف: "${value}"`,
-                    'searchManufacturer': `الشركة: "${value}"`,
-                    'searchOriginYarn': `الغزل المكون: "${value}"`,
-                    'searchStatus': `الحالة: ${value}`,
-                    'searchBalance': getBalanceLabel(value),
-                    'searchCountBalance': `رصيد العدد: ${toArabicDigits(value)}`,
-                    'searchComment': `البيان: "${value}"`
-                };
-                return labels[inputId] || `"${value}"`;
+            // Status switch handler (restored)
+            $('#yarnItemStatus').change(function() {
+                updateStatusText();
+            });
+
+            function updateStatusText() {
+                const isActive = $('#yarnItemStatus').prop('checked');
+                $('.status-text').text(isActive ? 'نشط' : 'غير نشط');
             }
 
-            // Get balance label
-            function getBalanceLabel(value) {
-                const labels = {
-                    'zero': 'بدون رصيد',
-                    'low': 'رصيد منخفض',
-                    'medium': 'رصيد متوسط',
-                    'high': 'رصيد عالي'
-                };
-                return `الرصيد: ${labels[value] || value}`;
+            // Add select/clear all manufacturers buttons functionality
+            $(document).on('click', '#selectAllManufacturers', function() {
+                $('.manufacturer-checkbox').prop('checked', true);
+                updateSelectedManufacturers();
+            });
+
+            $(document).on('click', '#clearAllManufacturers', function() {
+                $('.manufacturer-checkbox').prop('checked', false);
+                updateSelectedManufacturers();
+            });
+
+            // Refresh origin yarns functionality
+            $(document).on('click', '#refreshOriginYarns', function() {
+                const btn = $(this);
+                const originalHtml = btn.html();
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+                loadOriginYarns(isEditMode ? currentItemId : null).then(() => {
+                    btn.prop('disabled', false).html(originalHtml);
+                    showNotification('تم تحديث قائمة الغزل المكون بنجاح', 'success');
+                }).catch(() => {
+                    btn.prop('disabled', false).html(originalHtml);
+                    showNotification('فشل في تحديث قائمة الغزل المكون', 'error');
+                });
+            });
+
+            // Show delete confirmation
+            function showDeleteConfirm(itemId, itemName) {
+                $('#deleteItemId').val(itemId);
+                $('#deleteItemName').text(itemName);
+                deleteModal.show();
             }
 
-            // Update search summary
-            function updateSearchSummary() {
-                const $summary = $('#searchSummary');
-                const $tags = $('#searchTags');
+            // Form submission (restored original with full validation and conversion)
+            $('#yarnItemForm').submit(function(e) {
+                e.preventDefault();
+                clearValidationErrors();
 
-                if (Object.keys(activeSearches).length === 0) {
-                    $summary.removeClass('active');
+                const formData = {
+                    Id: parseInt($('#yarnItemId').val()) || 0,
+                    Item: $('#yarnItemName').val().trim(),
+                    Status: $('#yarnItemStatus').prop('checked'),
+                    Comment: $('#yarnItemComment').val().trim(),
+                    OriginYarnId: $('#originYarnSelect').val() ? parseInt($('#originYarnSelect').val()) : null,
+                    ManufacturerIds: $('.manufacturer-checkbox:checked').map(function() {
+                        return parseInt($(this).val());
+                    }).get()
+                };
+
+                // Client-side validation
+                if (!formData.Item) {
+                    showFieldError('yarnItemName', 'itemError', 'اسم الصنف مطلوب');
                     return;
                 }
 
-                let tagsHtml = '';
-                for (let searchId in activeSearches) {
-                    const search = activeSearches[searchId];
-                    tagsHtml += `
-                        <span class="search-tag">
-                            ${search.label}
-                            <i class="fas fa-times remove-tag" data-search-id="${searchId}"></i>
-                        </span>
-                    `;
+                if (formData.Item.length > 200) {
+                    showFieldError('yarnItemName', 'itemError', 'اسم الصنف لا يمكن أن يزيد عن 200 حرف');
+                    return;
                 }
 
-                $tags.html(tagsHtml);
-                $summary.addClass('active');
-            }
+                // Convert Arabic numbers to English for server
+                formData.Item = toLatinDigits(formData.Item);
+                formData.Comment = toLatinDigits(formData.Comment);
 
-            // Remove search tag
-            $(document).on('click', '.remove-tag', function() {
-                const searchId = $(this).data('search-id');
-                $('#' + searchId).val('').removeClass('has-value').trigger('input');
+                // Show loading state
+                const saveButton = $('#saveButton');
+                const originalText = saveButton.html();
+                saveButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+
+                            $.ajax({
+            url: isEditMode ? `/YarnItems/Edit/${formData.Id}` : '/YarnItems/Create',
+            method: 'POST',
+            data: $.param(formData, true),   // ← يخلي ManufacturerIds[]=1&ManufacturerIds[]=2
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function (response) {
+                saveButton.prop('disabled', false).html(originalText);
+
+                if (response.success) {
+                    const successMessage = isEditMode
+                        ? `تم تحديث الصنف "${formData.Item}" بنجاح`
+                        : `تم إضافة الصنف "${formData.Item}" بنجاح`;
+
+                    showNotification(successMessage, 'success');
+                    yarnItemModal.hide();
+
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    handleValidationErrors(response);
+                }
+            },
+            error: function (xhr) {
+                saveButton.prop('disabled', false).html(originalText);
+
+                if (xhr.status === 400 && xhr.responseJSON) {
+                    handleValidationErrors(xhr.responseJSON);
+                } else {
+                    showNotification('حدث خطأ أثناء الحفظ', 'error');
+                }
+            }
+        });
+
+
             });
 
-            // Update visible count with Arabic numbers
-            function updateVisibleCount() {
-                const visibleDesktop = $('#itemsTable tbody tr:visible').length;
-                const visibleMobile = $('.mobile-item-card:visible').length;
-                const visible = Math.max(visibleDesktop, visibleMobile);
-                $('#visibleCount').text(toArabicDigits(visible.toString()));
+            // Handle validation errors (restored original)
+            function handleValidationErrors(response) {
+                if (response.errors) {
+                    Object.keys(response.errors).forEach(field => {
+                        const errors = response.errors[field];
+                        if (errors && errors.length > 0) {
+                            const fieldMap = {
+                                'Item': { input: 'yarnItemName', error: 'itemError' },
+                                'OriginYarnId': { input: 'originYarnSelect', error: 'originYarnError' },
+                                'ManufacturerIds': { input: '', error: '' }
+                            };
 
-                // Update sidebar stats with Arabic numbers
-                $('#sidebarTotalItems').text(toArabicDigits(TOTAL_ITEMS.toString()));
-                updateSidebarStats();
-            }
-
-            // Update sidebar stats with Arabic numbers
-            function updateSidebarStats() {
-                const visibleRows = $('#itemsTable tbody tr:visible, .mobile-item-card:visible');
-                let activeCount = 0;
-                let lowStockCount = 0;
-                let zeroStockCount = 0;
-
-                visibleRows.each(function() {
-                    const status = $(this).data('status');
-                    const balance = parseFloat($(this).data('balance')) || 0;
-
-                    if (status === 'active') activeCount++;
-                    if (balance <= 10 && balance > 0) lowStockCount++;
-                    if (balance <= 0) zeroStockCount++;
-                });
-
-                $('#sidebarActiveItems').text(toArabicDigits(activeCount.toString()));
-                $('#sidebarLowStock').text(toArabicDigits(lowStockCount.toString()));
-                $('#sidebarZeroStock').text(toArabicDigits(zeroStockCount.toString()));
-            }
-
-            // Refresh data functionality
-            $('#refreshData').click(function() {
-                const $btn = $(this);
-                const originalText = $btn.html();
-                $btn.prop('disabled', true)
-                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ التحديث...');
-
-                // Simulate refresh
-                setTimeout(() => {
-                    location.reload();
-                }, 1500);
-            });
-
-            // Delete functionality
-            $('.delete-item').click(function() {
-                const itemName = $(this).data('name');
-                const itemId = $(this).data('id');
-
-                if (confirm(`هل أنت متأكد من حذف الصنف "${itemName}"؟`)) {
-                    // Show loading state
-                    const $button = $(this);
-                    $button.prop('disabled', true)
-                           .html('<span class="spinner-border spinner-border-sm"></span>');
-
-                    // Call delete API endpoint
-                    $.ajax({
-                        url: `/api/YarnItems/${itemId}`,
-                        type: 'DELETE',
-                        success: function() {
-                            // Remove the row/card from UI
-                            const $row = $button.closest('tr');
-                            const $card = $button.closest('.mobile-item-card');
-
-                            $row.fadeOut(300, function() { $row.remove(); });
-                            $card.fadeOut(300, function() { $card.remove(); });
-
-                            // Show success message
-                            showAlert('success', `تم حذف الصنف "${itemName}" بنجاح`);
-
-                            // Update counts
-                            updateVisibleCount();
-                        },
-                        error: function(xhr) {
-                            // Show error message
-                            showAlert('danger', `فشل حذف الصنف "${itemName}". ${xhr.responseText || 'حدث خطأ ما'}`);
-
-                            // Reset button state
-                            $button.prop('disabled', false)
-                                   .html('<i class="fas fa-trash"></i>');
+                            const mapping = fieldMap[field];
+                            if (mapping && mapping.input) {
+                                showFieldError(mapping.input, mapping.error, errors[0]);
+                            }
                         }
                     });
                 }
+
+                if (response.message) {
+                    showNotification(response.message, 'error');
+                }
+            }
+
+            // Show field error
+            function showFieldError(fieldId, errorId, message) {
+                $(`#${fieldId}`).addClass('is-invalid');
+                if (errorId) {
+                    $(`#${errorId}`).text(message);
+                }
+            }
+
+            // Clear validation errors
+            function clearValidationErrors() {
+                $('.form-control, .form-select').removeClass('is-invalid');
+                $('.invalid-feedback').text('');
+            }
+
+            // Clear validation errors on input focus
+            $(document).on('focus', '.form-control, .form-select', function() {
+                $(this).removeClass('is-invalid');
+                const fieldName = $(this).attr('id');
+                if (fieldName) {
+                    const errorMap = {
+                        'yarnItemName': 'itemError',
+                        'originYarnSelect': 'originYarnError'
+                    };
+                    const errorId = errorMap[fieldName];
+                    if (errorId) {
+                        $(`#${errorId}`).text('');
+                    }
+                }
             });
 
-            // Helper function to show alerts
-            function showAlert(type, message) {
+            // Confirm delete
+            $('#confirmDeleteButton').click(function() {
+                const itemId = $('#deleteItemId').val();
+                const btn = $(this);
+                const originalText = btn.text();
+                
+                btn.prop('disabled', true).text('جاري الحذف...');
+
+                $.ajax({
+                    url: `/api/YarnItems/${itemId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        btn.prop('disabled', false).text(originalText);
+                        showNotification('تم حذف الصنف بنجاح', 'success');
+                        deleteModal.hide();
+                        
+                        $(`tr:has([data-id="${itemId}"])`).fadeOut(300, function() {
+                            $(this).remove();
+                            $('#visibleCount').text($('#itemsTable tbody tr:visible').length);
+                        });
+                        $(`.mobile-item-card[data-id="${itemId}"]`).fadeOut(300);
+                    },
+                    error: function() {
+                        btn.prop('disabled', false).text(originalText);
+                        showNotification('حدث خطأ أثناء حذف الصنف', 'error');
+                    }
+                });
+            });
+
+            // Modal hidden events (restored from original)
+            $('#yarnItemModal').on('hidden.bs.modal', function() {
+                resetForm();
+                currentItemId = null;
+            });
+
+            $('#yarnDetailsModal').on('hidden.bs.modal', function() {
+                currentItemId = null;
+            });
+
+            // Enhanced notification function (restored original with better positioning)
+            function showNotification(message, type = 'success') {
+                // Try to use existing notification system first
+                if (typeof showAlert === 'function') {
+                    const alertType = type === 'error' ? 'danger' : type;
+                    showAlert(alertType, message);
+                    return;
+                }
+
+                // Fallback notification system (enhanced)
+                const alertClass = type === 'error' ? 'alert-danger' :
+                                  type === 'warning' ? 'alert-warning' :
+                                  type === 'info' ? 'alert-info' : 'alert-success';
+
+                const icon = type === 'error' ? 'fa-exclamation-circle' :
+                            type === 'warning' ? 'fa-exclamation-triangle' :
+                            type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
+
                 const alertHtml = `
-                    <div class="alert alert-${type} alert-dismissible fade show mb-4 shadow-sm border-0">
+                    <div class="alert ${alertClass} alert-dismissible fade show mb-4 shadow-sm border-0 popup-notification position-fixed" 
+                         style="top: 20px; right: 20px; z-index: 1055; min-width: 300px; max-width: 400px;">
                         <div class="d-flex align-items-center">
-                            <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-3 fa-lg"></i>
+                            <i class="fas ${icon} me-3 fa-lg"></i>
                             <div>
-                                <strong>${type === 'success' ? 'نجح!' : 'خطأ!'}</strong>
+                                <strong>${type === 'error' ? 'خطأ!' : type === 'warning' ? 'تحذير!' : type === 'info' ? 'معلومة!' : 'نجح!'}</strong>
                                 <span class="ms-2">${message}</span>
                             </div>
                         </div>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>`;
 
-                $('.col-xl-9').prepend(alertHtml);
+                $('body').append(alertHtml);
 
-                // Auto-hide alert after 5 seconds
+                // Auto-hide after 5 seconds
                 setTimeout(() => {
-                    $('.alert').fadeOut(350, function() { $(this).remove(); });
+                    $('.popup-notification').fadeOut(350, function() {
+                        $(this).remove();
+                    });
                 }, 5000);
             }
 
-            // Initialize tooltips
-            $('[data-bs-toggle="tooltip"]').tooltip();
+            // Update visible count function
+            function updateVisibleCount() {
+                const visibleDesktop = $('#itemsTable tbody tr:visible').length;
+                const visibleMobile = $('.mobile-item-card:visible').length;
+                const total = Math.max(visibleDesktop, visibleMobile);
+                $('#visibleCount').text(total);
+            }
 
-            // Keyboard shortcuts
-            $(document).keydown(function(e) {
-                // Ctrl + F for search
-                if (e.ctrlKey && e.keyCode === 70) {
-                    e.preventDefault();
-                    $('#globalSearch').focus();
-                }
+            // Add loading indicator to form (for consistency with original)
+            function showFormLoading() {
+                const loadingHtml = `
+                    <div id="formLoading" class="text-center py-4 position-absolute w-100 h-100 d-flex align-items-center justify-content-center" 
+                         style="background: rgba(255,255,255,0.9); top: 0; left: 0; z-index: 1000;">
+                        <div>
+                            <div class="spinner-border text-primary mb-3" role="status">
+                                <span class="visually-hidden">جاري التحميل...</span>
+                            </div>
+                            <div class="text-muted">جاري تحميل البيانات...</div>
+                        </div>
+                    </div>
+                `;
+                $('.modal-body').append(loadingHtml);
+            }
 
-                // Ctrl + R for refresh
-                if (e.ctrlKey && e.keyCode === 82) {
-                    e.preventDefault();
-                    $('#refreshData').click();
-                }
+            function hideFormLoading() {
+                $('#formLoading').remove();
+            }
 
-                // Escape to clear searches
-                if (e.keyCode === 27) {
-                    $('#clearAllSearches').click();
-                }
-            });
-
-            // Auto-hide alerts
-            $('.alert').each(function() {
-                const alert = $(this);
-                setTimeout(() => {
-                    alert.fadeOut(350);
-                }, 5000);
-            });
-
-            // Initialize stats with Arabic numbers
-            updateVisibleCount();
-
-            console.log('Enhanced search functionality with Arabic numbers initialized successfully');
+            console.log('Simplified YarnItems system initialized');
         });
     </script>
+
     <style>
-        /* Enhanced Custom Styles */
-        .bg-gradient-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        /* Compact Styles */
+        .card-header {
+            padding: 0.75rem 1rem;
+        }
+        
+        .search-row th {
+            padding: 0.25rem;
         }
 
-        .bg-gradient-info {
-            background: linear-gradient(135deg, #36d1dc 0%, #5b86e5 100%);
+        .search-row input, .search-row select {
+            border: 1px solid #dee2e6;
+            font-size: 0.875rem;
         }
 
-        .bg-gradient-dark {
-            background: linear-gradient(135deg, #232526 0%, #414345 100%);
+        .table-sm td {
+            padding: 0.5rem 0.25rem;
+            vertical-align: middle;
         }
 
-        .bg-gradient-danger {
-            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
         }
 
-        .icon-circle {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.2rem;
+        .mobile-item-card:hover {
+            background-color: rgba(0, 123, 255, 0.02);
         }
 
-        .stat-card {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
+        .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.775rem;
         }
 
-            .stat-card::before {
-                content: '';
+        .badge {
+            font-size: 0.7rem;
+        }
+
+        /* Modal Improvements */
+        .modal-dialog {
+            margin: 1rem;
+        }
+
+        .form-check-sm {
+            margin-bottom: 0.25rem;
+        }
+
+        .form-check-sm .form-check-input {
+            margin-top: 0.15rem;
+        }
+
+        .form-check-sm .form-check-label {
+            font-size: 0.875rem;
+        }
+
+        /* Responsive adjustments */
+        @@media (max-width: 768px) {
+            .modal-lg {
+                max-width: 95%;
+                margin: 0.5rem;
+            }
+            
+            .mobile-item-card {
+                margin: 0.5rem;
+                border-radius: 0.375rem;
+            }
+
+            .btn-group .btn {
+                padding: 0.375rem 0.5rem;
+                font-size: 0.8rem;
+            }
+        }
+
+        /* Print styles */
+        @@media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            .card, .card * {
+                visibility: visible;
+            }
+            
+            .card {
                 position: absolute;
                 top: 0;
-                left: -100%;
+                left: 0;
                 width: 100%;
-                height: 100%;
-                background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-                transition: left 0.5s;
             }
-
-            .stat-card:hover::before {
-                left: 100%;
+            
+            .card-header, .card-footer {
+                background: white !important;
             }
-
-            .stat-card:hover {
-                transform: translateY(-5px) scale(1.02);
-                box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-                border-color: rgba(0,123,255,0.3);
+            
+            .search-row {
+                display: none !important;
             }
-
-        .text-purple {
-            color: #6f42c1 !important;
-        }
-
-        .text-orange {
-            color: #fd7e14 !important;
-        }
-
-        .table-row-hover {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            cursor: pointer;
-        }
-
-            .table-row-hover:hover {
-                background: linear-gradient(135deg, rgba(0,123,255,0.05) 0%, rgba(0,123,255,0.1) 100%);
-                transform: scale(1.01);
-                box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+            
+            .btn-group {
+                display: none !important;
             }
-
-        .table th {
-            background: linear-gradient(135deg, #343a40 0%, #495057 100%);
-            border-bottom: 3px solid #6c757d;
-            font-weight: 600;
-            vertical-align: middle;
-            position: sticky;
-            top: 0;
-            z-index: 10;
         }
 
-        /* Inline Search Styles */
-        .column-search-row {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-bottom: 2px solid #dee2e6;
-        }
-
-            .column-search-row th {
-                padding: 8px 6px;
-                background: transparent;
-                border-bottom: none;
-                position: relative;
-            }
-
-        .column-search-input {
-            width: 100%;
-            height: 32px;
-            border: 1px solid #ced4da;
-            border-radius: 6px;
-            padding: 4px 8px;
-            font-size: 0.85rem;
-            transition: all 0.3s ease;
-            background: rgba(255,255,255,0.9);
-        }
-
-            .column-search-input:focus {
-                border-color: #0d6efd;
-                box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
-                background: white;
-                outline: none;
-            }
-
-            .column-search-input.has-value {
-                border-color: #28a745;
-                background: rgba(40, 167, 69, 0.05);
-            }
-
-        .search-clear-btn {
-            position: absolute;
-            right: 20px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: #6c757d;
-            font-size: 0.8rem;
-            cursor: pointer;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: 5;
-        }
-
-        .column-search-input.has-value + .search-clear-btn {
-            opacity: 1;
-        }
-
-        .search-clear-btn:hover {
-            color: #dc3545;
+        /* Animation for smooth filtering */
+        .table-row {
+            transition: opacity 0.2s ease;
         }
 
         .mobile-item-card {
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border-left: 4px solid #007bff;
-            position: relative;
-            overflow: hidden;
+            transition: opacity 0.2s ease;
         }
 
-            .mobile-item-card:hover {
-                box-shadow: 0 8px 25px rgba(0,0,0,0.12);
-                transform: translateY(-3px) scale(1.01);
-                border-left-width: 6px;
-            }
+        /* Status indicator colors */
+        .text-success { color: #198754 !important; }
+        .text-danger { color: #dc3545 !important; }
+        .text-warning { color: #fd7e14 !important; }
+        .text-info { color: #0dcaf0 !important; }
+        .text-muted { color: #6c757d !important; }
 
-        .border-start-primary {
-            border-left: 4px solid #0d6efd !important;
+        /* Notification positioning */
+        .alert.position-fixed {
+            max-width: 400px;
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
 
-        .search-status-indicator {
-            position: absolute;
-            top: -2px;
-            right: -2px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #28a745;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+        /* Form validation */
+        .is-invalid {
+            border-color: #dc3545;
         }
 
-        .column-search-input.has-value ~ .search-status-indicator {
-            opacity: 1;
-        }
-
-        /* Search summary bar */
-        .search-summary {
-            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
-            border: 1px solid #2196f3;
-            border-radius: 8px;
-            padding: 8px 16px;
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-            .search-summary.active {
-                display: block;
-                animation: slideDown 0.3s ease;
-            }
-
-        @@keyframes slideDown {
-            from
-
-        {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
-        }
-
-        .search-tag {
-            display: inline-block;
-            background: #2196f3;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 20px;
-            margin: 2px;
-            font-size: 0.8rem;
-            font-weight: 500;
-        }
-
-            .search-tag .remove-tag {
-                margin-left: 8px;
-                cursor: pointer;
-                opacity: 0.7;
-                transition: opacity 0.3s ease;
-            }
-
-                .search-tag .remove-tag:hover {
-                    opacity: 1;
-                }
-
-        /* Mobile search controls */
-        .mobile-search-controls {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .mobile-search-input {
-            margin-bottom: 0.5rem;
-        }
-
-        .table td {
-            vertical-align: middle;
-            padding: 1.2rem 0.8rem;
-        }
-
-        .item-icon, .manufacturer-icon, .origin-icon {
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .info-item {
-            padding: 8px 0;
-            border-bottom: 1px solid rgba(0,0,0,0.05);
-        }
-
-            .info-item:last-child {
-                border-bottom: none;
-            }
-
-        /* Responsive adjustments */
-        @@media (max-width: 991.98px) {
-            .column-search-input
-
-        {
-            font-size: 0.8rem;
-            height: 28px;
-            padding: 2px 6px;
-        }
-
-        }
-
-        @@media (max-width: 767.98px) {
-            .mobile-item-card
-
-        {
-            margin: 0.5rem !important;
-        }
-
-        .btn-group {
-            flex-direction: column;
-            width: 100%;
-        }
-
-            .btn-group .btn {
-                margin: 2px 0;
-                border-radius: 4px !important;
-            }
-
+        .invalid-feedback {
+            display: block;
+            color: #dc3545;
+            font-size: 0.875rem;
         }
     </style>
-}
+    }

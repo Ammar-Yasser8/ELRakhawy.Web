@@ -124,95 +124,50 @@ namespace ELRakhawy.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Create(YarnItemViewModel model)
         {
-            try
+            // تحقق من التكرار
+            var existingItem = _unitOfWork.Repository<YarnItem>()
+                .GetOne(r => r.Item.Trim().ToLower() == model.Item.Trim().ToLower());
+            if (existingItem != null)
+                ModelState.AddModelError("Item", "هذا الصنف موجود بالفعل");
+
+            if (!ModelState.IsValid)
             {
-                // Check for duplicate item name
-                var existingItem = _unitOfWork.Repository<YarnItem>()
-                    .GetOne(r => r.Item.Trim().ToLower() == model.Item.Trim().ToLower());
-
-                if (existingItem != null)
-                {
-                    ModelState.AddModelError("Item", "هذا الصنف موجود بالفعل");
-                }
-
-                // Validate selected manufacturers (many-to-many)
-                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
-                {
-                    foreach (var manufacturerId in model.ManufacturerIds)
-                    {
-                        var manufacturer = _unitOfWork.Repository<Manufacturers>()
-                            .GetOne(m => m.Id == manufacturerId && m.Status);
-                        if (manufacturer == null)
-                        {
-                            ModelState.AddModelError("ManufacturerIds", $"الشركة المصنعة بالرقم {manufacturerId} غير موجودة أو غير نشطة");
-                        }
-                    }
-                }
-
-                // Validate origin yarn exists if selected
-                if (model.OriginYarnId.HasValue)
-                {
-                    var originYarnItem = _unitOfWork.Repository<YarnItem>()
-                        .GetOne(y => y.Id == model.OriginYarnId.Value && y.Status);
-                    if (originYarnItem == null)
-                    {
-                        ModelState.AddModelError("OriginYarnId", "الغزل المكون المحدد غير موجود أو غير نشط");
-                        _logger.LogWarning("Origin yarn item with ID {OriginYarnId} not found during create by {User} at {Time}",
-                            model.OriginYarnId.Value, "Ammar-Yasser8", "2025-08-12 01:39:58");
-                    }
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    model.Manufacturers = GetManufacturersSelectList();
-                    model.OriginYarns = GetOriginYarnsSelectList();
-                    return View(model);
-                }
-
-                var yarnItem = new YarnItem
-                {
-                    Item = model.Item.Trim(),
-                    Status = model.Status,
-                    Comment = model.Comment?.Trim(),
-                    OriginYarnId = model.OriginYarnId
-                };
-
-                // Assign manufacturers (many-to-many)
-                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
-                {
-                    yarnItem.Manufacturers = _unitOfWork.Repository<Manufacturers>()
-                        .GetAll(m => model.ManufacturerIds.Contains(m.Id) && m.Status)
-                        .ToList();
-                }
-
-                _unitOfWork.Repository<YarnItem>().Add(yarnItem);
-                _unitOfWork.Complete();
-
-                _logger.LogInformation("Yarn item '{Item}' created successfully with OriginYarn {OriginYarnId} by {User} at {Time}",
-                    model.Item, model.OriginYarnId, "Ammar-Yasser8", "2025-08-12 01:33:24");
-
-                TempData["Success"] = "تم إضافة الصنف بنجاح";
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating yarn item by {User} at {Time}: {Message}",
-                    "Ammar-Yasser8", "2025-08-12 01:33:24", ex.Message);
-
-                if (ex.InnerException?.Message.Contains("FK_YarnItems") == true)
-                {
-                    ModelState.AddModelError("OriginYarnId", "الغزل المكون المحدد غير صحيح أو غير موجود في قاعدة البيانات");
-                }
-                else
-                {
-                    ModelState.AddModelError("", "حدث خطأ أثناء حفظ البيانات");
-                }
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return BadRequest(ModelState.ToDictionary(
+                        k => k.Key,
+                        v => v.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    ));
 
                 model.Manufacturers = GetManufacturersSelectList();
                 model.OriginYarns = GetOriginYarnsSelectList();
                 return View(model);
             }
+
+            var yarnItem = new YarnItem
+            {
+                Item = model.Item.Trim(),
+                Status = model.Status,
+                Comment = model.Comment?.Trim(),
+                OriginYarnId = model.OriginYarnId
+            };
+
+            if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
+            {
+                yarnItem.Manufacturers = _unitOfWork.Repository<Manufacturers>()
+                    .GetAll(m => model.ManufacturerIds.Contains(m.Id) && m.Status)
+                    .ToList();
+            }
+
+            _unitOfWork.Repository<YarnItem>().Add(yarnItem);
+            _unitOfWork.Complete();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true, data = new { id = yarnItem.Id, item = yarnItem.Item } });
+
+            TempData["Success"] = "تم إضافة الصنف بنجاح";
+            return RedirectToAction(nameof(Index));
         }
+
         // GET: YarnItems/Edit/5
         public IActionResult Edit(int id)
         {
@@ -266,148 +221,72 @@ namespace ELRakhawy.Web.Controllers
         [ValidateAntiForgeryToken]
         public IActionResult Edit(int id, YarnItemViewModel model)
         {
-            try
+            if (id != model.Id)
             {
-                if (id != model.Id)
-                {
-                    _logger.LogWarning("ID mismatch in edit request: URL ID {UrlId} vs Model ID {ModelId} by {User} at {Time}",
-                        id, model.Id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                    TempData["Error"] = "معرف الصنف غير صحيح";
-                    return RedirectToAction(nameof(Index));
-                }
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "معرف الصنف غير صحيح" });
 
-                var yarnItem = _unitOfWork.Repository<YarnItem>()
-                    .GetOne(y => y.Id == id, includeEntities: "Manufacturers,OriginYarn,DerivedYarns");
-
-                if (yarnItem == null)
-                {
-                    _logger.LogWarning("Yarn item with ID {Id} not found during edit by {User} at {Time}",
-                        id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                    TempData["Error"] = "الصنف المطلوب غير موجود";
-                    return RedirectToAction(nameof(Index));
-                }
-
-                // Enhanced validation: Check for duplicate item name (excluding current item)
-                var existingItem = _unitOfWork.Repository<YarnItem>()
-                    .GetOne(r => r.Item.Trim().ToLower() == model.Item.Trim().ToLower() && r.Id != id);
-
-                if (existingItem != null)
-                {
-                    ModelState.AddModelError("Item", "هذا الصنف موجود بالفعل");
-                    _logger.LogWarning("Duplicate item name '{Item}' attempted by {User} at {Time}",
-                        model.Item, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                }
-
-                // Enhanced validation: Validate all selected manufacturers (many-to-many)
-                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
-                {
-                    foreach (var manufacturerId in model.ManufacturerIds)
-                    {
-                        var manufacturer = _unitOfWork.Repository<Manufacturers>()
-                            .GetOne(m => m.Id == manufacturerId && m.Status);
-                        if (manufacturer == null)
-                        {
-                            ModelState.AddModelError("ManufacturerIds", $"الشركة المصنعة بالرقم {manufacturerId} غير موجودة أو غير نشطة");
-                            _logger.LogWarning("Invalid manufacturer ID {ManufacturerId} for yarn item {Id} by {User} at {Time}",
-                                manufacturerId, id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                        }
-                    }
-                }
-
-                // ENHANCED: Validate origin yarn with circular reference check
-                if (model.OriginYarnId.HasValue)
-                {
-                    var originYarnItem = _unitOfWork.Repository<YarnItem>()
-                        .GetOne(y => y.Id == model.OriginYarnId.Value && y.Status);
-
-                    if (originYarnItem == null)
-                    {
-                        ModelState.AddModelError("OriginYarnId", "الغزل المكون المحدد غير موجود أو غير نشط");
-                        _logger.LogWarning("Invalid origin yarn ID {OriginYarnId} for yarn item {Id} by {User} at {Time}",
-                            model.OriginYarnId.Value, id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                    }
-                    else if (originYarnItem.Id == model.Id)
-                    {
-                        ModelState.AddModelError("OriginYarnId", "لا يمكن أن يكون الصنف مكون من نفسه");
-                        _logger.LogWarning("Self-reference attempted for yarn item {Id} by {User} at {Time}",
-                            id, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                    }
-                    // ENHANCED: Check for circular dependency using service
-                    else if (WouldCreateCircularReference(model.Id, model.OriginYarnId.Value))
-                    {
-                        ModelState.AddModelError("OriginYarnId", "يوجد تداخل دائري في الغزل المكون - هذا التحديث سيؤدي إلى مرجع دائري");
-                        _logger.LogWarning("Circular reference detected for yarn item {Id} with origin {OriginYarnId} by {User} at {Time}",
-                            id, model.OriginYarnId.Value, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                    }
-                }
-
-                if (!ModelState.IsValid)
-                {
-                    model.Manufacturers = GetManufacturersSelectList();
-                    model.OriginYarns = GetOriginYarnsSelectList(id);
-                    return View(model);
-                }
-
-                // Store original values for logging
-                var originalValues = new
-                {
-                    Item = yarnItem.Item,
-                    OriginYarnId = yarnItem.OriginYarnId,
-                    ManufacturerIds = yarnItem.Manufacturers.Select(m => m.Id).ToList(),
-                    Status = yarnItem.Status
-                };
-
-                // Update the yarn item
-                yarnItem.Item = model.Item.Trim();
-                yarnItem.Status = model.Status;
-                yarnItem.Comment = model.Comment?.Trim();
-                yarnItem.OriginYarnId = model.OriginYarnId;
-
-                // Update manufacturers (many-to-many)
-                yarnItem.Manufacturers.Clear();
-                if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
-                {
-                    var selectedManufacturers = _unitOfWork.Repository<Manufacturers>()
-                        .GetAll(m => model.ManufacturerIds.Contains(m.Id) && m.Status)
-                        .ToList();
-                    foreach (var manufacturer in selectedManufacturers)
-                    {
-                        yarnItem.Manufacturers.Add(manufacturer);
-                    }
-                }
-
-                _unitOfWork.Repository<YarnItem>().Update(yarnItem);
-                _unitOfWork.Complete();
-
-                _logger.LogInformation("Yarn item '{Item}' (ID: {Id}) updated successfully by {User} at {Time}. Changes: Name: {NameChanged}, Origin: {OriginOld}→{OriginNew}, Manufacturers: {ManufacturersOld}→{ManufacturersNew}, Status: {StatusOld}→{StatusNew}",
-                    model.Item, id, "Ammar-Yasser8", "2025-08-12 14:22:41",
-                    originalValues.Item != model.Item,
-                    originalValues.OriginYarnId, model.OriginYarnId,
-                    string.Join(",", originalValues.ManufacturerIds), string.Join(",", model.ManufacturerIds ?? new List<int>()),
-                    originalValues.Status, model.Status);
-
-                TempData["Success"] = $"تم تحديث الصنف '{model.Item}' بنجاح";
+                TempData["Error"] = "معرف الصنف غير صحيح";
                 return RedirectToAction(nameof(Index));
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating yarn item {Id} by {User} at {Time}",
-                    id, "Ammar-Yasser8", "2025-08-12 14:22:41");
 
-                if (ex.InnerException?.Message.Contains("FK_YarnItems") == true)
-                {
-                    ModelState.AddModelError("OriginYarnId", "الغزل المكون المحدد غير صحيح أو غير موجود في قاعدة البيانات");
-                }
-                else
-                {
-                    ModelState.AddModelError("", "حدث خطأ أثناء حفظ البيانات");
-                }
+            var yarnItem = _unitOfWork.Repository<YarnItem>()
+                .GetOne(y => y.Id == id, includeEntities: "Manufacturers,OriginYarn,DerivedYarns");
+
+            if (yarnItem == null)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return Json(new { success = false, message = "الصنف المطلوب غير موجود" });
+
+                TempData["Error"] = "الصنف المطلوب غير موجود";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // تحقق من التكرار
+            var existingItem = _unitOfWork.Repository<YarnItem>()
+                .GetOne(r => r.Item.Trim().ToLower() == model.Item.Trim().ToLower() && r.Id != id);
+            if (existingItem != null)
+                ModelState.AddModelError("Item", "هذا الصنف موجود بالفعل");
+
+            if (!ModelState.IsValid)
+            {
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    return BadRequest(ModelState.ToDictionary(
+                        k => k.Key,
+                        v => v.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                    ));
 
                 model.Manufacturers = GetManufacturersSelectList();
                 model.OriginYarns = GetOriginYarnsSelectList(id);
                 return View(model);
             }
+
+            // تحديث البيانات
+            yarnItem.Item = model.Item.Trim();
+            yarnItem.Status = model.Status;
+            yarnItem.Comment = model.Comment?.Trim();
+            yarnItem.OriginYarnId = model.OriginYarnId;
+
+            yarnItem.Manufacturers.Clear();
+            if (model.ManufacturerIds != null && model.ManufacturerIds.Any())
+            {
+                var selectedManufacturers = _unitOfWork.Repository<Manufacturers>()
+                    .GetAll(m => model.ManufacturerIds.Contains(m.Id) && m.Status)
+                    .ToList();
+                foreach (var manufacturer in selectedManufacturers)
+                    yarnItem.Manufacturers.Add(manufacturer);
+            }
+
+            _unitOfWork.Repository<YarnItem>().Update(yarnItem);
+            _unitOfWork.Complete();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                return Json(new { success = true, data = new { id = yarnItem.Id, item = yarnItem.Item } });
+
+            TempData["Success"] = $"تم تحديث الصنف '{model.Item}' بنجاح";
+            return RedirectToAction(nameof(Index));
         }
+
 
         // API: DELETE /api/YarnItems/{id}
         [HttpDelete]
@@ -543,11 +422,7 @@ namespace ELRakhawy.Web.Controllers
                     })
                     .ToList();
 
-                originYarns.Insert(0, new SelectListItem
-                {
-                    Value = "",
-                    Text = "-- اختر الغزل المكون --"
-                });
+                
 
                 _logger.LogInformation("Loaded {Count} origin yarns for dropdown (excluding {ExcludeId}) by {User} at {Time}",
                     originYarns.Count - 1, excludeId, "Ammar-Yasser8", "2025-08-12 14:22:41");
@@ -672,7 +547,36 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
-       
+        [HttpGet]
+        [Route("api/YarnItems/GetManufacturers")]
+        public IActionResult GetManufacturers()
+        {
+            try
+            {
+                var manufacturers = _unitOfWork.Repository<Manufacturers>()
+                    .GetAll()
+                    .Where(m => m.Status) // Only active manufacturers
+                    .OrderBy(m => m.Name)
+                    .Select(m => new
+                    {
+                        id = m.Id,
+                        name = m.Name,
+                        status = m.Status
+                    })
+                    .ToList();
+                return Ok(new { success = true, data = manufacturers });
+
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading manufacturers via API by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-08-12 00:50:19");
+                return Json(new { success = false, message = "حدث خطأ أثناء تحميل قائمة الشركات المصنعة" });
+
+
+            }
+        }
+
         // Helper method to check for circular dependency
         private bool HasCircularDependency(int itemId, int originYarnId)
         {
@@ -689,6 +593,7 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
+       
         private bool CheckCircularDependencyRecursive(int targetId, int currentId, HashSet<int> visited)
         {
             if (currentId == targetId)
@@ -706,6 +611,33 @@ namespace ELRakhawy.Web.Controllers
             }
 
             return false;
+        }
+
+
+        [HttpGet]
+        [Route("api/YarnItems/{id}")]
+        public IActionResult GetYarnItem(int id)
+        {
+            var yarnItem = _unitOfWork.Repository<YarnItem>()
+                .GetOne(y => y.Id == id, includeEntities: "Manufacturers,OriginYarn");
+
+            if (yarnItem == null)
+                return Json(new { success = false, message = "الصنف غير موجود" });
+
+            return Json(new
+            {
+                success = true,
+                data = new
+                {
+                    id = yarnItem.Id,
+                    item = yarnItem.Item,
+                    status = yarnItem.Status,
+                    comment = yarnItem.Comment,
+                    manufacturerIds = yarnItem.Manufacturers.Select(m => m.Id).ToList(),
+                    originYarnId = yarnItem.OriginYarnId,
+                    originYarnName = yarnItem.OriginYarn?.Item
+                }
+            });
         }
 
         // Model for status update
