@@ -40,7 +40,6 @@
                 <h1 class="h3 mb-2">
                     <i class="fas fa-chart-line me-2"></i>لوحة تحكم مخزون الخيوط
                 </h1>
-                <p class="mb-0 opacity-75">آخر تحديث: @currentTime</p>
             </div>
             <div class="col-md-6 text-md-end mt-3 mt-md-0">
                 <div class="btn-group">
@@ -55,175 +54,7 @@
         </div>
     </div>
 
-    <!-- Statistics Cards -->
-    <div class="row g-4 mb-4">
-        <!-- Total Items -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card stat-card border-0 rounded-4 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-primary bg-opacity-10 text-primary rounded-3 p-3 me-3">
-                            <i class="fas fa-boxes fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">إجمالي الأصناف</h6>
-                            <h2 class="mb-0">@totalItems</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Active Items -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card stat-card border-0 rounded-4 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-success bg-opacity-10 text-success rounded-3 p-3 me-3">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">الأصناف النشطة</h6>
-                            <h2 class="mb-0">@activeItems</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Low Stock -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card stat-card border-0 rounded-4 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-warning bg-opacity-10 text-warning rounded-3 p-3 me-3">
-                            <i class="fas fa-exclamation-triangle fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">رصيد منخفض</h6>
-                            <h2 class="mb-0">@lowStockItems</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Out of Stock -->
-        <div class="col-xl-3 col-md-6">
-            <div class="card stat-card border-0 rounded-4 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="stat-icon bg-danger bg-opacity-10 text-danger rounded-3 p-3 me-3">
-                            <i class="fas fa-times-circle fa-2x"></i>
-                        </div>
-                        <div>
-                            <h6 class="text-muted mb-1">بدون رصيد</h6>
-                            <h2 class="mb-0">@zeroStockItems</h2>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-    <!-- Charts Section -->
-    <div class="row g-4 mb-4">
-        <!-- Inventory Distribution -->
-        <div class="col-xl-8">
-            <div class="card border-0 rounded-4 shadow-sm">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-4">
-                        <h5 class="card-title mb-0">
-                            <i class="fas fa-chart-bar text-primary me-2"></i>
-                            توزيع المخزون حسب الشركة المصنعة
-                        </h5>
-                        <div class="chart-legend"></div>
-                    </div>
-                    <div class="chart-container" style="height: 300px;">
-                        <canvas id="inventoryChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Stock Status -->
-        <div class="col-xl-4">
-            <div class="card border-0 rounded-4 shadow-sm">
-                <div class="card-body">
-                    <h5 class="card-title mb-4">
-                        <i class="fas fa-chart-pie text-primary me-2"></i>
-                        حالة المخزون
-                    </h5>
-                    <div class="chart-container" style="height: 300px;">
-                        <canvas id="statusChart"></canvas>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Filters Section -->
-    <div class="card border-0 rounded-4 shadow-sm mb-4">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label small">حالة الصنف</label>
-                    <select class="form-select" id="statusFilter">
-                        <option value="all">جميع الحالات</option>
-                        <option value="active">نشط فقط</option>
-                        <option value="inactive">غير نشط فقط</option>
-                    </select>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label small">الشركة المصنعة</label>
-                    <select class="form-select" id="manufacturerFilter">
-                        <option value="all">جميع الشركات</option>
-                        @foreach (var mfg in Model
-                                                .SelectMany(x => x.ManufacturerNames ?? Enumerable.Empty<string>())
-                                                .Distinct()
-                                                .OrderBy(x => x))
-                        {
-                            <option value="@mfg">@mfg</option>
-                        }
-                    </select>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label small">مستوى المخزون</label>
-                    <select class="form-select" id="stockLevelFilter">
-                        <option value="all">جميع المستويات</option>
-                        <option value="out">نفذ المخزون</option>
-                        <option value="low">مخزون منخفض</option>
-                        <option value="normal">مخزون عادي</option>
-                    </select>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <label class="form-label small">بحث سريع</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-0">
-                            <i class="fas fa-search"></i>
-                        </span>
-                        <input type="text"
-                               class="form-control border-0 bg-light"
-                               id="quickSearch"
-                               placeholder="البحث في الأصناف...">
-                    </div>
-                </div>
-            </div>
-
-            <!-- Active Filters -->
-            <div id="activeFilters" class="mt-3" style="display: none;">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="text-muted small">المرشحات النشطة:</span>
-                    <div id="filterTags" class="d-flex flex-wrap gap-2"></div>
-                    <button type="button"
-                            class="btn btn-sm btn-light ms-auto"
-                            id="clearFilters">
-                        <i class="fas fa-times me-1"></i>
-                        مسح المرشحات
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+  
 
     <!-- Items Grid -->
     <div class="card border-0 rounded-4 shadow-sm">
@@ -237,6 +68,7 @@
                 
             </div>
 
+            <!-- Update the item card section in your Razor page -->
             <div class="row g-4" id="itemsGrid">
                 @foreach (var item in Model)
                 {
@@ -257,7 +89,7 @@
                                     </div>
                                     <div class="stock-indicator">
                                         <span class="badge bg-@(item.CurrentBalance <= 0 ? "danger" :
-                                                                                                             item.CurrentBalance <= 10 ? "warning" : "success")">
+                                                                                                                               item.CurrentBalance <= 10 ? "warning" : "success")">
                                         @item.CurrentBalance.ToString("N3") كجم
                                     </span>
                                 </div>
@@ -278,20 +110,39 @@
                                             @item.OriginYarnName
                                         </div>
                                     }
-                                    <div>
-                                        <i class="fas fa-hashtag me-1"></i>
-                                        رصيد العدد: @item.CurrentCountBalance
+
+                                    <!-- Enhanced Count Balance Display -->
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <span>
+                                                <i class="fas fa-boxes me-1"></i>
+                                                رصيد العدد:
+                                            </span>
+                                            <button class="btn btn-link btn-sm p-0 text-info"
+                                                    onclick="loadPackagingBreakdown(@item.Id, this)"
+                                                    title="عرض تفاصيل التعبئة">
+                                                <i class="fas fa-info-circle"></i>
+                                            </button>
+                                        </div>
+                                        <div class="packaging-display" id="packaging-@item.Id">
+                                            <span class="text-primary fw-bold">@item.CurrentCountBalance وحدة</span>
+                                            <small class="text-muted d-block">اضغط لعرض التفاصيل</small>
+                                        </div>
                                     </div>
                                 </div>
 
                                 <div class="item-actions mt-3 pt-3 border-top">
                                     <div class="btn-group w-100">
-                                        
                                         <a href="@Url.Action("Edit", new { id = item.Id })"
                                            class="btn btn-sm btn-outline-secondary">
                                             <i class="fas fa-edit me-1"></i>
                                             تعديل
                                         </a>
+                                        <button class="btn btn-sm btn-outline-info"
+                                                onclick="showItemDetails(@item.Id)">
+                                            <i class="fas fa-eye me-1"></i>
+                                            التفاصيل
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -299,6 +150,337 @@
                     </div>
                 }
             </div>
+
+            <!-- Add this JavaScript to the existing Scripts section -->
+            <script>
+                // Add these functions to your existing JavaScript
+
+                // Convert to Arabic digits
+                function toArabicDigits(str) {
+                    if (!str) return str;
+                    return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                }
+
+                // Load packaging breakdown for an item
+                function loadPackagingBreakdown(yarnItemId, buttonElement) {
+                    const displayElement = document.getElementById(`packaging-${yarnItemId}`);
+
+                    // Show loading state
+                    displayElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
+
+                    // Make AJAX call to get yarn item balance (reuse existing API)
+                    fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success && data.packagingBreakdown && data.packagingBreakdown.length > 0) {
+                                // Display packaging breakdown
+                                let packagingHtml = '';
+
+                                if (data.packagingBreakdown.length === 1) {
+                                    // Single packaging type
+                                    const pkg = data.packagingBreakdown[0];
+                                    packagingHtml = `
+                                        <div class="text-success fw-bold">
+                                            ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
+                                        </div>
+                                    `;
+                                } else {
+                                    // Multiple packaging types - show compact view
+                                    packagingHtml = `
+                                        <div class="packaging-compact">
+                                            ${data.packagingBreakdown.slice(0, 2).map(pkg =>
+                                                `<span class="badge bg-light text-dark border me-1 mb-1">
+                                                    ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
+                                                </span>`
+                                            ).join('')}
+                                            ${data.packagingBreakdown.length > 2 ?
+                                                `<span class="badge bg-info text-white">+${data.packagingBreakdown.length - 2} أخرى</span>` : ''}
+                                        </div>
+                                        <small class="text-muted d-block mt-1">
+                                            المجموع: ${toArabicDigits(data.countBalance.toString())} وحدة
+                                        </small>
+                                    `;
+                                }
+
+                                displayElement.innerHTML = packagingHtml;
+
+                                // Add click handler to show full breakdown
+                                if (data.packagingBreakdown.length > 1) {
+                                    displayElement.style.cursor = 'pointer';
+                                    displayElement.onclick = () => showFullPackagingBreakdown(data);
+                                }
+
+                            } else if (data.success && data.countBalance > 0) {
+                                // Has count but no packaging breakdown
+                                displayElement.innerHTML = `
+                                    <div class="text-success fw-bold">
+                                        ${toArabicDigits(data.countBalance.toString())} وحدة غير محددة
+                                    </div>
+                                `;
+                            } else {
+                                // No count balance
+                                displayElement.innerHTML = `
+                                    <div class="text-muted">
+                                        <i class="fas fa-times-circle me-1"></i>
+                                        لا يوجد رصيد
+                                    </div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading packaging breakdown:', error);
+                            displayElement.innerHTML = `
+                                <div class="text-danger">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    خطأ في التحميل
+                                </div>
+                            `;
+                        });
+                }
+
+                // Show full packaging breakdown in modal
+                function showFullPackagingBreakdown(data) {
+                    let modalContent = `
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-primary mb-3">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    تفاصيل التعبئة الكاملة - ${data.yarnItem}
+                                </h6>
+
+                                <div class="row g-2 mb-3">
+                                    ${data.packagingBreakdown.map(pkg => `
+                                        <div class="col-md-6">
+                                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                                <span class="fw-bold">${pkg.packagingType}</span>
+                                                <span class="badge bg-primary">
+                                                    ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                                </span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+
+                                <div class="alert alert-info d-flex align-items-center">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <div>
+                                        <strong>المجموع الكلي:</strong> ${toArabicDigits(data.countBalance.toString())} وحدة
+                                        موزعة على ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
+                                    </div>
+                                </div>
+
+                                <div class="text-muted small">
+                                    <strong>ملاحظة:</strong> عند إجراء معاملة صادر، يجب تحديد نوع التعبئة المطابق للرصيد المتاح
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    // Update modal content and show
+                    document.getElementById('modalContent').innerHTML = modalContent;
+                    document.querySelector('#detailsModal .modal-title').textContent = 'تفاصيل التعبئة';
+                    new bootstrap.Modal(document.getElementById('detailsModal')).show();
+                }
+
+                // Enhanced item details function
+                function showItemDetails(yarnItemId) {
+                    // Show loading state
+                    document.getElementById('modalContent').innerHTML = `
+                        <div class="text-center py-4">
+                            <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                            <div class="mt-2">جاري تحميل التفاصيل...</div>
+                        </div>
+                    `;
+
+                    // Show modal
+                    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+                    modal.show();
+
+                    // Load full item details
+                    fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                let detailsHtml = `
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <h6 class="text-primary mb-3">معلومات أساسية</h6>
+                                            <table class="table table-borderless">
+                                                <tr>
+                                                    <td><strong>اسم الصنف:</strong></td>
+                                                    <td>${data.yarnItem || 'غير محدد'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>الغزل الأصلي:</strong></td>
+                                                    <td>${data.originYarn || 'غير محدد'}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>الشركة المصنعة:</strong></td>
+                                                    <td>${data.manufacturer || 'غير محدد'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+
+                                        <div class="col-md-6">
+                                            <h6 class="text-success mb-3">معلومات المخزون</h6>
+                                            <table class="table table-borderless">
+                                                <tr>
+                                                    <td><strong>رصيد الكمية:</strong></td>
+                                                    <td class="text-success fw-bold">
+                                                        ${toArabicDigits(data.quantityBalance.toFixed(3))} كجم
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>رصيد العدد:</strong></td>
+                                                    <td class="text-info fw-bold">
+                                                        ${data.packagingDisplay || 'لا يوجد رصيد'}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>عدد المعاملات:</strong></td>
+                                                    <td>${toArabicDigits(data.transactionCount.toString())}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td><strong>آخر معاملة:</strong></td>
+                                                    <td>${data.lastTransactionDate || 'لا توجد معاملات'}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
+                                    <hr>
+                                    <div class="row">
+                                        <div class="col-12">
+                                            <h6 class="text-warning mb-3">
+                                                <i class="fas fa-boxes me-2"></i>
+                                                تفاصيل أنواع التعبئة
+                                            </h6>
+                                            <div class="row g-2">
+                                                ${data.packagingBreakdown.map(pkg => `
+                                                    <div class="col-md-4">
+                                                        <div class="card bg-light">
+                                                            <div class="card-body text-center py-2">
+                                                                <i class="fas fa-box text-primary mb-1"></i>
+                                                                <div class="fw-bold">${pkg.packagingType}</div>
+                                                                <div class="text-primary">
+                                                                    ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    ` : ''}
+                                `;
+
+                                document.getElementById('modalContent').innerHTML = detailsHtml;
+                                document.querySelector('#detailsModal .modal-title').textContent = `تفاصيل الصنف - ${data.yarnItem}`;
+                            } else {
+                                document.getElementById('modalContent').innerHTML = `
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-exclamation-triangle me-2"></i>
+                                        فشل في تحميل تفاصيل الصنف: ${data.error || 'خطأ غير معروف'}
+                                    </div>
+                                `;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error loading item details:', error);
+                            document.getElementById('modalContent').innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    حدث خطأ أثناء تحميل التفاصيل
+                                </div>
+                            `;
+                        });
+                }
+
+                // Auto-load packaging for items with count > 0 on page load
+                document.addEventListener('DOMContentLoaded', function() {
+                    // Auto-load packaging breakdown for items with high count balance
+                    document.querySelectorAll('.item-card-wrapper').forEach(card => {
+                        const itemId = card.dataset.id;
+                        const balance = parseFloat(card.dataset.balance);
+
+                        // Auto-load for items with quantity > 0 (likely to have count balance too)
+                        if (balance > 0) {
+                            setTimeout(() => {
+                                const infoButton = card.querySelector(`button[onclick*="${itemId}"]`);
+                                if (infoButton) {
+                                    loadPackagingBreakdown(itemId, infoButton);
+                                }
+                            }, 100 * parseInt(itemId)); // Stagger the requests
+                        }
+                    });
+                });
+            </script>
+
+            <!-- Add these styles to your existing CSS -->
+            <style>
+                .packaging-display {
+                    min-height: 40px;
+                    padding: 8px 0;
+                    border-radius: 6px;
+                    transition: background-color 0.2s ease;
+                }
+
+                    .packaging-display:hover {
+                        background-color: #f8f9fa;
+                    }
+
+                .packaging-compact .badge {
+                    font-size: 0.75em;
+                    margin-bottom: 2px;
+                }
+
+                .item-details {
+                    min-height: 120px; /* Increased to accommodate packaging info */
+                }
+
+                /* Loading state for packaging */
+                .packaging-display .fa-spinner {
+                    color: #6c757d;
+                }
+
+                /* Clickable packaging breakdown */
+                .packaging-display[style*="cursor: pointer"]:hover {
+                    background-color: #e3f2fd;
+                    border: 1px solid #2196f3;
+                    padding: 7px;
+                }
+
+                /* Modal enhancements */
+                .table td {
+                    padding: 0.5rem 0.75rem;
+                    border: none;
+                }
+
+                    .table td:first-child {
+                        width: 40%;
+                        color: #6c757d;
+                    }
+
+                .card.bg-light .card-body {
+                    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+                }
+
+                /* Responsive adjustments */
+                @@media (max-width: 768px) {
+                    .packaging-compact .badge
+
+                {
+                    font-size: 0.7em;
+                    padding: 0.25em 0.5em;
+                }
+
+                .item-details {
+                    min-height: 100px;
+                }
+
+                }</style>
         </div>
     </div>
 </div>
@@ -477,227 +659,332 @@
     </style>
 
 
-@section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const ctx = {
-                currentTime: '@currentTime',
-                currentUser: '@currentUser',
-                chartData: {
-                    manufacturers: @Html.Raw(JsonSerializer.Serialize(manufacturers.Select(m => m.Name))),
-                    balances: @Html.Raw(JsonSerializer.Serialize(manufacturers.Select(m => m.Balance))),
-                    stats: {
-                        active: @activeItems,
-                        inactive: @(totalItems - activeItems),
-                        lowStock: @lowStockItems,
-                        zeroStock: @zeroStockItems
-                    }
-                }
-            };
+<script>
+    // Add these functions to your existing JavaScript
 
-            // Initialize Charts
-            initializeCharts(ctx.chartData);
+    // Convert to Arabic digits
+    function toArabicDigits(str) {
+        if (!str) return str;
+        return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    }
 
-            // Initialize Filters
-            initializeFilters();
+    // Load packaging breakdown for an item
+    function loadPackagingBreakdown(yarnItemId, buttonElement) {
+        const displayElement = document.getElementById(`packaging-${yarnItemId}`);
 
-            // Initialize Real-time Updates
-            initializeRealTimeUpdates(ctx);
-        });
+        // Show loading state
+        displayElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
 
-        function initializeCharts(data) {
-            // Inventory Distribution Chart
-            new Chart(document.getElementById('inventoryChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: data.manufacturers,
-                    datasets: [{
-                        label: 'كمية المخزون',
-                        data: data.balances,
-                        backgroundColor: 'rgba(78, 115, 223, 0.7)',
-                        borderColor: 'rgb(78, 115, 223)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                callback: function(value) {
-                                    return value + ' كجم';
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+        // Make AJAX call to get yarn item balance (reuse existing API)
+        fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.packagingBreakdown && data.packagingBreakdown.length > 0) {
+                    // Display packaging breakdown
+                    let packagingHtml = '';
 
-            // Status Chart
-            new Chart(document.getElementById('statusChart').getContext('2d'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['نشط', 'غير نشط', 'رصيد منخفض', 'نفذ المخزون'],
-                    datasets: [{
-                        data: [
-                            data.stats.active,
-                            data.stats.inactive,
-                            data.stats.lowStock,
-                            data.stats.zeroStock
-                        ],
-                        backgroundColor: [
-                            'rgba(28, 200, 138, 0.8)',
-                            'rgba(133, 135, 150, 0.8)',
-                            'rgba(246, 194, 62, 0.8)',
-                            'rgba(231, 74, 59, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    cutout: '70%'
-                }
-            });
-        }
-
-        function initializeFilters() {
-            const filters = {
-                status: document.getElementById('statusFilter'),
-                manufacturer: document.getElementById('manufacturerFilter'),
-                stockLevel: document.getElementById('stockLevelFilter'),
-                search: document.getElementById('quickSearch')
-            };
-
-            function applyFilters() {
-                const activeFilters = {};
-                let hasActiveFilters = false;
-
-                // Collect active filters
-                Object.entries(filters).forEach(([key, element]) => {
-                    const value = element.value;
-                    if (value && value !== 'all') {
-                        activeFilters[key] = value;
-                        hasActiveFilters = true;
-                    }
-                });
-
-                // Show/hide items based on filters
-                document.querySelectorAll('.item-card-wrapper').forEach(card => {
-                    let show = true;
-
-                    if (activeFilters.status) {
-                        show = show && card.dataset.status === activeFilters.status;
-                    }
-                    if (activeFilters.manufacturer) {
-                        show = show && card.dataset.manufacturers.includes(activeFilters.manufacturer);
-                    }
-                    if (activeFilters.stockLevel) {
-                        const balance = parseFloat(card.dataset.balance);
-                        switch (activeFilters.stockLevel) {
-                            case 'out':
-                                show = show && balance <= 0;
-                                break;
-                            case 'low':
-                                show = show && balance > 0 && balance <= 10;
-                                break;
-                            case 'normal':
-                                show = show && balance > 10;
-                                break;
-                        }
-                    }
-                    if (activeFilters.search) {
-                        show = show && card.dataset.search.includes(activeFilters.search.toLowerCase());
-                    }
-
-                    card.style.display = show ? 'block' : 'none';
-                });
-
-                // Update filter tags
-                updateFilterTags(activeFilters);
-            }
-
-            // Add event listeners
-            Object.values(filters).forEach(element => {
-                element.addEventListener('change', applyFilters);
-                if (element.type === 'text') {
-                    element.addEventListener('input', applyFilters);
-                }
-            });
-
-            // Clear filters
-            document.getElementById('clearFilters').addEventListener('click', () => {
-                Object.values(filters).forEach(element => {
-                    if (element.type === 'select-one') {
-                        element.value = 'all';
+                    if (data.packagingBreakdown.length === 1) {
+                        // Single packaging type
+                        const pkg = data.packagingBreakdown[0];
+                        packagingHtml = `
+                            <div class="text-success fw-bold">
+                                ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
+                            </div>
+                        `;
                     } else {
-                        element.value = '';
+                        // Multiple packaging types - show compact view
+                        packagingHtml = `
+                            <div class="packaging-compact">
+                                ${data.packagingBreakdown.slice(0, 2).map(pkg =>
+                                    `<span class="badge bg-light text-dark border me-1 mb-1">
+                                        ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
+                                    </span>`
+                                ).join('')}
+                                ${data.packagingBreakdown.length > 2 ?
+                                    `<span class="badge bg-info text-white">+${data.packagingBreakdown.length - 2} أخرى</span>` : ''}
+                            </div>
+                            <small class="text-muted d-block mt-1">
+                                المجموع: ${toArabicDigits(data.countBalance.toString())} وحدة
+                            </small>
+                        `;
                     }
-                });
-                applyFilters();
-            });
-        }
 
-        function updateFilterTags(activeFilters) {
-            const container = document.getElementById('filterTags');
-            const activeFiltersSection = document.getElementById('activeFilters');
+                    displayElement.innerHTML = packagingHtml;
 
-            container.innerHTML = '';
+                    // Add click handler to show full breakdown
+                    if (data.packagingBreakdown.length > 1) {
+                        displayElement.style.cursor = 'pointer';
+                        displayElement.onclick = () => showFullPackagingBreakdown(data);
+                    }
 
-            Object.entries(activeFilters).forEach(([key, value]) => {
-                const tag = document.createElement('span');
-                tag.className = 'filter-tag';
-                tag.innerHTML = `
-                    ${getFilterLabel(key, value)}
-                    <i class="fas fa-times close" data-filter="${key}"></i>
-                `;
-                container.appendChild(tag);
-            });
-
-            activeFiltersSection.style.display =
-                Object.keys(activeFilters).length > 0 ? 'block' : 'none';
-        }
-
-        function getFilterLabel(key, value) {
-            const labels = {
-                status: { active: 'نشط', inactive: 'غير نشط' },
-                stockLevel: {
-                    out: 'نفذ المخزون',
-                    low: 'مخزون منخفض',
-                    normal: 'مخزون عادي'
+                } else if (data.success && data.countBalance > 0) {
+                    // Has count but no packaging breakdown
+                    displayElement.innerHTML = `
+                        <div class="text-success fw-bold">
+                            ${toArabicDigits(data.countBalance.toString())} وحدة غير محددة
+                        </div>
+                    `;
+                } else {
+                    // No count balance
+                    displayElement.innerHTML = `
+                        <div class="text-muted">
+                            <i class="fas fa-times-circle me-1"></i>
+                            لا يوجد رصيد
+                        </div>
+                    `;
                 }
-            };
-
-            switch (key) {
-                case 'status':
-                    return `الحالة: ${labels.status[value]}`;
-                case 'manufacturer':
-                    return `الشركة: ${value}`;
-                case 'stockLevel':
-                    return `المستوى: ${labels.stockLevel[value]}`;
-                case 'search':
-                    return `بحث: ${value}`;
-                default:
-                    return value;
-            }
-        }
-
-        function initializeRealTimeUpdates(ctx) {
-            // Update time display
-            setInterval(() => {
-                const now = new Date();
-                const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
-                document.querySelector('.current-user').innerHTML = `
-                    <i class="fas fa-user me-1"></i>
-                    ${ctx.currentUser}
-                    <span class="mx-2">•</span>
-                    <i class="fas fa-clock me-1"></i>
-                    ${timeString}
+            })
+            .catch(error => {
+                console.error('Error loading packaging breakdown:', error);
+                displayElement.innerHTML = `
+                    <div class="text-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        خطأ في التحميل
+                    </div>
                 `;
-            }, 1000);
+            });
+    }
+
+    // Show full packaging breakdown in modal
+    function showFullPackagingBreakdown(data) {
+        let modalContent = `
+            <div class="row">
+                <div class="col-12">
+                    <h6 class="text-primary mb-3">
+                        <i class="fas fa-boxes me-2"></i>
+                        تفاصيل التعبئة الكاملة - ${data.yarnItem}
+                    </h6>
+
+                    <div class="row g-2 mb-3">
+                        ${data.packagingBreakdown.map(pkg => `
+                            <div class="col-md-6">
+                                <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
+                                    <span class="fw-bold">${pkg.packagingType}</span>
+                                    <span class="badge bg-primary">
+                                        ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                    </span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+
+                    <div class="alert alert-info d-flex align-items-center">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <div>
+                            <strong>المجموع الكلي:</strong> ${toArabicDigits(data.countBalance.toString())} وحدة
+                            موزعة على ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
+                        </div>
+                    </div>
+
+                    <div class="text-muted small">
+                        <strong>ملاحظة:</strong> عند إجراء معاملة صادر، يجب تحديد نوع التعبئة المطابق للرصيد المتاح
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // Update modal content and show
+        document.getElementById('modalContent').innerHTML = modalContent;
+        document.querySelector('#detailsModal .modal-title').textContent = 'تفاصيل التعبئة';
+        new bootstrap.Modal(document.getElementById('detailsModal')).show();
+    }
+
+    // Enhanced item details function
+    function showItemDetails(yarnItemId) {
+        // Show loading state
+        document.getElementById('modalContent').innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
+                <div class="mt-2">جاري تحميل التفاصيل...</div>
+            </div>
+        `;
+
+        // Show modal
+        const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
+        modal.show();
+
+        // Load full item details
+        fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    let detailsHtml = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-primary mb-3">معلومات أساسية</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>اسم الصنف:</strong></td>
+                                        <td>${data.yarnItem || 'غير محدد'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>الغزل الأصلي:</strong></td>
+                                        <td>${data.originYarn || 'غير محدد'}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>الشركة المصنعة:</strong></td>
+                                        <td>${data.manufacturer || 'غير محدد'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+
+                            <div class="col-md-6">
+                                <h6 class="text-success mb-3">معلومات المخزون</h6>
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td><strong>رصيد الكمية:</strong></td>
+                                        <td class="text-success fw-bold">
+                                            ${toArabicDigits(data.quantityBalance.toFixed(3))} كجم
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>رصيد العدد:</strong></td>
+                                        <td class="text-info fw-bold">
+                                            ${data.packagingDisplay || 'لا يوجد رصيد'}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>عدد المعاملات:</strong></td>
+                                        <td>${toArabicDigits(data.transactionCount.toString())}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong>آخر معاملة:</strong></td>
+                                        <td>${data.lastTransactionDate || 'لا توجد معاملات'}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
+                        <hr>
+                        <div class="row">
+                            <div class="col-12">
+                                <h6 class="text-warning mb-3">
+                                    <i class="fas fa-boxes me-2"></i>
+                                    تفاصيل أنواع التعبئة
+                                </h6>
+                                <div class="row g-2">
+                                    ${data.packagingBreakdown.map(pkg => `
+                                        <div class="col-md-4">
+                                            <div class="card bg-light">
+                                                <div class="card-body text-center py-2">
+                                                    <i class="fas fa-box text-primary mb-1"></i>
+                                                    <div class="fw-bold">${pkg.packagingType}</div>
+                                                    <div class="text-primary">
+                                                        ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        ` : ''}
+                    `;
+
+                    document.getElementById('modalContent').innerHTML = detailsHtml;
+                    document.querySelector('#detailsModal .modal-title').textContent = `تفاصيل الصنف - ${data.yarnItem}`;
+                } else {
+                    document.getElementById('modalContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            فشل في تحميل تفاصيل الصنف: ${data.error || 'خطأ غير معروف'}
+                        </div>
+                    `;
+                }
+            })
+            .catch(error => {
+                console.error('Error loading item details:', error);
+                document.getElementById('modalContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        حدث خطأ أثناء تحميل التفاصيل
+                    </div>
+                `;
+            });
+    }
+
+    // Auto-load packaging for items with count > 0 on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-load packaging breakdown for items with high count balance
+        document.querySelectorAll('.item-card-wrapper').forEach(card => {
+            const itemId = card.dataset.id;
+            const balance = parseFloat(card.dataset.balance);
+
+            // Auto-load for items with quantity > 0 (likely to have count balance too)
+            if (balance > 0) {
+                setTimeout(() => {
+                    const infoButton = card.querySelector(`button[onclick*="${itemId}"]`);
+                    if (infoButton) {
+                        loadPackagingBreakdown(itemId, infoButton);
+                    }
+                }, 100 * parseInt(itemId)); // Stagger the requests
+            }
+        });
+    });
+</script>
+
+<!-- Add these styles to your existing CSS -->
+<style>
+    .packaging-display {
+        min-height: 40px;
+        padding: 8px 0;
+        border-radius: 6px;
+        transition: background-color 0.2s ease;
+    }
+
+        .packaging-display:hover {
+            background-color: #f8f9fa;
         }
-    </script>
-}
+
+    .packaging-compact .badge {
+        font-size: 0.75em;
+        margin-bottom: 2px;
+    }
+
+    .item-details {
+        min-height: 120px; /* Increased to accommodate packaging info */
+    }
+
+    /* Loading state for packaging */
+    .packaging-display .fa-spinner {
+        color: #6c757d;
+    }
+
+    /* Clickable packaging breakdown */
+    .packaging-display[style*="cursor: pointer"]:hover {
+        background-color: #e3f2fd;
+        border: 1px solid #2196f3;
+        padding: 7px;
+    }
+
+    /* Modal enhancements */
+    .table td {
+        padding: 0.5rem 0.75rem;
+        border: none;
+    }
+
+        .table td:first-child {
+            width: 40%;
+            color: #6c757d;
+        }
+
+    .card.bg-light .card-body {
+        background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .packaging-compact .badge
+
+    {
+        font-size: 0.7em;
+        padding: 0.25em 0.5em;
+    }
+
+    .item-details {
+        min-height: 100px;
+    }
+
+    }</style>

@@ -323,23 +323,42 @@
                     </div>
                 </div>
             </div>
+            <!-- Updated Modal Footer with Export Button -->
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إغلاق</button>
-                    <button type="button" class="btn btn-warning" onclick="location.href='@Url.Action("ResetBalance", "YarnTransactions")'">
-                        <i class="fas fa-sync-alt me-1"></i>
-                        إعادة ضبط الرصيد
-                    </button>
-                    <button type="button" class="btn btn-primary" id="seeMoreBtn" onclick="seeMoreTransactions()">
-                        <i class="fas fa-eye me-1"></i>
-                        عرض المزيد
-                    </button>
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <!-- Left side - Export and additional actions -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTransactionsToExcel()" title="تصدير المعاملات إلى Excel">
+                            <i class="fas fa-file-excel me-1"></i>
+                            تصدير Excel
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" onclick="printTransactions()" title="طباعة المعاملات">
+                            <i class="fas fa-print me-1"></i>
+                            طباعة
+                        </button>
+                    </div>
+
+                    <!-- Right side - Main actions -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>
+                            إغلاق
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="location.href='@Url.Action("ResetBalance", "YarnTransactions")'">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            إعادة ضبط الرصيد
+                        </button>
+                        <button type="button" class="btn btn-primary" id="seeMoreBtn" onclick="seeMoreTransactions()">
+                            <i class="fas fa-eye me-1"></i>
+                            عرض المزيد
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
-</div>
+
 <!-- Loading Overlay -->
 <div id="loadingOverlay" class="loading-overlay" style="display: none;">
     <div class="spinner-border text-primary" role="status">
@@ -464,7 +483,299 @@
                 }
             });
         }
+                // Add this function to handle Excel export from the modal
+        function exportTransactionsToExcel() {
+            if (!currentYarnItemId) {
+                alert('لا يوجد صنف محدد للتصدير');
+                return;
+            }
 
+            showLoadingOverlay();
+
+            try {
+                console.log('بدء تصدير معاملات Excel للصنف:', currentYarnItemId, 'في', new Date().toLocaleString('ar-EG'));
+
+                // Collect transaction data from the modal
+                const exportData = collectModalTransactionData();
+
+                // Generate Excel file for transactions
+                generateTransactionExcelFile(exportData);
+
+                console.log('تم تصدير معاملات Excel بنجاح');
+
+            } catch (error) {
+                console.error('فشل تصدير معاملات Excel:', error);
+                alert('حدث خطأ أثناء تصدير بيانات المعاملات: ' + error.message);
+            } finally {
+                setTimeout(hideLoadingOverlay, 1000);
+            }
+        }
+
+        // Collect transaction data from the current modal
+        function collectModalTransactionData() {
+            const modalTitle = $('#itemDetailsModalLabel').text();
+            const yarnItemName = modalTitle.replace('تفاصيل صنف الغزل: ', '').replace(/.*: /, '');
+
+            // Get yarn item summary data from modal
+            const quantityBalance = $('.card-body h4').first().text().trim();
+            const countBalance = $('.card-body h4').last().text().trim();
+
+            const data = {
+                yarnItem: {
+                    id: currentYarnItemId,
+                    name: yarnItemName || 'غير محدد',
+                    quantityBalance: quantityBalance || '0',
+                    countBalance: countBalance || '0'
+                },
+                transactions: [],
+                summary: {
+                    exportDate: new Date().toLocaleDateString('ar-EG'),
+                    exportTime: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}),
+                    exportedBy: CURRENT_USER,
+                    currentPage: currentPage,
+                    pageSize: pageSize
+                }
+            };
+
+            // Extract transactions from the table in modal
+            $('#modalBody table tbody tr').each(function() {
+                const row = $(this);
+                const cells = row.find('td');
+
+                if (cells.length >= 8) {
+                    const transaction = {
+                        transactionId: cells.eq(0).find('div').first().text().trim(),
+                        internalId: cells.eq(0).find('small').text().replace('داخلي: ', '').trim() || '',
+                        date: cells.eq(1).find('div').first().text().trim(),
+                        time: cells.eq(1).find('small').text().trim(),
+                        type: cells.eq(2).find('.badge').text().trim(),
+                        quantity: toLatinDigits(cells.eq(3).text().trim()),
+                        count: toLatinDigits(cells.eq(4).text().trim()),
+                        stakeholder: cells.eq(5).find('div').text().trim(),
+                        quantityBalance: toLatinDigits(cells.eq(6).text().trim()),
+                        comment: cells.eq(7).text().trim() === '-' ? '' : cells.eq(7).text().trim()
+                    };
+
+                    data.transactions.push(transaction);
+                }
+            });
+
+            return data;
+        }
+
+        // Generate Excel file specifically for transactions
+        function generateTransactionExcelFile(data) {
+            // Check if SheetJS is available
+            if (typeof XLSX === 'undefined') {
+                // Load SheetJS dynamically
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => generateTransactionExcelWithSheetJS(data);
+                script.onerror = () => generateTransactionExcelFallback(data);
+                document.head.appendChild(script);
+            } else {
+                generateTransactionExcelWithSheetJS(data);
+            }
+        }
+
+        // Generate Excel file using SheetJS for transactions
+        function generateTransactionExcelWithSheetJS(data) {
+            try {
+                // Create workbook
+                const workbook = XLSX.utils.book_new();
+
+                // Summary sheet
+                const summaryData = [
+                    ['تقرير معاملات صنف الغزل'],
+                    [''],
+                    ['معلومات الصنف'],
+                    ['معرف الصنف:', data.yarnItem.id],
+                    ['اسم الصنف:', data.yarnItem.name],
+                    ['رصيد الكمية الحالي:', data.yarnItem.quantityBalance + ' كجم'],
+                    ['رصيد العدد الحالي:', data.yarnItem.countBalance + ' وحدة'],
+                    [''],
+                    ['معلومات التصدير'],
+                    ['تاريخ التصدير:', data.summary.exportDate],
+                    ['وقت التصدير:', data.summary.exportTime],
+                    ['تم التصدير بواسطة:', data.summary.exportedBy],
+                    ['الصفحة المعروضة:', data.summary.currentPage],
+                    ['حجم الصفحة:', data.summary.pageSize],
+                    [''],
+                    ['إحصائيات المعاملات'],
+                    ['عدد المعاملات في هذا التقرير:', data.transactions.length.toString()],
+                    ['معاملات الوارد:', data.transactions.filter(t => t.type === 'وارد').length.toString()],
+                    ['معاملات الصادر:', data.transactions.filter(t => t.type === 'صادر').length.toString()],
+                    [''],
+                    ['ملاحظة: هذا التقرير يشمل المعاملات المعروضة في الصفحة الحالية فقط']
+                ];
+
+                const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+                // Set column widths for summary
+                summarySheet['!cols'] = [
+                    { width: 25 },
+                    { width: 25 }
+                ];
+
+                XLSX.utils.book_append_sheet(workbook, summarySheet, 'ملخص');
+
+                // Transactions sheet
+                const transactionHeaders = [
+                    'رقم المعاملة',
+                    'المعرف الداخلي',
+                    'التاريخ',
+                    'الوقت',
+                    'النوع',
+                    'الكمية (كجم)',
+                    'العدد',
+                    'الطرف المتعامل',
+                    'رصيد الكمية بعد المعاملة',
+                    'ملاحظات'
+                ];
+
+                const transactionData = [transactionHeaders];
+
+                data.transactions.forEach(transaction => {
+                    transactionData.push([
+                        transaction.transactionId,
+                        transaction.internalId,
+                        transaction.date,
+                        transaction.time,
+                        transaction.type,
+                        parseFloat(transaction.quantity) || 0,
+                        parseInt(transaction.count) || 0,
+                        transaction.stakeholder,
+                        parseFloat(transaction.quantityBalance) || 0,
+                        transaction.comment
+                    ]);
+                });
+
+                const transactionSheet = XLSX.utils.aoa_to_sheet(transactionData);
+
+                // Set column widths for transactions
+                transactionSheet['!cols'] = [
+                    { width: 20 }, // رقم المعاملة
+                    { width: 15 }, // المعرف الداخلي
+                    { width: 12 }, // التاريخ
+                    { width: 10 }, // الوقت
+                    { width: 8 },  // النوع
+                    { width: 12 }, // الكمية
+                    { width: 8 },  // العدد
+                    { width: 20 }, // الطرف المتعامل
+                    { width: 18 }, // رصيد الكمية
+                    { width: 25 }  // ملاحظات
+                ];
+
+                // Style the header row
+                if (transactionData.length > 1) {
+                    const headerRange = XLSX.utils.decode_range(transactionSheet['!ref']);
+                    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                        if (!transactionSheet[cellAddress]) continue;
+                        transactionSheet[cellAddress].s = {
+                            font: { bold: true, color: { rgb: "FFFFFF" } },
+                            fill: { fgColor: { rgb: "366092" } },
+                            alignment: { horizontal: "center" }
+                        };
+                    }
+                }
+
+                XLSX.utils.book_append_sheet(workbook, transactionSheet, 'المعاملات');
+
+                // Generate filename
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const sanitizedItemName = data.yarnItem.name.replace(/[^\w\s-]/g, '').substring(0, 30);
+                const filename = `معاملات_${sanitizedItemName}_${timestamp}.xlsx`;
+
+                // Download file
+                XLSX.writeFile(workbook, filename);
+
+                console.log('تم إنشاء ملف Excel للمعاملات بنجاح:', filename);
+
+                // Show success message
+                setTimeout(() => {
+                    alert('تم تصدير معاملات الصنف بنجاح إلى ملف Excel!');
+                }, 500);
+
+            } catch (error) {
+                console.error('خطأ في generateTransactionExcelWithSheetJS:', error);
+                generateTransactionExcelFallback(data);
+            }
+        }
+
+        // Fallback CSV export for transactions
+        function generateTransactionExcelFallback(data) {
+            try {
+                console.log('استخدام CSV كبديل لتصدير معاملات Excel');
+
+                // Create CSV content
+                let csvContent = '\uFEFF'; // BOM for UTF-8
+
+                // Add summary
+                csvContent += 'تقرير معاملات صنف الغزل\n\n';
+                csvContent += 'معرف الصنف,' + data.yarnItem.id + '\n';
+                csvContent += 'اسم الصنف,' + data.yarnItem.name + '\n';
+                csvContent += 'رصيد الكمية الحالي,' + data.yarnItem.quantityBalance + ' كجم\n';
+                csvContent += 'رصيد العدد الحالي,' + data.yarnItem.countBalance + ' وحدة\n\n';
+
+                csvContent += 'معلومات التصدير\n';
+                csvContent += 'تاريخ التصدير,' + data.summary.exportDate + '\n';
+                csvContent += 'وقت التصدير,' + data.summary.exportTime + '\n';
+                csvContent += 'تم التصدير بواسطة,' + data.summary.exportedBy + '\n\n';
+
+                csvContent += 'إحصائيات المعاملات\n';
+                csvContent += 'عدد المعاملات,' + data.transactions.length + '\n';
+                csvContent += 'معاملات الوارد,' + data.transactions.filter(t => t.type === 'وارد').length + '\n';
+                csvContent += 'معاملات الصادر,' + data.transactions.filter(t => t.type === 'صادر').length + '\n\n';
+
+                // Add transaction headers
+                csvContent += 'رقم المعاملة,المعرف الداخلي,التاريخ,الوقت,النوع,الكمية (كجم),العدد,الطرف المتعامل,رصيد الكمية بعد المعاملة,ملاحظات\n';
+
+                // Add transaction data
+                data.transactions.forEach(transaction => {
+                    const row = [
+                        '"' + transaction.transactionId + '"',
+                        '"' + transaction.internalId + '"',
+                        '"' + transaction.date + '"',
+                        '"' + transaction.time + '"',
+                        transaction.type,
+                        transaction.quantity,
+                        transaction.count,
+                        '"' + transaction.stakeholder + '"',
+                        transaction.quantityBalance,
+                        '"' + transaction.comment + '"'
+                    ].join(',');
+                    csvContent += row + '\n';
+                });
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const sanitizedItemName = data.yarnItem.name.replace(/[^\w\s-]/g, '').substring(0, 30);
+                const filename = `معاملات_${sanitizedItemName}_${timestamp}.csv`;
+
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                    console.log('تم إنشاء ملف CSV للمعاملات بنجاح:', filename);
+                    alert('تم تصدير معاملات الصنف بنجاح إلى ملف CSV!');
+                } else {
+                    throw new Error('التصدير غير مدعوم في هذا المتصفح');
+                }
+
+            } catch (error) {
+                console.error('خطأ في generateTransactionExcelFallback:', error);
+                alert('حدث خطأ أثناء تصدير بيانات المعاملات: ' + error.message);
+            }
+        }
         // ✅ Load packaging breakdown for a single yarn item
         function loadSinglePackagingBreakdown(yarnItemId, $targetCell) {
             $.ajax({
