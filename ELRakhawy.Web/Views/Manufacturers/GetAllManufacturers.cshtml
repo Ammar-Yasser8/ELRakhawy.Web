@@ -32,222 +32,176 @@
     </div>
 </nav>
 
-<!-- Enhanced Data Display Section with Inline Search -->
-<div id="manufacturersContainer">
-    <div class="section-card">
-        <div class="card border-0 shadow-sm">
-            <div class="card-header bg-light border-bottom">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 fw-bold text-dark">
-                        <i class="fas fa-list me-2 text-primary"></i>قائمة المصنعين
-                    </h5>
-                    <div class="d-flex align-items-center gap-3">
-                        <div class="badge bg-primary px-3 py-2">
-                            <i class="fas fa-database me-1"></i>
-                            <span id="badgeCount">@Model.Count()</span> مصنع
-                        </div>
-                        <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
-                            <i class="fas fa-eraser me-1"></i>مسح المرشحات
-                        </button>
-                        <div class="btn-group ms-2">
-                            <button class="btn btn-outline-info ms-2" id="refreshData">
-                                <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
-                            </button>
-                            <button class="btn btn-success add-manufacturer-btn ms-3">
-                                <i class="fas fa-plus-circle me-1"></i>إضافة مصنع جديد
-                            </button>
-                            <div class="btn-group export-btn-group ms-2">
-                                <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
-                                    <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
-                                </button>
-                                <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
-                                    <i class="fas fa-print me-1"></i>طباعة
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+<!-- Enhanced Card Header with Reorganized Buttons -->
+<div class="card-header bg-light border-bottom">
+    <div class="d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 fw-bold text-dark">
+            <i class="fas fa-list me-2 text-primary"></i>قائمة المصنعين
+        </h5>
+        <div class="d-flex align-items-center gap-2">
+            <div class="badge bg-primary px-3 py-2">
+                <i class="fas fa-database me-1"></i>
+                <span id="badgeCount">@Model.Count()</span> مصنع
             </div>
-
-            <div class="card-body p-0">
-                <div class="table-responsive position-relative">
-                    <!-- مكان الزر -->
-                    <div class="table-toolbar mb-2"></div>
-
-                    <table class="table table-hover align-middle mb-0 toggleable-table" id="manufacturersTable">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="fw-bold" style="width: 40%;">
-                                    <i class="fas fa-industry text-primary me-1"></i>الشركة المصنعة
-                                </th>
-                                <th class="fw-bold" style="width: 40%;">
-                                    <i class="fas fa-comment text-warning me-1"></i>البيان
-                                </th>
-                                <th class="text-center fw-bold" style="width: 20%;">
-                                    <i class="fas fa-cogs text-info me-1"></i>الإجراءات
-                                </th>
-                            </tr>
-                            <!-- Inline Search Row -->
-                            <tr class="search-row bg-white">
-                                <th>
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
-                                            </span>
-                                            <input type="text" id="searchByName" class="form-control border-start-0"
-                                                   placeholder="ابحث في الأسماء...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearNameSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </th>
-                                <th>
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
-                                            </span>
-                                            <input type="text" id="searchByComment" class="form-control border-start-0"
-                                                   placeholder="ابحث في البيان...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearCommentSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </th>
-                                <th class="text-center">
-                                    <small class="text-muted">
-                                        <i class="fas fa-filter me-1"></i>البحث والتصفية
-                                    </small>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (var manufacturer in Model)
-                            {
-                                <tr data-id="@manufacturer.Id" class="manufacturer-row">
-                                    <td class="manufacturer-name">
-                                        <div class="d-flex align-items-center">
-                                            <div class="manufacturer-icon me-2">
-                                                <i class="fas fa-building text-primary"></i>
-                                            </div>
-                                            <div>
-                                                <span class="fw-semibold">@manufacturer.Name</span>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td class="manufacturer-description">
-                                        @if (!string.IsNullOrEmpty(manufacturer.Description))
-                                        {
-                                            <span class="description-text">@manufacturer.Description</span>
-                                        }
-                                        else
-                                        {
-                                            <span class="text-muted fst-italic">
-                                                <i class="fas fa-info-circle me-1"></i>لا يوجد وصف
-                                            </span>
-                                        }
-                                    </td>
-                                    <td class="text-center">
-                                        <div class="btn-group" role="group">
-                                            <button class="btn btn-sm btn-outline-info edit-manufacturer"
-                                                    data-id="@manufacturer.Id"
-                                                    data-name="@manufacturer.Name"
-                                                    data-description="@(manufacturer.Description ?? "")"
-                                                    title="تعديل المصنع">
-                                                <i class="fas fa-edit"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-secondary view-manufacturer"
-                                                    data-id="@manufacturer.Id"
-                                                    data-name="@manufacturer.Name"
-                                                    data-description="@(manufacturer.Description ?? "")"
-                                                    title="عرض التفاصيل">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button class="btn btn-sm btn-outline-danger delete-manufacturer"
-                                                    data-id="@manufacturer.Id"
-                                                    data-name="@manufacturer.Name"
-                                                    title="حذف المصنع">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
-                </div>
-                <script>
-                    document.addEventListener("DOMContentLoaded", function () {
-                        document.querySelectorAll(".toggleable-table").forEach((table, tableIndex) => {
-                            const headers = table.querySelectorAll("thead tr:first-child th");
-                            if (headers.length === 0) return;
-
-                            const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
-                            if (!toolbar) return;
-
-                            const btnGroup = document.createElement("div");
-                            btnGroup.className = "btn-group mb-2";
-                            btnGroup.innerHTML = `
-                                <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                                    <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
-                                </button>
-                                <ul class="dropdown-menu column-toggle-menu"></ul>
-                            `;
-                            toolbar.appendChild(btnGroup);
-
-                            const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
-
-                            headers.forEach((th, index) => {
-                                const title = th.innerText.trim() || `عمود ${index + 1}`;
-                                const li = document.createElement("li");
-                                li.innerHTML = `
-                                    <label class="dropdown-item">
-                                        <input type="checkbox" class="me-2 column-toggle" data-table="${tableIndex}" data-index="${index}" checked>
-                                        ${title}
-                                    </label>`;
-                                toggleMenu.appendChild(li);
-                            });
-                        });
-
-                        document.body.addEventListener("change", function (e) {
-                            if (!e.target.classList.contains("column-toggle")) return;
-
-                            const tableIndex = e.target.getAttribute("data-table");
-                            const colIndex = e.target.getAttribute("data-index");
-                            const isVisible = e.target.checked;
-
-                            const table = document.querySelectorAll(".toggleable-table")[tableIndex];
-                            table.querySelectorAll("tr").forEach(row => {
-                                const cell = row.querySelectorAll("th, td")[colIndex];
-                                if (cell) {
-                                    cell.style.display = isVisible ? "" : "none";
-                                }
-                            });
-                        });
-                    });
-                </script>
-
-            </div>
-        </div>
-
-    <!-- No Results Message -->
-    <div id="noResultsMessage" class="text-center py-5" style="display: none;">
-        <div class="card border-0 shadow-sm">
-            <div class="card-body">
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">لا توجد نتائج مطابقة</h5>
-                <p class="text-muted mb-3">لم يتم العثور على مصنعين يطابقون معايير البحث الحالية</p>
-                <button class="btn btn-outline-primary" id="resetSearch">
-                    <i class="fas fa-refresh me-1"></i>إعادة تعيين البحث
-                </button>
-            </div>
+            <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
+                <i class="fas fa-eraser me-1"></i>مسح المرشحات
+            </button>
+            <button class="btn btn-outline-dark btn-sm" id="toggleColumnsBtn" data-bs-toggle="dropdown">
+                <i class="fas fa-columns me-1"></i>إظهار/إخفاء الأعمدة
+            </button>
+            <ul class="dropdown-menu column-toggle-menu" id="columnToggleMenu"></ul>
+            <button class="btn btn-outline-info btn-sm" id="refreshData">
+                <i class="fas fa-sync-alt me-1"></i>تحديث
+            </button>
+            <button class="btn btn-success btn-sm add-manufacturer-btn">
+                <i class="fas fa-plus-circle me-1"></i>إضافة مصنع
+            </button>
+            <button class="btn btn-outline-success btn-sm" onclick="exportToExcel()">
+                <i class="fas fa-file-excel me-1"></i>تصدير Excel
+            </button>
+            <button class="btn btn-outline-secondary btn-sm" onclick="printTable()">
+                <i class="fas fa-print me-1"></i>طباعة
+            </button>
         </div>
     </div>
 </div>
 
+<!-- Enhanced Table with Sort Icons -->
+<div class="card-body p-0">
+    <div class="table-responsive position-relative">
+        <table class="table table-hover align-middle mb-0 toggleable-table" id="manufacturersTable">
+            <thead class="table-light">
+                <tr>
+                    <th class="fw-bold sortable" style="width: 40%; cursor: pointer;" data-column="0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>
+                                <i class="fas fa-industry text-primary me-1"></i>الشركة المصنعة
+                            </span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <th class="fw-bold sortable" style="width: 40%; cursor: pointer;" data-column="1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>
+                                <i class="fas fa-comment text-warning me-1"></i>البيان
+                            </span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <th class="text-center fw-bold" style="width: 20%;">
+                        <i class="fas fa-cogs text-info me-1"></i>الإجراءات
+                    </th>
+                </tr>
+                <!-- Inline Search Row -->
+                <tr class="search-row bg-white">
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="search-container flex-grow-1">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="searchByName" class="form-control border-start-0"
+                                           placeholder="ابحث في الأسماء...">
+                                    <button class="btn btn-outline-secondary btn-sm" type="button" id="clearNameSearch" style="display: none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="sort-indicator" id="sortIndicator0" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="search-container flex-grow-1">
+                                <div class="input-group input-group-sm">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-search text-muted"></i>
+                                    </span>
+                                    <input type="text" id="searchByComment" class="form-control border-start-0"
+                                           placeholder="ابحث في البيان...">
+                                    <button class="btn btn-outline-secondary btn-sm" type="button" id="clearCommentSearch" style="display: none;">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="sort-indicator" id="sortIndicator1" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <th class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-filter me-1"></i>البحث والتصفية
+                        </small>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var manufacturer in Model)
+                {
+                    <tr data-id="@manufacturer.Id" class="manufacturer-row">
+                        <td class="manufacturer-name">
+                            <div class="d-flex align-items-center">
+                                <div class="manufacturer-icon me-2">
+                                    <i class="fas fa-building text-primary"></i>
+                                </div>
+                                <div>
+                                    <span class="fw-semibold">@manufacturer.Name</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="manufacturer-description">
+                            @if (!string.IsNullOrEmpty(manufacturer.Description))
+                            {
+                                <span class="description-text">@manufacturer.Description</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted fst-italic">
+                                    <i class="fas fa-info-circle me-1"></i>لا يوجد وصف
+                                </span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-info edit-manufacturer"
+                                        data-id="@manufacturer.Id"
+                                        data-name="@manufacturer.Name"
+                                        data-description="@(manufacturer.Description ?? "")"
+                                        title="تعديل المصنع">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-secondary view-manufacturer"
+                                        data-id="@manufacturer.Id"
+                                        data-name="@manufacturer.Name"
+                                        data-description="@(manufacturer.Description ?? "")"
+                                        title="عرض التفاصيل">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger delete-manufacturer"
+                                        data-id="@manufacturer.Id"
+                                        data-name="@manufacturer.Name"
+                                        title="حذف المصنع">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+<style>
+
+</style>
 <!-- Enhanced Manufacturer Form Modal -->
 <div class="modal fade" id="manufacturerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -397,90 +351,222 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- Export and Print Functions -->
-    <script>
-        // Export to Excel function - Fixed version
-        function exportToExcel() {
-            try {
-                // Get table data
-                const table = document.getElementById('manufacturersTable');
-                const rows = table.querySelectorAll('tr:not(.search-row)');
 
-                // Create Excel workbook
-                const wb = XLSX.utils.book_new();
-                const wsData = [];
-
-                // Add header row (skip actions column - index 2)
-                const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
-                const headers = headerCells
-                    .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
-                    .filter(item => item.index !== 2) // Skip actions column (index 2)
-                    .map(item => item.text);
-
-                wsData.push(headers);
-
-                // Add data rows
-                rows.forEach(row => {
-                    // Skip search row and header
-                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
-
-                    const rowData = [];
-                    const cols = row.querySelectorAll('td');
-
-                    cols.forEach((col, index) => {
-                        // Skip actions column (index 2)
-                        if (index === 2) return;
-
-                        let text = col.textContent.trim().replace(/\s+/g, ' ');
-
-                        // For manufacturer name, extract just the text without icons
-                        if (index === 0) {
-                            text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
-                        }
-
-                        rowData.push(text);
-                    });
-
-                    if (rowData.length > 0) {
-                        wsData.push(rowData);
-                    }
-                });
-
-                // Create worksheet
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
-
-                // Set column widths
-                const colWidths = [
-                    {wch: 40}, // Company name
-                    {wch: 60}  // Description
-                ];
-                ws['!cols'] = colWidths;
-
-                // Add worksheet to workbook
-                XLSX.utils.book_append_sheet(wb, ws, 'المصنعين');
-
-                // Generate Excel file and trigger download
-                const currentDate = new Date().toISOString().slice(0, 10);
-                XLSX.writeFile(wb, `المصنعين_${currentDate}.xlsx`);
-
-                // Show success notification
-                if (typeof showNotification === 'function') {
-                    showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
-                }
-
-            } catch (error) {
-                console.error('Error exporting to Excel:', error);
-                if (typeof showNotification === 'function') {
-                    showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
-                }
-            }
+    <style>
+        .sortable {
+            user-select: none;
+            transition: background-color 0.2s;
         }
 
-        // Print function
+            .sortable:hover {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+
+        .sort-icon {
+            font-size: 0.8rem;
+            transition: all 0.2s;
+        }
+
+        .sortable.asc .sort-icon {
+            transform: rotate(180deg);
+            color: #0d6efd !important;
+        }
+
+        .sortable.desc .sort-icon {
+            color: #0d6efd !important;
+        }
+
+        .column-toggle-menu {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        @@media print {
+            .print-table
+
+        {
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
+        }
+
+        .print-table th,
+        .print-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: right;
+        }
+
+        .print-table th {
+            background-color: #f8f9fa !important;
+            font-weight: bold;
+        }
+
+        .print-table tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const table = document.getElementById('manufacturersTable');
+            const tbody = table.querySelector('tbody');
+            const headers = table.querySelectorAll('thead tr:first-child th');
+            const columnToggleMenu = document.getElementById('columnToggleMenu');
+
+            // Initialize column toggle menu
+            headers.forEach((th, index) => {
+                if (index === headers.length - 1) return; // Skip actions column
+
+                const title = th.textContent.trim().replace(/\s+/g, ' ');
+                const li = document.createElement("li");
+                li.innerHTML = `
+                    <label class="dropdown-item">
+                        <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                        ${title}
+                    </label>`;
+                columnToggleMenu.appendChild(li);
+            });
+
+            // Handle column visibility toggle
+            columnToggleMenu.addEventListener("change", function (e) {
+                if (!e.target.classList.contains("column-toggle")) return;
+
+                const colIndex = parseInt(e.target.getAttribute("data-index"));
+                const isVisible = e.target.checked;
+
+                table.querySelectorAll("tr").forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[colIndex];
+                    if (cell) {
+                        cell.style.display = isVisible ? "" : "none";
+                    }
+                });
+            });
+
+            // Sorting functionality
+            let sortDirection = {};
+
+            document.querySelectorAll('.sortable').forEach(header => {
+                const column = parseInt(header.getAttribute('data-column'));
+                sortDirection[column] = 'none';
+
+                header.addEventListener('click', function() {
+                    // Get all rows
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                    // Determine sort direction
+                    if (sortDirection[column] === 'none' || sortDirection[column] === 'desc') {
+                        sortDirection[column] = 'asc';
+                    } else {
+                        sortDirection[column] = 'desc';
+                    }
+
+                    // Update all headers to show unsorted state
+                    document.querySelectorAll('.sortable').forEach(h => {
+                        h.classList.remove('asc', 'desc');
+                        const icon = h.querySelector('.sort-icon');
+                        icon.className = 'fas fa-sort sort-icon text-muted';
+                    });
+
+                    // Update current header
+                    header.classList.add(sortDirection[column]);
+                    const icon = header.querySelector('.sort-icon');
+                    if (sortDirection[column] === 'asc') {
+                        icon.className = 'fas fa-sort-up sort-icon';
+                    } else {
+                        icon.className = 'fas fa-sort-down sort-icon';
+                    }
+
+                    // Sort rows
+                    rows.sort((a, b) => {
+                        const aCell = a.querySelectorAll('td')[column];
+                        const bCell = b.querySelectorAll('td')[column];
+
+                        let aValue = aCell.textContent.trim();
+                        let bValue = bCell.textContent.trim();
+
+                        // Handle empty values
+                        if (aValue === 'لا يوجد وصف' || aValue === '') aValue = '';
+                        if (bValue === 'لا يوجد وصف' || bValue === '') bValue = '';
+
+                        // Try to parse as numbers
+                        const aNum = parseFloat(aValue);
+                        const bNum = parseFloat(bValue);
+
+                        let comparison = 0;
+
+                        if (!isNaN(aNum) && !isNaN(bNum)) {
+                            // Both are numbers
+                            comparison = aNum - bNum;
+                        } else {
+                            // String comparison (case-insensitive)
+                            comparison = aValue.localeCompare(bValue, 'ar');
+                        }
+
+                        return sortDirection[column] === 'asc' ? comparison : -comparison;
+                    });
+
+                    // Re-append sorted rows
+                    rows.forEach(row => tbody.appendChild(row));
+                });
+            });
+        });
+
+        // Updated Export to Excel function - respects hidden rows and columns
+        function exportToExcel() {
+            const table = document.getElementById('manufacturersTable');
+            const wsData = [];
+
+            // Header row (only visible columns, skip actions)
+            const headerCells = table.querySelectorAll('thead tr:first-child th');
+            const headers = [];
+            const visibleColumnIndices = [];
+
+            headerCells.forEach((th, index) => {
+                if (index === headerCells.length - 1) return; // skip actions column
+                if (th.style.display === "none") return; // skip hidden columns
+
+                visibleColumnIndices.push(index);
+                headers.push(th.textContent.trim().replace(/\s+/g, ' '));
+            });
+            wsData.push(headers);
+
+            // Body rows (only visible rows and columns)
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                // Skip hidden rows
+                if (row.style.display === "none" || row.offsetParent === null) return;
+
+                const cols = row.querySelectorAll('td');
+                const rowData = [];
+
+                visibleColumnIndices.forEach(index => {
+                    const col = cols[index];
+                    if (!col) return;
+
+                    let text = col.textContent.trim().replace(/\s+/g, ' ');
+                    // Remove "لا يوجد وصف" text for cleaner export
+                    if (text === 'لا يوجد وصف') text = '';
+                    rowData.push(text);
+                });
+
+                wsData.push(rowData);
+            });
+
+            // Generate Excel
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            ws['!rtl'] = true;
+
+            XLSX.utils.book_append_sheet(wb, ws, "Manufacturers");
+            XLSX.writeFile(wb, "manufacturers.xlsx");
+        }
+
+        // Updated Print function - respects hidden rows and columns
         function printTable() {
             try {
-                // Create a print-friendly version of the table
                 const printContent = document.createElement('div');
                 printContent.id = 'printSection';
 
@@ -499,21 +585,28 @@
                 const printTable = document.createElement('table');
                 printTable.className = 'print-table';
 
-                // Create table header
+                // Create table header with visible columns only
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
 
-                ['الشركة المصنعة', 'البيان'].forEach(headerText => {
-                    const th = document.createElement('th');
-                    th.textContent = headerText;
-                    th.className = 'bg-light';
-                    headerRow.appendChild(th);
+                const headerCells = document.querySelectorAll('#manufacturersTable thead tr:first-child th');
+                const visibleHeaders = [];
+
+                headerCells.forEach((th, index) => {
+                    if (index === headerCells.length - 1) return; // skip actions
+                    if (th.style.display === "none") return; // skip hidden
+
+                    const headerTh = document.createElement('th');
+                    headerTh.textContent = th.textContent.trim().replace(/\s+/g, ' ');
+                    headerTh.className = 'bg-light';
+                    headerRow.appendChild(headerTh);
+                    visibleHeaders.push(index);
                 });
 
                 thead.appendChild(headerRow);
                 printTable.appendChild(thead);
 
-                // Create table body with data
+                // Create table body with visible rows and columns
                 const tbody = document.createElement('tbody');
                 const visibleRows = document.querySelectorAll('.manufacturer-row:not([style*="display: none"])');
 
@@ -521,25 +614,25 @@
                     const row = document.createElement('tr');
                     const cell = document.createElement('td');
                     cell.textContent = 'لا توجد بيانات للعرض';
-                    cell.colSpan = 2;
+                    cell.colSpan = visibleHeaders.length;
                     cell.className = 'text-center py-4 text-muted';
                     row.appendChild(cell);
                     tbody.appendChild(row);
                 } else {
                     visibleRows.forEach(row => {
                         const dataRow = document.createElement('tr');
+                        const cells = row.querySelectorAll('td');
 
-                        // Company name
-                        const nameCell = document.createElement('td');
-                        const name = row.querySelector('.manufacturer-name .fw-semibold')?.textContent.trim() || '';
-                        nameCell.textContent = name;
-                        dataRow.appendChild(nameCell);
+                        visibleHeaders.forEach(index => {
+                            const cell = cells[index];
+                            if (!cell) return;
 
-                        // Description
-                        const descCell = document.createElement('td');
-                        const desc = row.querySelector('.manufacturer-description').textContent.trim() || 'لا يوجد وصف';
-                        descCell.textContent = desc;
-                        dataRow.appendChild(descCell);
+                            const td = document.createElement('td');
+                            let text = cell.textContent.trim().replace(/\s+/g, ' ');
+                            if (text === 'لا يوجد وصف') text = '';
+                            td.textContent = text;
+                            dataRow.appendChild(td);
+                        });
 
                         tbody.appendChild(dataRow);
                     });
