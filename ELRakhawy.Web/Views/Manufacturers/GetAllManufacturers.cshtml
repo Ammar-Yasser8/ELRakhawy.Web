@@ -108,11 +108,6 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="sort-indicator" id="sortIndicator0" style="display: none;">
-                                <span class="badge bg-primary">
-                                    <i class="fas fa-sort-amount-down"></i>
-                                </span>
-                            </div>
                         </div>
                     </th>
                     <th>
@@ -128,11 +123,6 @@
                                         <i class="fas fa-times"></i>
                                     </button>
                                 </div>
-                            </div>
-                            <div class="sort-indicator" id="sortIndicator1" style="display: none;">
-                                <span class="badge bg-primary">
-                                    <i class="fas fa-sort-amount-down"></i>
-                                </span>
                             </div>
                         </div>
                     </th>
@@ -199,9 +189,7 @@
         </table>
     </div>
 </div>
-<style>
 
-</style>
 <!-- Enhanced Manufacturer Form Modal -->
 <div class="modal fade" id="manufacturerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -226,7 +214,7 @@
                                    name="Name" required maxlength="200"
                                    placeholder="أدخل اسم الشركة المصنعة">
                             <div class="invalid-feedback">
-                                <i class="fas fa-exclamation-circle me-1"></i>يرجى إدخال اسم المصنع (الحد الأقصى 200 حرف)
+                                <i class="fas fa-exclamation-circle me-1"></i>يرجى إدخال اسم المصنع (الحد الأقصى ٢٠٠ حرف)
                             </div>
                             <div class="form-text">
                                 <small class="text-muted">
@@ -301,9 +289,6 @@
         </div>
     </div>
 </div>
-
-<!--Enhnaced Create/Edit modal -->
-<div class="modal fade" id="createEditModal" tabindex=""></div>
 
 <!-- Enhanced modal for display details-->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
@@ -491,9 +476,9 @@
                         if (aValue === 'لا يوجد وصف' || aValue === '') aValue = '';
                         if (bValue === 'لا يوجد وصف' || bValue === '') bValue = '';
 
-                        // Try to parse as numbers
-                        const aNum = parseFloat(aValue);
-                        const bNum = parseFloat(bValue);
+                        // Try to parse as numbers (both Arabic and English)
+                        const aNum = parseFloat(toLatinDigits(aValue));
+                        const bNum = parseFloat(toLatinDigits(bValue));
 
                         let comparison = 0;
 
@@ -514,7 +499,7 @@
             });
         });
 
-        // Updated Export to Excel function - respects hidden rows and columns
+        // Updated Export to Excel function - respects hidden rows and columns with RTL
         function exportToExcel() {
             const table = document.getElementById('manufacturersTable');
             const wsData = [];
@@ -555,13 +540,21 @@
                 wsData.push(rowData);
             });
 
-            // Generate Excel
+            // Generate Excel with RTL layout
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            // Set RTL for Excel
             ws['!rtl'] = true;
 
-            XLSX.utils.book_append_sheet(wb, ws, "Manufacturers");
-            XLSX.writeFile(wb, "manufacturers.xlsx");
+            // Set column widths
+            const colWidths = visibleColumnIndices.map(() => ({wch: 25}));
+            ws['!cols'] = colWidths;
+
+            XLSX.utils.book_append_sheet(wb, ws, "المصنعين");
+
+            const currentDate = new Date().toLocaleDateString('ar-EG');
+            XLSX.writeFile(wb, `manufacturers_${currentDate.replace(/\//g, '-')}.xlsx`);
         }
 
         // Updated Print function - respects hidden rows and columns
@@ -569,6 +562,7 @@
             try {
                 const printContent = document.createElement('div');
                 printContent.id = 'printSection';
+                printContent.style.direction = 'rtl';
 
                 // Add title and date
                 const title = document.createElement('h4');
@@ -644,7 +638,7 @@
                 // Add summary
                 const summary = document.createElement('p');
                 summary.className = 'mt-3 text-muted text-center';
-                summary.textContent = `عدد المصنعين: ${visibleRows.length}`;
+                summary.textContent = `عدد المصنعين: ${toArabicDigits(visibleRows.length.toString())}`;
                 printContent.appendChild(summary);
 
                 // Add to document and print
@@ -686,36 +680,28 @@
                 return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
             }
 
-            function isArabicChar(c) {
-                return /[\u0600-\u06FF]/.test(c);
-            }
-
-            function isEnglishChar(c) {
-                return /[a-zA-Z]/.test(c);
-            }
-
             // Enhanced function to check if text contains Arabic characters
             function containsArabic(str) {
                 if (!str || str.trim().length === 0) return false;
                 return /[\u0600-\u06FF]/.test(str);
             }
 
-                        function shouldUseArabicNumbers(str) {
+            function shouldUseArabicNumbers(str) {
                 if (!str || str.trim().length === 0) {
                     return true; // Default Arabic when empty
                 }
 
-                // If contains Arabic letters → use Arabic
+                // If contains Arabic letters → use Arabic numbers
                 if (containsArabic(str)) {
                     return true;
                 }
 
                 // If contains only numbers → default Arabic
-                if (/^[0-9٠-٩]+$/.test(str)) {
+                if (/^[0-9٠-٩\s]*$/.test(str.trim())) {
                     return true;
                 }
 
-                // Otherwise English
+                // Otherwise English numbers
                 return false;
             }
 
@@ -751,14 +737,14 @@
                 if (e.which >= 48 && e.which <= 57) { // 0-9
                     e.preventDefault();
                     let digit = String.fromCharCode(e.which);
-                    
+
                     // Get current input value to determine if we should use Arabic or English
                     let currentValue = e.target.value;
                     let cursorPos = e.target.selectionStart || 0;
-                    
+
                     // Create temporary value to test what the result would be
                     let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
-                    
+
                     // Determine if we should use Arabic numbers
                     let useArabicNumbers = shouldUseArabicNumbers(tempValue);
                     let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
@@ -775,7 +761,7 @@
                     }
                 }
             });
-            
+
             // Initialize components
             const toastElement = document.getElementById('notificationToast');
             const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
@@ -843,9 +829,6 @@
                 $('#clearNameSearch').toggle(nameSearch.length > 0);
                 $('#clearCommentSearch').toggle(commentSearch.length > 0);
                 $('#clearAllSearch').toggle(nameSearch.length > 0 || commentSearch.length > 0);
-
-                // Keep table always visible - no modal overlays
-                $('#manufacturersContainer .section-card').show();
 
                 // Add visual feedback to search inputs
                 $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
@@ -1123,7 +1106,6 @@
                                 </div>
                                 <div>
                                     <span class="fw-semibold">${name}</span>
-                                    <br>
                                 </div>
                             </div>
                         </td>
@@ -1196,13 +1178,11 @@
                 }
             });
 
-            // Test enhanced number conversion functions
-            console.log('Testing Enhanced Arabic number conversion:');
-            console.log('English only "hello 123":', shouldUseArabicNumbers('hello 123') ? 'Arabic' : 'English');
-            console.log('Mixed "hello مرحبا 123":', shouldUseArabicNumbers('hello مرحبا 123') ? 'Arabic' : 'English');
-            console.log('Arabic only "مرحبا 123":', shouldUseArabicNumbers('مرحبا 123') ? 'Arabic' : 'English');
-            console.log('Numbers only "123":', shouldUseArabicNumbers('123') ? 'Arabic' : 'English');
-            console.log('Empty "":', shouldUseArabicNumbers('') ? 'Arabic' : 'English');
+            // Expose functions globally
+            window.toArabicDigits = toArabicDigits;
+            window.toLatinDigits = toLatinDigits;
+            window.containsArabic = containsArabic;
+            window.shouldUseArabicNumbers = shouldUseArabicNumbers;
 
             // Initialize with Arabic numbers
             updateInitialCounts();
@@ -1228,10 +1208,10 @@
             transition: all 0.2s ease;
         }
 
-        .manufacturer-row:hover {
-            background-color: rgba(0,123,255,0.05);
-            transform: scale(1.005);
-        }
+            .manufacturer-row:hover {
+                background-color: rgba(0,123,255,0.05);
+                transform: scale(1.005);
+            }
 
         /* Enhanced search row styling */
         .search-row th {
@@ -1244,13 +1224,13 @@
             transition: all 0.2s ease;
         }
 
-        .search-container .input-group:hover {
-            transform: translateY(-1px);
-        }
+            .search-container .input-group:hover {
+                transform: translateY(-1px);
+            }
 
-        .search-container .input-group.shadow-sm {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        }
+            .search-container .input-group.shadow-sm {
+                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            }
 
         .search-container .input-group-text {
             background-color: #f8f9fa;
@@ -1264,15 +1244,15 @@
             padding: 6px 12px;
         }
 
-        .search-container .form-control:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
+            .search-container .form-control:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            }
 
-        .search-container .form-control.border-primary {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
-        }
+            .search-container .form-control.border-primary {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+            }
 
         .manufacturer-icon {
             width: 30px;
@@ -1301,23 +1281,23 @@
             position: relative;
         }
 
-        .search-container .input-group::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
-            border-radius: 6px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
+            .search-container .input-group::before {
+                content: '';
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                right: -2px;
+                bottom: -2px;
+                background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
+                border-radius: 6px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: -1;
+            }
 
-        .search-container .input-group:focus-within::before {
-            opacity: 1;
-        }
+            .search-container .input-group:focus-within::before {
+                opacity: 1;
+            }
 
         /* Animation for new rows */
         .manufacturer-row {
@@ -1325,42 +1305,49 @@
         }
 
         @@keyframes fadeInUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+            from
+
+        {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
         }
 
         /* Mobile responsiveness */
         @@media (max-width: 768px) {
-            .icon-circle {
-                width: 45px;
-                height: 45px;
-                font-size: 1.2rem;
-            }
+            .icon-circle
 
-            .btn-group {
-                flex-direction: column;
-                width: 100%;
-            }
+        {
+            width: 45px;
+            height: 45px;
+            font-size: 1.2rem;
+        }
+
+        .btn-group {
+            flex-direction: column;
+            width: 100%;
+        }
 
             .btn-group .btn {
                 margin: 1px 0;
                 border-radius: 4px;
             }
 
-            .search-row th {
-                padding: 6px 8px;
-            }
+        .search-row th {
+            padding: 6px 8px;
+        }
 
-            .search-container .form-control {
-                font-size: 0.8rem;
-                padding: 4px 8px;
-            }
+        .search-container .form-control {
+            font-size: 0.8rem;
+            padding: 4px 8px;
+        }
+
         }
 
         /* Table header styling */
@@ -1376,35 +1363,40 @@
 
         /* Print styles */
         @@media print {
-            body * {
-                visibility: hidden;
-            }
+            body *
 
-            #printSection, #printSection * {
-                visibility: visible;
-            }
+        {
+            visibility: hidden;
+        }
 
-            #printSection {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
+        #printSection, #printSection * {
+            visibility: visible;
+        }
 
-            .print-table {
-                width: 100%;
-                border-collapse: collapse;
-            }
+        #printSection {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            direction: rtl;
+        }
+
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            direction: rtl;
+        }
 
             .print-table th, .print-table td {
                 border: 1px solid #ccc;
                 padding: 8px;
-                text-align: center;
+                text-align: right;
             }
 
             .print-table th {
                 background-color: #f8f9fa;
             }
+
         }
     </style>
 }

@@ -57,7 +57,7 @@
                     <h5 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-list me-2 text-primary"></i>قائمة اﻟﻮاﺟﻬﺎت اﻟﻤﺮﺗﺒﻄﺔ
                     </h5>
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
                         <!-- Search Results Info -->
                         <div class="badge bg-warning px-3 py-2">
                             <i class="fas fa-database me-1"></i>
@@ -66,21 +66,34 @@
                         <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
                             <i class="fas fa-eraser me-1"></i>مسح المرشحات
                         </button>
-                        <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
-                            <button class="btn btn-outline-info" id="refreshData">
+
+                        <!-- Action Buttons Group -->
+                        <div class="d-flex align-items-center gap-2">
+                            <!-- Column Toggle Button -->
+                            <button type="button" class="btn btn-outline-dark btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-columns me-1"></i>إظهار/إخفاء الأعمدة
+                            </button>
+                            <ul class="dropdown-menu" id="columnToggleMenu"></ul>
+
+                            <!-- Refresh Button -->
+                            <button class="btn btn-outline-info btn-sm" id="refreshData">
                                 <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
                             </button>
-                            <a asp-action="Create" class="btn btn-success add-formstyle-btn">
+
+                            <!-- Add New Form Style Button -->
+                            <a asp-action="Create" class="btn btn-success btn-sm add-formstyle-btn">
                                 <i class="fas fa-plus-circle me-1"></i>إضافة وجهة جديدة
                             </a>
-                        </div>
-                        <div class="btn-group export-btn-group ms-2">
-                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
-                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
-                            </button>
-                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
-                                <i class="fas fa-print me-1"></i>طباعة
-                            </button>
+
+                            <!-- Export Buttons -->
+                            <div class="btn-group">
+                                <button class="btn btn-outline-success btn-sm" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                                </button>
+                                <button class="btn btn-outline-secondary btn-sm" onclick="printTable()">
+                                    <i class="fas fa-print me-1"></i>طباعة
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -88,36 +101,44 @@
 
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <div class="btn-group mb-2">
-                        <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
-                        </button>
-                        <ul class="dropdown-menu" id="columnToggleMenu"></ul>
-                    </div>
-
                     <table class="table table-hover table-bordered align-middle w-100" id="formStylesTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="fw-bold">
-                                    <i class="fas fa-cogs text-primary me-1"></i>اسم الواجهة 
+                                <th class="fw-bold sortable" data-column="0" style="cursor: pointer;">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span>
+                                            <i class="fas fa-cogs text-primary me-1"></i>اسم الواجهة
+                                        </span>
+                                        <i class="fas fa-sort sort-icon text-muted"></i>
+                                    </div>
                                 </th>
-                               
                                 <th class="text-center fw-bold">
                                     <i class="fas fa-tools text-dark me-1"></i>الإجراءات
                                 </th>
                             </tr>
-                            <!-- Enhanced Inline Search Row -->
+                            <!-- Enhanced Inline Search Row with Sort Controls -->
                             <tr class="search-row bg-white">
                                 <th class="border-bottom-0 pb-2 pt-2">
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
-                                            </span>
-                                            <input type="text" id="searchByFormName" class="form-control border-start-0"
-                                                   placeholder="ابحث في أسماء الواجهات...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFormNameSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="search-container flex-grow-1">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-light border-end-0">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                </span>
+                                                <input type="text" id="searchByFormName" class="form-control border-start-0"
+                                                       placeholder="ابحث في أسماء الواجهات...">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFormNameSearch" style="display: none;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <!-- Inline Sort Buttons -->
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary sort-btn" data-column="0" data-direction="asc" title="ترتيب تصاعدي">
+                                                <i class="fas fa-sort-alpha-down"></i>
+                                            </button>
+                                            <button class="btn btn-outline-primary sort-btn" data-column="0" data-direction="desc" title="ترتيب تنازلي">
+                                                <i class="fas fa-sort-alpha-up"></i>
                                             </button>
                                         </div>
                                     </div>
@@ -126,9 +147,6 @@
                                     <small class="text-muted">
                                         <i class="fas fa-filter me-1"></i>البحث والتصفية
                                     </small>
-                                </th>
-                                <th class="border-bottom-0 pb-2 pt-2 text-center">
-                                   
                                 </th>
                             </tr>
                         </thead>
@@ -145,11 +163,9 @@
                                                 </div>
                                                 <div>
                                                     <span class="fw-semibold">@form.FormName</span>
-                                                    <br>
                                                 </div>
                                             </div>
                                         </td>
-                                        
                                         <td class="text-center">
                                             <div class="btn-group" role="group">
                                                 <a href="/FormStyles/Details/@form.Id"
@@ -184,17 +200,22 @@
             </div>
         </div>
     </div>
+
+    <!-- Enhanced JavaScript with Sorting Functionality -->
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const table = document.getElementById("formStylesTable");
+            const tbody = table.querySelector("tbody");
             const headers = table.querySelectorAll("thead th");
             const toggleMenu = document.getElementById("columnToggleMenu");
+            let currentSortColumn = -1;
+            let currentSortDirection = 'none';
 
+            // Initialize column toggle menu
             headers.forEach((th, index) => {
-                // تخطي الأعمدة الفارغة أو الأعمدة الخاصة بالإجراءات
-                if (th.innerText.trim() === "") return;
+                // Skip empty columns or action columns
+                if (th.innerText.trim() === "" || th.innerText.includes("الإجراءات")) return;
 
-                // أضف عنصر في الـ dropdown لكل عمود
                 const li = document.createElement("li");
                 li.innerHTML = `
                     <label class="dropdown-item">
@@ -204,14 +225,14 @@
                 toggleMenu.appendChild(li);
             });
 
-            // التحكم في الإظهار/الإخفاء
+            // Handle column visibility toggle
             toggleMenu.addEventListener("change", function (e) {
                 if (!e.target.classList.contains("column-toggle")) return;
 
                 const colIndex = e.target.getAttribute("data-index");
                 const isVisible = e.target.checked;
 
-                // إظهار/إخفاء العمود
+                // Show/hide column
                 table.querySelectorAll("tr").forEach(row => {
                     const cell = row.querySelectorAll("th, td")[colIndex];
                     if (cell) {
@@ -219,8 +240,203 @@
                     }
                 });
             });
+
+            // Sorting functionality
+            function sortTable(columnIndex, direction) {
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                // Update sort indicators
+                document.querySelectorAll('.sortable').forEach(header => {
+                    header.classList.remove('sorted-asc', 'sorted-desc');
+                    const icon = header.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.className = 'fas fa-sort sort-icon text-muted';
+                    }
+                });
+
+                document.querySelectorAll('.sort-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                // Update current sort header
+                const currentHeader = document.querySelector(`[data-column="${columnIndex}"].sortable`);
+                if (currentHeader) {
+                    currentHeader.classList.add(`sorted-${direction}`);
+                    const icon = currentHeader.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.className = direction === 'asc'
+                            ? 'fas fa-sort-up sort-icon text-primary'
+                            : 'fas fa-sort-down sort-icon text-primary';
+                    }
+                }
+
+                // Activate current sort button
+                const currentSortBtn = document.querySelector(`.sort-btn[data-column="${columnIndex}"][data-direction="${direction}"]`);
+                if (currentSortBtn) {
+                    currentSortBtn.classList.add('active');
+                }
+
+                // Sort rows
+                rows.sort((a, b) => {
+                    const aCell = a.querySelectorAll('td')[columnIndex];
+                    const bCell = b.querySelectorAll('td')[columnIndex];
+
+                    let aValue = aCell ? aCell.textContent.trim() : '';
+                    let bValue = bCell ? bCell.textContent.trim() : '';
+
+                    // String comparison for Arabic text
+                    const comparison = aValue.localeCompare(bValue, 'ar', {
+                        numeric: true,
+                        sensitivity: 'base'
+                    });
+
+                    return direction === 'asc' ? comparison : -comparison;
+                });
+
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+
+                currentSortColumn = columnIndex;
+                currentSortDirection = direction;
+            }
+
+            // Handle header clicks for sorting
+            document.querySelectorAll('.sortable').forEach(header => {
+                header.addEventListener('click', function() {
+                    const column = parseInt(this.getAttribute('data-column'));
+                    let newDirection = 'asc';
+
+                    if (currentSortColumn === column) {
+                        newDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                    }
+
+                    sortTable(column, newDirection);
+                });
+            });
+
+            // Handle sort button clicks
+            document.querySelectorAll('.sort-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const column = parseInt(this.getAttribute('data-column'));
+                    const direction = this.getAttribute('data-direction');
+                    sortTable(column, direction);
+                });
+            });
+
+            // Enhanced search functionality
+            let searchTimeout;
+            document.getElementById('searchByFormName').addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    const searchTerm = this.value.toLowerCase().trim();
+                    let visibleCount = 0;
+
+                    document.querySelectorAll('.form-style-row').forEach(row => {
+                        const formName = row.querySelector('.form-style-name').textContent.toLowerCase();
+                        const shouldShow = !searchTerm || formName.includes(searchTerm);
+
+                        row.style.display = shouldShow ? '' : 'none';
+                        if (shouldShow) visibleCount++;
+                    });
+
+                    // Update badge count
+                    document.getElementById('badgeCount').textContent = visibleCount;
+
+                    // Show/hide clear button
+                    document.getElementById('clearFormNameSearch').style.display = searchTerm ? 'block' : 'none';
+
+                    // Show/hide clear all button
+                    document.getElementById('clearAllSearch').style.display = searchTerm ? 'block' : 'none';
+                }, 200);
+            });
+
+            // Clear search functionality
+            document.getElementById('clearFormNameSearch').addEventListener('click', function() {
+                document.getElementById('searchByFormName').value = '';
+                document.getElementById('searchByFormName').dispatchEvent(new Event('input'));
+            });
+
+            document.getElementById('clearAllSearch').addEventListener('click', function() {
+                document.getElementById('searchByFormName').value = '';
+                document.getElementById('searchByFormName').dispatchEvent(new Event('input'));
+            });
+
+            // Initialize badge count
+            const initialCount = document.querySelectorAll('.form-style-row').length;
+            document.getElementById('badgeCount').textContent = initialCount;
         });
     </script>
+
+    <!-- Enhanced Styles -->
+    <style>
+        .sortable {
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+            .sortable:hover {
+                background-color: rgba(0, 0, 0, 0.05);
+            }
+
+        .sort-icon {
+            font-size: 0.8rem;
+            transition: all 0.2s ease;
+        }
+
+        .sortable.sorted-asc,
+        .sortable.sorted-desc {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+        .sort-btn {
+            transition: all 0.2s ease;
+        }
+
+            .sort-btn:hover {
+                transform: scale(1.05);
+            }
+
+            .sort-btn.active {
+                background-color: #0d6efd;
+                border-color: #0d6efd;
+                color: white;
+            }
+
+        .search-container .form-control:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .btn-group-sm .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        /* Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .d-flex.align-items-center.gap-2
+
+        {
+            flex-wrap: wrap;
+            gap: 0.5rem !important;
+        }
+
+        .btn-group {
+            flex-wrap: wrap;
+        }
+
+        }
+
+        /* Animation for sorted rows */
+        .form-style-row {
+            transition: all 0.3s ease;
+        }
+
+            .form-style-row:hover {
+                background-color: rgba(255, 193, 7, 0.1);
+                transform: translateX(2px);
+            }
+    </style>
 
     <!-- No Results Message -->
     <div id="noResultsMessage" class="text-center py-5" style="display: none;">
@@ -267,6 +483,17 @@
                         <option value="unused">غير مستخدم</option>
                     </select>
                 </div>
+                <!-- Mobile Sort Controls -->
+                <div class="col-12">
+                    <div class="btn-group w-100">
+                        <button class="btn btn-outline-primary btn-sm mobile-sort-btn" data-direction="asc">
+                            <i class="fas fa-sort-alpha-down me-1"></i>ترتيب تصاعدي
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm mobile-sort-btn" data-direction="desc">
+                            <i class="fas fa-sort-alpha-up me-1"></i>ترتيب تنازلي
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -294,7 +521,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item py-2 mobile-edit-formstyle" 
+                                    <a class="dropdown-item py-2 mobile-edit-formstyle"
                                        data-id="@form.Id"
                                        data-name="@form.FormName"
                                        data-category="@(form.FormCategory ?? "")"
@@ -325,7 +552,6 @@
                     </div>
                     <div class="card-body py-3">
                         <div class="row g-2">
-                            
                             <div class="col-6">
                                 <div class="text-center p-2 bg-light rounded">
                                     <div class="badge @(form.UsageCount > 0 ? "bg-success" : "bg-secondary") mb-1">@form.UsageCount</div>
@@ -340,6 +566,38 @@
     </div>
 </div>
 
+<script>
+    // Mobile sorting functionality
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.mobile-sort-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const direction = this.getAttribute('data-direction');
+                const cards = Array.from(document.querySelectorAll('.mobile-form-card'));
+
+                // Remove active state from all buttons
+                document.querySelectorAll('.mobile-sort-btn').forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+
+                // Sort cards
+                cards.sort((a, b) => {
+                    const aName = a.querySelector('h6').textContent.trim();
+                    const bName = b.querySelector('h6').textContent.trim();
+
+                    const comparison = aName.localeCompare(bName, 'ar', {
+                        numeric: true,
+                        sensitivity: 'base'
+                    });
+
+                    return direction === 'asc' ? comparison : -comparison;
+                });
+
+                // Re-append sorted cards
+                const container = document.getElementById('mobileCardsContainer');
+                cards.forEach(card => container.appendChild(card));
+            });
+        });
+    });
+</script>
 <!-- Enhanced Create/Edit FormStyle Modal -->
 <div class="modal fade" id="formStyleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -451,7 +709,7 @@
         </div>
     </div>
 </div>
-
+<!-- Enhanced details Formstyle modal-->
 <div class="modal fade" id="detailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow">
@@ -494,7 +752,6 @@
         </div>
     </div>
 </div>
-
 <!-- Enhanced Delete Confirmation Modal -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -536,7 +793,7 @@
 
     <!-- Export and Print Functions -->
     <script>
-               function exportToExcel() {
+            function exportToExcel() {
             try {
                 // Get table data
                 const table = document.getElementById('formStylesTable');
@@ -589,9 +846,8 @@
                 showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
             }
         }
-
-        // Print function
-        function printTable() {
+            // Print function
+            function printTable() {
             try {
                 // Create a print-friendly version of the table
                 const printContent = document.createElement('div');
