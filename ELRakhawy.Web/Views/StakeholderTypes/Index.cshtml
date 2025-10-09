@@ -58,7 +58,7 @@
                     <h5 class="mb-0 fw-bold text-dark">
                         <i class="fas fa-list me-2 text-primary"></i>قائمة أنواع أصحاب المصلحة
                     </h5>
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-2">
                         <!-- Search Results Info -->
                         <small class="text-muted">
                             <span id="resultsInfo">عرض <strong id="visibleCount">0</strong> من أصل <strong id="totalCount">0</strong> نوع</span>
@@ -70,45 +70,62 @@
                         <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
                             <i class="fas fa-eraser me-1"></i>مسح المرشحات
                         </button>
-                        <button class="btn btn-outline-info" id="refreshData">
-                            <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
+                        <button class="btn btn-outline-dark btn-sm" id="toggleColumnsBtn" data-bs-toggle="dropdown">
+                            <i class="fas fa-columns me-1"></i>إظهار/إخفاء
                         </button>
-                        <!-- Updated Create Button -->
-                        <button class="btn btn-success" id="createStakeholderTypeBtn">
-                            <i class="fas fa-plus-circle me-1"></i>إضافة نوع جديد
+                        <ul class="dropdown-menu column-toggle-menu" id="columnToggleMenu"></ul>
+                        <button class="btn btn-outline-info btn-sm" id="refreshData">
+                            <i class="fas fa-sync-alt me-1"></i>تحديث
                         </button>
-                        <div class="btn-group export-btn-group ms-2">
-                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
-                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
-                            </button>
-                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
-                                <i class="fas fa-print me-1"></i>طباعة
-                            </button>
-                        </div>
+                        <button class="btn btn-success btn-sm" id="createStakeholderTypeBtn">
+                            <i class="fas fa-plus-circle me-1"></i>إضافة نوع
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="exportToExcel()">
+                            <i class="fas fa-file-excel me-1"></i>تصدير Excel
+                        </button>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="printTable()">
+                            <i class="fas fa-print me-1"></i>طباعة
+                        </button>
                     </div>
                 </div>
             </div>
 
             <div class="card-body p-0">
                 <div class="table-responsive">
-
-                    <!-- مكان الزر -->
-                    <div class="table-toolbar mb-2"></div>
-
                     <table class="table table-hover align-middle mb-0" id="stakeholderTypesTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="fw-bold" style="width: 20%;">
-                                    <i class="fas fa-tag text-primary me-1"></i>النوع
+                                <th class="fw-bold sortable" style="width: 20%; cursor: pointer;" data-column="0">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span>
+                                            <i class="fas fa-tag text-primary me-1"></i>النوع
+                                        </span>
+                                        <i class="fas fa-sort sort-icon text-muted"></i>
+                                    </div>
                                 </th>
-                                <th class="fw-bold" style="width: 20%;">
-                                    <i class="fas fa-coins text-warning me-1"></i>نوع المعاملة المالية
+                                <th class="fw-bold sortable" style="width: 20%; cursor: pointer;" data-column="1">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span>
+                                            <i class="fas fa-coins text-warning me-1"></i>نوع المعاملة المالية
+                                        </span>
+                                        <i class="fas fa-sort sort-icon text-muted"></i>
+                                    </div>
                                 </th>
-                                <th class="fw-bold" style="width: 35%;">
-                                    <i class="fas fa-link text-info me-1"></i>الواجهات المرتبطة
+                                <th class="fw-bold sortable" style="width: 35%; cursor: pointer;" data-column="2">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span>
+                                            <i class="fas fa-link text-info me-1"></i>الواجهات المرتبطة
+                                        </span>
+                                        <i class="fas fa-sort sort-icon text-muted"></i>
+                                    </div>
                                 </th>
-                                <th class="fw-bold" style="width: 15%;">
-                                    <i class="fas fa-comment text-secondary me-1"></i>بيان
+                                <th class="fw-bold sortable" style="width: 15%; cursor: pointer;" data-column="3">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span>
+                                            <i class="fas fa-comment text-secondary me-1"></i>بيان
+                                        </span>
+                                        <i class="fas fa-sort sort-icon text-muted"></i>
+                                    </div>
                                 </th>
                                 <th class="text-center fw-bold" style="width: 10%;">
                                     <i class="fas fa-cogs text-dark me-1"></i>الإجراءات
@@ -117,58 +134,86 @@
                             <!-- Inline Search Row -->
                             <tr class="search-row bg-white">
                                 <th class="border-bottom-0 pb-2 pt-2">
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="search-container flex-grow-1">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-light border-end-0">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                </span>
+                                                <input type="text" id="searchByType" class="form-control border-start-0"
+                                                       placeholder="ابحث في الأنواع...">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button" id="clearTypeSearch" style="display: none;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="sort-indicator" id="sortIndicator0" style="display: none;">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-sort-amount-down"></i>
                                             </span>
-                                            <input type="text" id="searchByType" class="form-control border-start-0"
-                                                   placeholder="ابحث في الأنواع...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearTypeSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
                                         </div>
                                     </div>
                                 </th>
                                 <th class="border-bottom-0 pb-2 pt-2">
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="search-container flex-grow-1">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-light border-end-0">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                </span>
+                                                <input type="text" id="searchByFinancial" class="form-control border-start-0"
+                                                       placeholder="ابحث في المعاملات...">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFinancialSearch" style="display: none;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="sort-indicator" id="sortIndicator1" style="display: none;">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-sort-amount-down"></i>
                                             </span>
-                                            <input type="text" id="searchByFinancial" class="form-control border-start-0"
-                                                   placeholder="ابحث في المعاملات...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFinancialSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
                                         </div>
                                     </div>
                                 </th>
                                 <th class="border-bottom-0 pb-2 pt-2">
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="search-container flex-grow-1">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-light border-end-0">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                </span>
+                                                <input type="text" id="searchByForms" class="form-control border-start-0"
+                                                       placeholder="ابحث في الواجهات...">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFormsSearch" style="display: none;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="sort-indicator" id="sortIndicator2" style="display: none;">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-sort-amount-down"></i>
                                             </span>
-                                            <input type="text" id="searchByForms" class="form-control border-start-0"
-                                                   placeholder="ابحث في الواجهات...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearFormsSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
                                         </div>
                                     </div>
                                 </th>
                                 <th class="border-bottom-0 pb-2 pt-2">
-                                    <div class="search-container">
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-light border-end-0">
-                                                <i class="fas fa-search text-muted"></i>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="search-container flex-grow-1">
+                                            <div class="input-group input-group-sm">
+                                                <span class="input-group-text bg-light border-end-0">
+                                                    <i class="fas fa-search text-muted"></i>
+                                                </span>
+                                                <input type="text" id="searchByComment" class="form-control border-start-0"
+                                                       placeholder="ابحث في البيان...">
+                                                <button class="btn btn-outline-secondary btn-sm" type="button" id="clearCommentSearch" style="display: none;">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="sort-indicator" id="sortIndicator3" style="display: none;">
+                                            <span class="badge bg-primary">
+                                                <i class="fas fa-sort-amount-down"></i>
                                             </span>
-                                            <input type="text" id="searchByComment" class="form-control border-start-0"
-                                                   placeholder="ابحث في البيان...">
-                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearCommentSearch" style="display: none;">
-                                                <i class="fas fa-times"></i>
-                                            </button>
                                         </div>
                                     </div>
                                 </th>
@@ -190,7 +235,6 @@
                                             </div>
                                             <div>
                                                 <span class="fw-semibold">@type.Type</span>
-                                                <br>
                                             </div>
                                         </div>
                                     </td>
@@ -267,56 +311,6 @@
                         </tbody>
                     </table>
                 </div>
-
-                <script>
-                    document.addEventListener("DOMContentLoaded", function () {
-                        const table = document.getElementById("stakeholderTypesTable");
-                        if (!table) return;
-
-                        const headers = table.querySelectorAll("thead tr:first-child th");
-                        if (headers.length === 0) return;
-
-                        const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
-                        if (!toolbar) return;
-
-                        const btnGroup = document.createElement("div");
-                        btnGroup.className = "btn-group mb-2";
-                        btnGroup.innerHTML = `
-                            <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                                <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
-                            </button>
-                            <ul class="dropdown-menu column-toggle-menu"></ul>
-                        `;
-                        toolbar.appendChild(btnGroup);
-
-                        const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
-
-                        headers.forEach((th, index) => {
-                            const title = th.innerText.trim() || `عمود ${index + 1}`;
-                            const li = document.createElement("li");
-                            li.innerHTML = `
-                                <label class="dropdown-item">
-                                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
-                                    ${title}
-                                </label>`;
-                            toggleMenu.appendChild(li);
-                        });
-
-                        document.body.addEventListener("change", function (e) {
-                            if (!e.target.classList.contains("column-toggle")) return;
-
-                            const colIndex = e.target.getAttribute("data-index");
-                            const isVisible = e.target.checked;
-
-                            table.querySelectorAll("tr").forEach(row => {
-                                const cell = row.querySelectorAll("th, td")[colIndex];
-                                if (cell) {
-                                    cell.style.display = isVisible ? "" : "none";
-                                }
-                            });
-                        });
-                    });
-                </script>
             </div>
         </div>
     </div>
@@ -336,6 +330,188 @@
     </div>
 </div>
 
+<style>
+    .sortable {
+        user-select: none;
+        transition: background-color 0.2s;
+    }
+
+        .sortable:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+    .sort-icon {
+        font-size: 0.8rem;
+        transition: all 0.2s;
+    }
+
+    .sortable.asc .sort-icon {
+        transform: rotate(180deg);
+        color: #0d6efd !important;
+    }
+
+    .sortable.desc .sort-icon {
+        color: #0d6efd !important;
+    }
+
+    .column-toggle-menu {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+
+    .sort-indicator {
+        min-width: 35px;
+        animation: fadeIn 0.3s;
+    }
+
+        .sort-indicator .badge {
+            font-size: 0.75rem;
+            padding: 0.35rem 0.5rem;
+        }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: scale(0.8);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    }
+
+   
+</style>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const table = document.getElementById('stakeholderTypesTable');
+        const tbody = table.querySelector('tbody');
+        const headers = table.querySelectorAll('thead tr:first-child th');
+        const columnToggleMenu = document.getElementById('columnToggleMenu');
+
+        // Initialize column toggle menu
+        headers.forEach((th, index) => {
+            if (index === headers.length - 1) return; // Skip actions column
+
+            const title = th.textContent.trim().replace(/\s+/g, ' ');
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <label class="dropdown-item">
+                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                    ${title}
+                </label>`;
+            columnToggleMenu.appendChild(li);
+        });
+
+        // Handle column visibility toggle
+        columnToggleMenu.addEventListener("change", function (e) {
+            if (!e.target.classList.contains("column-toggle")) return;
+
+            const colIndex = parseInt(e.target.getAttribute("data-index"));
+            const isVisible = e.target.checked;
+
+            table.querySelectorAll("tr").forEach(row => {
+                const cell = row.querySelectorAll("th, td")[colIndex];
+                if (cell) {
+                    cell.style.display = isVisible ? "" : "none";
+                }
+            });
+        });
+
+        // Sorting functionality
+        let sortDirection = {};
+
+        document.querySelectorAll('.sortable').forEach(header => {
+            const column = parseInt(header.getAttribute('data-column'));
+            sortDirection[column] = 'none';
+
+            header.addEventListener('click', function() {
+                // Get all rows
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                // Determine sort direction
+                if (sortDirection[column] === 'none' || sortDirection[column] === 'desc') {
+                    sortDirection[column] = 'asc';
+                } else {
+                    sortDirection[column] = 'desc';
+                }
+
+                // Update all headers to show unsorted state
+                document.querySelectorAll('.sortable').forEach(h => {
+                    h.classList.remove('asc', 'desc');
+                    const icon = h.querySelector('.sort-icon');
+                    icon.className = 'fas fa-sort sort-icon text-muted';
+                });
+
+                // Hide all sort indicators
+                document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                    indicator.style.display = 'none';
+                });
+
+                // Update current header
+                header.classList.add(sortDirection[column]);
+                const icon = header.querySelector('.sort-icon');
+                const sortIndicator = document.getElementById('sortIndicator' + column);
+                const sortBadgeIcon = sortIndicator.querySelector('i');
+
+                if (sortDirection[column] === 'asc') {
+                    icon.className = 'fas fa-sort-up sort-icon';
+                    sortBadgeIcon.className = 'fas fa-sort-amount-up';
+                    sortIndicator.querySelector('.badge').classList.remove('bg-danger');
+                    sortIndicator.querySelector('.badge').classList.add('bg-success');
+                } else {
+                    icon.className = 'fas fa-sort-down sort-icon';
+                    sortBadgeIcon.className = 'fas fa-sort-amount-down';
+                    sortIndicator.querySelector('.badge').classList.remove('bg-success');
+                    sortIndicator.querySelector('.badge').classList.add('bg-danger');
+                }
+
+                // Show current sort indicator
+                sortIndicator.style.display = 'block';
+
+                // Sort rows
+                rows.sort((a, b) => {
+                    const aCell = a.querySelectorAll('td')[column];
+                    const bCell = b.querySelectorAll('td')[column];
+
+                    let aValue = aCell.textContent.trim();
+                    let bValue = bCell.textContent.trim();
+
+                    // Handle empty or "no data" values
+                    if (aValue.includes('لا يوجد') || aValue.includes('لا توجد') || aValue === '') aValue = '';
+                    if (bValue.includes('لا يوجد') || bValue.includes('لا توجد') || bValue === '') bValue = '';
+
+                    // Try to parse as numbers
+                    const aNum = parseFloat(aValue);
+                    const bNum = parseFloat(bValue);
+
+                    let comparison = 0;
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        // Both are numbers
+                        comparison = aNum - bNum;
+                    } else {
+                        // String comparison (case-insensitive)
+                        comparison = aValue.localeCompare(bValue, 'ar');
+                    }
+
+                    return sortDirection[column] === 'asc' ? comparison : -comparison;
+                });
+
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        });
+    });
+
+    
+    
+</script>
 <!-- Empty State Message -->
 <div id="emptyState" class="text-center py-5" style="@(Model.Any() ? "display: none;" : "")">
     <div class="card border-0 shadow-sm">
@@ -489,79 +665,78 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Export and Print Functions -->
     <script>
-        // Export to Excel function - Fixed version for StakeholderType table
-               function exportToExcel() {
+        // ✅ Export to Excel - respects hidden rows/columns and uses RTL
+        function exportToExcel() {
             try {
-                // Get table data
                 const table = document.getElementById('stakeholderTypesTable');
-                const rows = table.querySelectorAll('tr:not(.search-row)');
-
-                // Create Excel workbook
-                const wb = XLSX.utils.book_new();
                 const wsData = [];
 
-                // Add header row (skip actions column - index 4)
-                const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
-                const headers = headerCells
-                    .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
-                    .filter(item => item.index !== 4) // Skip actions column (index 4)
-                    .map(item => item.text);
+                // --- Get visible headers (skip Actions column) ---
+                const headerCells = table.querySelectorAll('thead tr:first-child th');
+                const headers = [];
+                const visibleColumnIndices = [];
+
+                headerCells.forEach((th, index) => {
+                    if (index === headerCells.length - 1 || index === 4) return; // skip last/actions col
+                    if (th.style.display === 'none') return; // skip hidden columns
+
+                    visibleColumnIndices.push(index);
+                    headers.push(th.textContent.trim().replace(/\s+/g, ' '));
+                });
 
                 wsData.push(headers);
 
-                // Add data rows
+                // --- Get visible rows only ---
+                const rows = table.querySelectorAll('tbody tr');
                 rows.forEach(row => {
-                    // Skip search row and header
-                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+                    if (row.style.display === 'none' || row.offsetParent === null) return; // skip hidden
 
-                    const rowData = [];
                     const cols = row.querySelectorAll('td');
+                    const rowData = [];
 
-                    cols.forEach((col, index) => {
-                        // Skip actions column (index 4)
-                        if (index === 4) return;
+                    visibleColumnIndices.forEach(index => {
+                        const col = cols[index];
+                        if (!col) return;
 
                         let text = col.textContent.trim().replace(/\s+/g, ' ');
 
-                        // For stakeholder type name, extract just the text without icons
+                        // Clean icons/text for first cell (type name)
                         if (index === 0) {
                             text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
                         }
 
-                        // Separate forms by comma
+                        // Handle Linked Forms (badges)
                         if (index === 2) {
                             const badges = col.querySelectorAll('.badge');
-                            text = Array.from(badges).map(badge => badge.textContent.trim()).join(', ');
+                            text = Array.from(badges)
+                                .map(b => b.textContent.trim())
+                                .join(', ');
                         }
 
+                        if (text === 'لا يوجد') text = '';
                         rowData.push(text);
                     });
 
-                    if (rowData.length > 0) {
-                        wsData.push(rowData);
-                    }
+                    if (rowData.length > 0) wsData.push(rowData);
                 });
 
-                // Create worksheet
+                // --- Create Excel worksheet ---
+                const wb = XLSX.utils.book_new();
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-                // Set column widths
-                const colWidths = [
-                    { wch: 30 }, // Type
-                    { wch: 25 }, // Financial Transaction Type
-                    { wch: 40 }, // Linked Forms
-                    { wch: 50 }  // Comment
-                ];
+                // ✅ Right-to-Left layout
+                ws['!rtl'] = true;
+
+                // Auto column widths based on visible columns
+                const colWidths = visibleColumnIndices.map(() => ({ wch: 30 }));
                 ws['!cols'] = colWidths;
 
-                // Add worksheet to workbook
                 XLSX.utils.book_append_sheet(wb, ws, 'أنواع أصحاب المصلحة');
 
-                // Generate Excel file and trigger download
+                // --- Export file ---
                 const currentDate = new Date().toISOString().slice(0, 10);
                 XLSX.writeFile(wb, `أنواع_أصحاب_المصلحة_${currentDate}.xlsx`);
 
-                // Show success notification
                 if (typeof showNotification === 'function') {
                     showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
                 }
@@ -574,14 +749,14 @@
             }
         }
 
-        // Print function for StakeholderType table
+        // ✅ Print table - respects hidden rows/columns and RTL layout
         function printTable() {
             try {
-                // Create a print-friendly version of the table
                 const printContent = document.createElement('div');
                 printContent.id = 'printSection';
+                printContent.style.direction = 'rtl';
 
-                // Add title and date
+                // --- Title and Date ---
                 const title = document.createElement('h4');
                 title.textContent = 'قائمة أنواع أصحاب المصلحة';
                 title.className = 'text-center mb-3';
@@ -592,63 +767,69 @@
                 date.className = 'text-center mb-4 text-muted';
                 printContent.appendChild(date);
 
-                // Create print table
+                // --- Build print table ---
                 const printTable = document.createElement('table');
                 printTable.className = 'print-table';
 
-                // Create table header
+                // --- Visible headers ---
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
+                const headerCells = document.querySelectorAll('#stakeholderTypesTable thead tr:first-child th');
+                const visibleHeaders = [];
 
-                ['النوع', 'نوع المعاملة المالية', 'الواجهات المرتبطة', 'البيان'].forEach(headerText => {
-                    const th = document.createElement('th');
-                    th.textContent = headerText;
-                    th.className = 'bg-light';
-                    headerRow.appendChild(th);
+                headerCells.forEach((th, index) => {
+                    if (index === headerCells.length - 1 || index === 4) return;
+                    if (th.style.display === 'none') return;
+
+                    const thEl = document.createElement('th');
+                    thEl.textContent = th.textContent.trim().replace(/\s+/g, ' ');
+                    thEl.className = 'bg-light';
+                    headerRow.appendChild(thEl);
+                    visibleHeaders.push(index);
                 });
 
                 thead.appendChild(headerRow);
                 printTable.appendChild(thead);
 
-                // Create table body with data
+                // --- Visible rows ---
                 const tbody = document.createElement('tbody');
-                const visibleRows = document.querySelectorAll('.stakeholder-type-row:not([style*="display: none"])');
+                const visibleRows = Array.from(document.querySelectorAll('.stakeholder-type-row'))
+                    .filter(row => row.style.display !== 'none' && row.offsetParent !== null);
 
                 if (visibleRows.length === 0) {
                     const row = document.createElement('tr');
                     const cell = document.createElement('td');
                     cell.textContent = 'لا توجد بيانات للعرض';
-                    cell.colSpan = 4;
+                    cell.colSpan = visibleHeaders.length;
                     cell.className = 'text-center py-4 text-muted';
                     row.appendChild(cell);
                     tbody.appendChild(row);
                 } else {
                     visibleRows.forEach(row => {
                         const dataRow = document.createElement('tr');
+                        const cells = row.querySelectorAll('td');
 
-                        // Type
-                        const typeCell = document.createElement('td');
-                        const type = row.querySelector('.stakeholder-type-name .fw-semibold')?.textContent.trim() || '';
-                        typeCell.textContent = type;
-                        dataRow.appendChild(typeCell);
+                        visibleHeaders.forEach(index => {
+                            const col = cells[index];
+                            if (!col) return;
 
-                        // Financial Transaction Type
-                        const financialCell = document.createElement('td');
-                        const financial = row.querySelector('.stakeholder-type-financial').textContent.trim() || 'لا يوجد';
-                        financialCell.textContent = financial;
-                        dataRow.appendChild(financialCell);
+                            const td = document.createElement('td');
+                            let text = col.textContent.trim().replace(/\s+/g, ' ');
 
-                        // Linked Forms
-                        const formsCell = document.createElement('td');
-                        const forms = row.querySelector('.stakeholder-type-forms').textContent.trim() || 'لا توجد واجهات مرتبطة';
-                        formsCell.textContent = forms;
-                        dataRow.appendChild(formsCell);
+                            if (index === 0) {
+                                text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
+                            }
+                            if (index === 2) {
+                                const badges = col.querySelectorAll('.badge');
+                                text = Array.from(badges)
+                                    .map(b => b.textContent.trim())
+                                    .join(', ');
+                            }
 
-                        // Comment
-                        const commentCell = document.createElement('td');
-                        const comment = row.querySelector('.stakeholder-type-comment').textContent.trim() || 'لا يوجد بيان';
-                        commentCell.textContent = comment;
-                        dataRow.appendChild(commentCell);
+                            if (text === 'لا يوجد') text = '';
+                            td.textContent = text;
+                            dataRow.appendChild(td);
+                        });
 
                         tbody.appendChild(dataRow);
                     });
@@ -657,17 +838,15 @@
                 printTable.appendChild(tbody);
                 printContent.appendChild(printTable);
 
-                // Add summary
+                // --- Summary ---
                 const summary = document.createElement('p');
                 summary.className = 'mt-3 text-muted text-center';
                 summary.textContent = `عدد الأنواع: ${visibleRows.length}`;
                 printContent.appendChild(summary);
 
-                // Add to document and print
+                // --- Print ---
                 document.body.appendChild(printContent);
                 window.print();
-
-                // Clean up
                 document.body.removeChild(printContent);
 
             } catch (error) {
@@ -678,6 +857,8 @@
             }
         }
     </script>
+
+
     <!--Delete cript>-->
     <script>
         $(document).ready(function() {
