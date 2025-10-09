@@ -51,6 +51,12 @@
                             <button class="btn btn-outline-info" id="refreshData">
                                 <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
                             </button>
+                            <!-- Column Toggle Button -->
+                            <button type="button" class="btn btn-outline-dark btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                                <i class="fas fa-columns me-1"></i>إظهار/إخفاء الأعمدة
+                            </button>
+                            <ul class="dropdown-menu" id="columnToggleMenu"></ul>
+
                             <button class="btn btn-success add-packaging-style-btn">
                                 <i class="fas fa-plus-circle me-1"></i>إضافة نمط تعبئة جديد
                             </button>
@@ -69,20 +75,20 @@
 
             <div class="card-body p-0">
                 <div class="table-responsive">
-                    <!-- مكان الزر -->
-                    <div class="table-toolbar mb-2"></div>
-
                     <table class="table table-hover align-middle mb-0" id="packagingStylesTable">
                         <thead class="table-light">
                             <tr>
-                                <th class="fw-bold" style="width: 20%;">
+                                <th class="fw-bold sortable" data-column="0" style="width: 20%;">
                                     <i class="fas fa-box text-primary me-1"></i>التعبئة
+                                    <i class="fas fa-sort sort-icon text-muted ms-1"></i>
                                 </th>
-                                <th class="fw-bold" style="width: 35%;">
+                                <th class="fw-bold sortable" data-column="1" style="width: 35%;">
                                     <i class="fas fa-link text-info me-1"></i>الواجهات المرتبطة
+                                    <i class="fas fa-sort sort-icon text-muted ms-1"></i>
                                 </th>
-                                <th class="fw-bold" style="width: 30%;">
+                                <th class="fw-bold sortable" data-column="2" style="width: 30%;">
                                     <i class="fas fa-comment text-warning me-1"></i>البيان
+                                    <i class="fas fa-sort sort-icon text-muted ms-1"></i>
                                 </th>
                                 <th class="text-center fw-bold" style="width: 15%;">
                                     <i class="fas fa-cogs text-secondary me-1"></i>الإجراءات
@@ -144,55 +150,6 @@
                         </tbody>
                     </table>
                 </div>
-                <script>
-                    document.addEventListener("DOMContentLoaded", function () {
-                        const table = document.getElementById("packagingStylesTable");
-                        if (!table) return;
-
-                        const headers = table.querySelectorAll("thead tr:first-child th");
-                        if (headers.length === 0) return;
-
-                        const toolbar = table.closest(".table-responsive").querySelector(".table-toolbar");
-                        if (!toolbar) return;
-
-                        const btnGroup = document.createElement("div");
-                        btnGroup.className = "btn-group mb-2";
-                        btnGroup.innerHTML = `
-                            <button type="button" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown">
-                                <i class="fas fa-columns me-1"></i> إظهار/إخفاء الأعمدة
-                            </button>
-                            <ul class="dropdown-menu column-toggle-menu"></ul>
-                        `;
-                        toolbar.appendChild(btnGroup);
-
-                        const toggleMenu = btnGroup.querySelector(".column-toggle-menu");
-
-                        headers.forEach((th, index) => {
-                            const title = th.innerText.trim() || `عمود ${index + 1}`;
-                            const li = document.createElement("li");
-                            li.innerHTML = `
-                                <label class="dropdown-item">
-                                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
-                                    ${title}
-                                </label>`;
-                            toggleMenu.appendChild(li);
-                        });
-
-                        document.body.addEventListener("change", function (e) {
-                            if (!e.target.classList.contains("column-toggle")) return;
-
-                            const colIndex = e.target.getAttribute("data-index");
-                            const isVisible = e.target.checked;
-
-                            table.querySelectorAll("tr").forEach(row => {
-                                const cell = row.querySelectorAll("th, td")[colIndex];
-                                if (cell) {
-                                    cell.style.display = isVisible ? "" : "none";
-                                }
-                            });
-                        });
-                    });
-                </script>
             </div>
         </div>
     </div>
@@ -211,6 +168,76 @@
         </div>
     </div>
 </div>
+
+<!-- Enhanced JavaScript with Sorting Functionality -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const table = document.getElementById("packagingStylesTable");
+        const tbody = table.querySelector("tbody");
+        const headers = table.querySelectorAll(".sortable");
+        const toggleMenu = document.getElementById("columnToggleMenu");
+        let currentSortColumn = -1;
+        let currentSortDirection = "none";
+
+        // ===== COLUMN TOGGLE =====
+        headers.forEach((th, index) => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <label class="dropdown-item">
+                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                    ${th.innerText.trim()}
+                </label>`;
+            toggleMenu.appendChild(li);
+        });
+
+        toggleMenu.addEventListener("change", e => {
+            if (!e.target.classList.contains("column-toggle")) return;
+            const index = e.target.dataset.index;
+            const visible = e.target.checked;
+            table.querySelectorAll("tr").forEach(row => {
+                const cell = row.querySelectorAll("th, td")[index];
+                if (cell) cell.style.display = visible ? "" : "none";
+            });
+        });
+
+        // ===== SORT FUNCTION =====
+        function sortTable(columnIndex, direction) {
+            const rows = Array.from(tbody.querySelectorAll("tr"));
+            rows.sort((a, b) => {
+                const aText = a.querySelectorAll("td")[columnIndex]?.innerText.trim() || "";
+                const bText = b.querySelectorAll("td")[columnIndex]?.innerText.trim() || "";
+                const comparison = aText.localeCompare(bText, "ar", { numeric: true, sensitivity: "base" });
+                return direction === "asc" ? comparison : -comparison;
+            });
+            tbody.innerHTML = "";
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // ===== HANDLE HEADER CLICK =====
+        headers.forEach(header => {
+            header.addEventListener("click", function () {
+                const colIndex = parseInt(this.dataset.column);
+                let newDirection = "asc";
+                if (currentSortColumn === colIndex && currentSortDirection === "asc") {
+                    newDirection = "desc";
+                }
+                currentSortColumn = colIndex;
+                currentSortDirection = newDirection;
+                sortTable(colIndex, newDirection);
+
+                // Reset icons
+                headers.forEach(h => {
+                    const icon = h.querySelector(".sort-icon");
+                    icon.className = "fas fa-sort sort-icon text-muted ms-1";
+                });
+                const icon = this.querySelector(".sort-icon");
+                icon.className = newDirection === "asc"
+                    ? "fas fa-sort-up sort-icon text-primary ms-1"
+                    : "fas fa-sort-down sort-icon text-primary ms-1";
+            });
+        });
+    });
+</script>
 
 <!-- Empty State Message -->
 <div id="emptyState" class="text-center py-5" style="display: none;">
@@ -386,92 +413,71 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
 
-    <!-- Export and Print Functions -->
     <script>
-        // Export to Excel function for packagingStylesTable
+          // Updated Export to Excel function - respects hidden rows and columns with RTL
         function exportToExcel() {
-            try {
-                // Get table data
-                const table = document.getElementById('packagingStylesTable');
-                const rows = table.querySelectorAll('tr:not(.search-row)');
+            const table = document.getElementById('packagingStylesTable');
+            const wsData = [];
 
-                // Create Excel workbook
-                const wb = XLSX.utils.book_new();
-                const wsData = [];
+            // Header row (only visible columns, skip actions)
+            const headerCells = table.querySelectorAll('thead tr:first-child th');
+            const headers = [];
+            const visibleColumnIndices = [];
 
-                // Add header row (skip actions column - index 3)
-                const headerCells = Array.from(table.querySelectorAll('thead tr:first-child th'));
-                const headers = headerCells
-                    .map((th, index) => ({ text: th.textContent.trim().replace(/\s+/g, ' '), index }))
-                    .filter(item => item.index !== 3) // Skip actions column (index 3)
-                    .map(item => item.text);
+            headerCells.forEach((th, index) => {
+                if (index === headerCells.length - 1) return; // skip actions column
+                if (th.style.display === "none") return; // skip hidden columns
 
-                wsData.push(headers);
+                visibleColumnIndices.push(index);
+                headers.push(th.textContent.trim().replace(/\s+/g, ' '));
+            });
+            wsData.push(headers);
 
-                // Add data rows
-                rows.forEach(row => {
-                    // Skip search row and header
-                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+            // Body rows (only visible rows and columns)
+            const rows = table.querySelectorAll('tbody tr');
+            rows.forEach(row => {
+                // Skip hidden rows
+                if (row.style.display === "none" || row.offsetParent === null) return;
 
-                    const rowData = [];
-                    const cols = row.querySelectorAll('td');
+                const cols = row.querySelectorAll('td');
+                const rowData = [];
 
-                    cols.forEach((col, index) => {
-                        // Skip actions column (index 3)
-                        if (index === 3) return;
+                visibleColumnIndices.forEach(index => {
+                    const col = cols[index];
+                    if (!col) return;
 
-                        let text = col.textContent.trim().replace(/\s+/g, ' ');
-
-                        // For packaging style name, extract just the text without icons
-                        if (index === 0) {
-                            text = col.querySelector('.fw-semibold')?.textContent.trim() || text;
-                        }
-
-                        rowData.push(text);
-                    });
-
-                    if (rowData.length > 0) {
-                        wsData.push(rowData);
-                    }
+                    let text = col.textContent.trim().replace(/\s+/g, ' ');
+                    // Remove "لا يوجد وصف" text for cleaner export
+                    if (text === 'لا يوجد وصف') text = '';
+                    rowData.push(text);
                 });
 
-                // Create worksheet
-                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                wsData.push(rowData);
+            });
 
-                // Set column widths
-                const colWidths = [
-                    { wch: 30 }, // Packaging name
-                    { wch: 50 }, // Linked forms
-                    { wch: 40 }  // Comments
-                ];
-                ws['!cols'] = colWidths;
+            // Generate Excel with RTL layout
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-                // Add worksheet to workbook
-                XLSX.utils.book_append_sheet(wb, ws, 'أنماط التعبئة');
+            // Set RTL for Excel
+            ws['!rtl'] = true;
 
-                // Generate Excel file and trigger download
-                const currentDate = new Date().toISOString().slice(0, 10);
-                XLSX.writeFile(wb, `أنماط_التعبئة_${currentDate}.xlsx`);
+            // Set column widths
+            const colWidths = visibleColumnIndices.map(() => ({ wch: 25 }));
+            ws['!cols'] = colWidths;
 
-                // Show success notification
-                if (typeof showNotification === 'function') {
-                    showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
-                }
+            XLSX.utils.book_append_sheet(wb, ws, "أنماط التعبئة");
 
-            } catch (error) {
-                console.error('Error exporting to Excel:', error);
-                if (typeof showNotification === 'function') {
-                    showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
-                }
-            }
+            const currentDate = new Date().toLocaleDateString('ar-EG');
+            XLSX.writeFile(wb, `packaging_styles_${currentDate.replace(/\//g, '-')}.xlsx`);
         }
 
-        // Print function for packagingStylesTable
+        // Updated Print function - respects hidden rows and columns
         function printTable() {
             try {
-                // Create a print-friendly version of the table
                 const printContent = document.createElement('div');
                 printContent.id = 'printSection';
+                printContent.style.direction = 'rtl';
 
                 // Add title and date
                 const title = document.createElement('h4');
@@ -488,53 +494,54 @@
                 const printTable = document.createElement('table');
                 printTable.className = 'print-table';
 
-                // Create table header
+                // Create table header with visible columns only
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
 
-                ['التعبئة', 'الواجهات المرتبطة', 'البيان'].forEach(headerText => {
-                    const th = document.createElement('th');
-                    th.textContent = headerText;
-                    th.className = 'bg-light';
-                    headerRow.appendChild(th);
+                const headerCells = document.querySelectorAll('#packagingStylesTable thead tr:first-child th');
+                const visibleHeaders = [];
+
+                headerCells.forEach((th, index) => {
+                    if (index === headerCells.length - 1) return; // skip actions
+                    if (th.style.display === "none") return; // skip hidden
+
+                    const headerTh = document.createElement('th');
+                    headerTh.textContent = th.textContent.trim().replace(/\s+/g, ' ');
+                    headerTh.className = 'bg-light';
+                    headerRow.appendChild(headerTh);
+                    visibleHeaders.push(index);
                 });
 
                 thead.appendChild(headerRow);
                 printTable.appendChild(thead);
 
-                // Create table body with data
+                // Create table body with visible rows and columns
                 const tbody = document.createElement('tbody');
-                const visibleRows = document.querySelectorAll('.packaging-style-row:not([style*="display: none"])');
+                const visibleRows = document.querySelectorAll('#packagingStylesTable tbody tr:not([style*="display: none"])');
 
                 if (visibleRows.length === 0) {
                     const row = document.createElement('tr');
                     const cell = document.createElement('td');
                     cell.textContent = 'لا توجد بيانات للعرض';
-                    cell.colSpan = 3;
+                    cell.colSpan = visibleHeaders.length;
                     cell.className = 'text-center py-4 text-muted';
                     row.appendChild(cell);
                     tbody.appendChild(row);
                 } else {
                     visibleRows.forEach(row => {
                         const dataRow = document.createElement('tr');
+                        const cells = row.querySelectorAll('td');
 
-                        // Packaging name
-                        const nameCell = document.createElement('td');
-                        const name = row.querySelector('.packaging-style-name .fw-semibold')?.textContent.trim() || '';
-                        nameCell.textContent = name;
-                        dataRow.appendChild(nameCell);
+                        visibleHeaders.forEach(index => {
+                            const cell = cells[index];
+                            if (!cell) return;
 
-                        // Linked forms
-                        const formsCell = document.createElement('td');
-                        const forms = row.querySelector('.packaging-style-forms').textContent.trim() || 'لا توجد واجهات';
-                        formsCell.textContent = forms;
-                        dataRow.appendChild(formsCell);
-
-                        // Comments
-                        const commentCell = document.createElement('td');
-                        const comment = row.querySelector('.packaging-style-comment').textContent.trim() || 'لا يوجد بيان';
-                        commentCell.textContent = comment;
-                        dataRow.appendChild(commentCell);
+                            const td = document.createElement('td');
+                            let text = cell.textContent.trim().replace(/\s+/g, ' ');
+                            if (text === 'لا يوجد وصف') text = '';
+                            td.textContent = text;
+                            dataRow.appendChild(td);
+                        });
 
                         tbody.appendChild(dataRow);
                     });
@@ -546,7 +553,7 @@
                 // Add summary
                 const summary = document.createElement('p');
                 summary.className = 'mt-3 text-muted text-center';
-                summary.textContent = `عدد أنماط التعبئة: ${visibleRows.length}`;
+                summary.textContent = `عدد أنماط التعبئة: ${toArabicDigits(visibleRows.length.toString())}`;
                 printContent.appendChild(summary);
 
                 // Add to document and print
