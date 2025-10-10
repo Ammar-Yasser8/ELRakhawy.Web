@@ -48,6 +48,7 @@ namespace ELRakhawy.Web.Controllers
                 var viewModel = new StakeholdersInfoViewModel
                 {
                     Status = true, // Default to Active
+                    CountryCode = "+20", // Default country code
                     AvailableTypes = _unitOfWork.Repository<StakeholderType>()
                         .GetAll(includeEntities: "FinancialTransactionType")
                         .ToList()
@@ -55,7 +56,6 @@ namespace ELRakhawy.Web.Controllers
 
                 ViewBag.Action = "Create";
                 return PartialView("_CreateOrEdit", viewModel);
-
             }
             catch (Exception ex)
             {
@@ -90,11 +90,15 @@ namespace ELRakhawy.Web.Controllers
 
                 if (!ModelState.IsValid)
                 {
-                    viewModel.AvailableTypes = _unitOfWork.Repository<StakeholderType>()
-                        .GetAll(includeEntities: "FinancialTransactionType")
-                        .ToList();
-                    return RedirectToAction("Index"); 
-                                                      // 👈 re-render form in modal
+                    // Return validation errors as JSON
+                    var errors = ModelState
+                        .Where(x => x.Value.Errors.Count > 0)
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                        );
+
+                    return Json(new { success = false, errors = errors });
                 }
 
                 // Save
@@ -102,10 +106,8 @@ namespace ELRakhawy.Web.Controllers
                 {
                     Name = viewModel.Name.Trim(),
                     Status = viewModel.Status,
-                    // نجمع الكود + الرقم هنا
                     ContactNumbers = $"{viewModel.CountryCode}{viewModel.ContactNumber}",
                     Comment = viewModel.Comment?.Trim(),
-                    
                 };
 
                 _unitOfWork.Repository<StakeholdersInfo>().Add(stakeholder);
@@ -118,15 +120,13 @@ namespace ELRakhawy.Web.Controllers
                         StakeholdersInfoId = stakeholder.Id,
                         StakeholderTypeId = typeId,
                         IsPrimary = typeId == viewModel.PrimaryTypeId,
-                        
-
                     }).ToList();
 
                     _unitOfWork.Repository<StakeholderInfoType>().AddRange(relations);
                     _unitOfWork.Complete();
                 }
 
-                 return RedirectToAction("Index"); // 👈 JSON for ajax
+                return Json(new { success = true, message = "تم إضافة الجهة بنجاح" });
             }
             catch (Exception ex)
             {
@@ -144,12 +144,28 @@ namespace ELRakhawy.Web.Controllers
 
                 if (stakeholder == null) return NotFound();
 
+                // Parse country code and contact number
+                string countryCode = "+20"; // Default
+                string contactNumber = stakeholder.ContactNumbers ?? "";
+
+                // Extract country code from contact numbers
+                if (!string.IsNullOrEmpty(stakeholder.ContactNumbers))
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(stakeholder.ContactNumbers, @"^(\+\d{1,4})(.*)");
+                    if (match.Success)
+                    {
+                        countryCode = match.Groups[1].Value;
+                        contactNumber = match.Groups[2].Value;
+                    }
+                }
+
                 var viewModel = new StakeholdersInfoViewModel
                 {
                     Id = stakeholder.Id,
                     Name = stakeholder.Name,
                     Status = stakeholder.Status,
-                    ContactNumber = stakeholder.ContactNumbers,
+                    CountryCode = countryCode,
+                    ContactNumber = contactNumber,
                     Comment = stakeholder.Comment,
                     SelectedTypeIds = stakeholder.StakeholderInfoTypes
                         .Select(st => st.StakeholderTypeId)
@@ -162,8 +178,6 @@ namespace ELRakhawy.Web.Controllers
                 };
 
                 ViewBag.Action = "Edit";
-
-                // ✅ لازم PartialView مش Redirect
                 return PartialView("_CreateOrEdit", viewModel);
             }
             catch (Exception ex)
@@ -197,10 +211,15 @@ namespace ELRakhawy.Web.Controllers
 
                 if (!ModelState.IsValid)
                 {
-                    viewModel.AvailableTypes = _unitOfWork.Repository<StakeholderType>()
-                        .GetAll(includeEntities: "FinancialTransactionType")
-                        .ToList();
-                    return RedirectToAction("Index"); // 👈 return modal with validation
+                    // Return validation errors as JSON
+                    var errors = ModelState
+                        .Where(x => x.Value.Errors.Count > 0)
+                        .ToDictionary(
+                            kvp => kvp.Key,
+                            kvp => kvp.Value.Errors.Select(e => e.ErrorMessage).ToArray()
+                        );
+
+                    return Json(new { success = false, errors = errors });
                 }
 
                 var stakeholder = _unitOfWork.Repository<StakeholdersInfo>()
@@ -231,17 +250,50 @@ namespace ELRakhawy.Web.Controllers
 
                 _unitOfWork.Complete();
 
-                return RedirectToAction("Index");
+                return Json(new { success = true, message = "تم تحديث الجهة بنجاح" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating StakeholdersInfo ID: {Id} at {Time} by {User}",
                     id, _currentTime, _currentUser);
 
-                return RedirectToAction("Index");
+                return Json(new { success = false, message = "حدث خطأ أثناء التحديث" });
             }
         }
 
+        // Add this method for loading stakeholders data
+        [HttpGet]
+        public IActionResult GetAll()
+        {
+            try
+            {
+                var stakeholders = _unitOfWork.Repository<StakeholdersInfo>()
+                    .GetAll(includeEntities:"StakeholderInfoTypes.StakeholderType,StakeholderInfoTypes.StakeholderType.FinancialTransactionType")
+                    .Select(s => new
+                    {
+                        id = s.Id,
+                        name = s.Name,
+                        status = s.Status,
+                        contactNumbers = s.ContactNumbers,
+                        comment = s.Comment,
+                        types = s.StakeholderInfoTypes.Select(st => new
+                        {
+                            id = st.StakeholderTypeId,
+                            typeName = st.StakeholderType.Type,
+                            isPrimary = st.IsPrimary,
+                            financialTransactionType = st.StakeholderType.FinancialTransactionType?.Type
+                        }).ToList()
+                    })
+                    .ToList();
+
+                return Json(new { success = true, data = stakeholders });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading stakeholders data at {Time} by {User}", _currentTime, _currentUser);
+                return Json(new { success = false, message = "حدث خطأ أثناء تحميل البيانات" });
+            }
+        }
         #endregion
 
         #region API Endpoints
