@@ -60,37 +60,115 @@ namespace ELRakhawy.Web.Controllers
         }
 
         // Get : yarnItems/Overviwe 
-        public IActionResult Overview()
+        public IActionResult Overview(bool availableOnly = false)
         {
             try
             {
+                var currentTime = "2025-09-04 18:59:00";
+                var currentUser = "Ammar-Yasser8";
+
+                _logger.LogInformation("Yarn overview page loaded by {User} at {Time} - Available only: {AvailableOnly}",
+                    currentUser, currentTime, availableOnly);
+
+                // Get all active yarn items with their transactions and manufacturers
                 var yarnItems = _unitOfWork.Repository<YarnItem>()
-                    .GetAll(includeEntities: "YarnTransactions,Manufacturers,OriginYarn")
-                    .Select(item => new YarnItemViewModel
-                    {
-                        Id = item.Id,
-                        Item = item.Item,
-                        Status = item.Status,
-                        Comment = item.Comment,
-                        CurrentBalance = item.YarnTransactions.Sum(t => t.Inbound - t.Outbound),
-                        CurrentCountBalance = item.YarnTransactions.Sum(t =>
-                            (t.Inbound > 0 ? t.Count : 0) - (t.Outbound > 0 ? t.Count : 0)),
-                        ManufacturerNames = item.Manufacturers.Select(m => m.Name).ToList(),
-                        ManufacturerIds = item.Manufacturers.Select(m => m.Id).ToList(),
-                        OriginYarnName = item.OriginYarn != null ? item.OriginYarn.Item : null,
-                        OriginYarnId = item.OriginYarnId
-                    })
+                    .GetAll(includeEntities: "OriginYarn,Manufacturers")
+                    .Where(y => y.Status)
                     .ToList();
-                _logger.LogInformation("Overview page loaded successfully with {Count} items by {User} at {Time}",
-                    yarnItems.Count, "Ammar-Yasser8", "2025-08-12 00:50:19");
-                return View(yarnItems);
+
+                var overviewItems = new List<YarnOverviewItemViewModel>();
+
+                foreach (var yarnItem in yarnItems)
+                {
+                    // ✅ Get latest transaction for current balances (consistent with other methods)
+                    var latestTransaction = _unitOfWork.Repository<YarnTransaction>()
+                        .GetAll(t => t.YarnItemId == yarnItem.Id)
+                        .OrderByDescending(t => t.Date)
+                        .ThenByDescending(t => t.Id)
+                        .FirstOrDefault();
+
+                    // ✅ Use running balance approach
+                    var quantityBalance = latestTransaction?.QuantityBalance ?? 0;
+                    var countBalance = latestTransaction?.CountBalance ?? 0;
+
+                    // Get all transactions for statistics
+                    var allTransactions = _unitOfWork.Repository<YarnTransaction>()
+                        .GetAll(t => t.YarnItemId == yarnItem.Id)
+                        .ToList();
+
+                    // Get latest transaction date
+                    var lastTransactionDate = allTransactions.Any() ?
+                        allTransactions.Max(t => t.Date) : (DateTime?)null;
+
+                    // Get transaction counts
+                    var totalTransactions = allTransactions.Count;
+                    var inboundTransactions = allTransactions.Count(t => t.Inbound > 0);
+                    var outboundTransactions = allTransactions.Count(t => t.Outbound > 0);
+
+                    // ✅ Get manufacturer names properly
+                    var manufacturerNames = yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any()
+                        ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
+                        : "غير محدد";
+
+                    // ✅ Get origin yarn name properly
+                    var originYarnName = yarnItem.OriginYarn?.Item ?? "غير محدد";
+
+                    var overviewItem = new YarnOverviewItemViewModel
+                    {
+                        YarnItemId = yarnItem.Id,
+                        YarnItemName = yarnItem.Item ?? "غير محدد",
+                        OriginYarnName = originYarnName,
+                        ManufacturerNames = manufacturerNames,
+                        QuantityBalance = quantityBalance,
+                        CountBalance = countBalance,
+                        LastTransactionDate = lastTransactionDate,
+                        TotalTransactions = totalTransactions,
+                        InboundTransactions = inboundTransactions,
+                        OutboundTransactions = outboundTransactions,
+                        IsAvailable = quantityBalance > 0,
+                        Status = yarnItem.Status
+                    };
+
+                    overviewItems.Add(overviewItem);
+
+                    _logger.LogDebug("Processed yarn item {YarnItemId}: {YarnName}, Origin: {Origin}, Manufacturer: {Manufacturer}, Qty: {Qty}, Count: {Count}",
+                        yarnItem.Id, yarnItem.Item, originYarnName, manufacturerNames, quantityBalance, countBalance);
+                }
+
+                // Apply available filter if requested
+                if (availableOnly)
+                {
+                    overviewItems = overviewItems.Where(item => item.IsAvailable).ToList();
+                }
+
+                // Order by quantity balance descending, then by yarn item name
+                overviewItems = overviewItems
+                    .OrderByDescending(item => item.QuantityBalance)
+                    .ThenBy(item => item.YarnItemName)
+                    .ToList();
+
+                var viewModel = new YarnOverviewViewModel
+                {
+                    OverviewItems = overviewItems,
+                    AvailableOnly = availableOnly,
+                    TotalItems = overviewItems.Count,
+                    AvailableItems = overviewItems.Count(item => item.IsAvailable),
+                    TotalQuantityBalance = overviewItems.Sum(item => item.QuantityBalance),
+                    TotalCountBalance = overviewItems.Sum(item => item.CountBalance),
+                    LastUpdated = DateTime.Now
+                };
+
+                _logger.LogInformation("Yarn overview completed by {User} at {Time} - Found {Count} items, Available: {Available}, Total Qty: {TotalQty}, Total Count: {TotalCount}",
+                    currentUser, currentTime, viewModel.TotalItems, viewModel.AvailableItems, viewModel.TotalQuantityBalance, viewModel.TotalCountBalance);
+
+                return View(viewModel);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving yarn items in Overview action by user {User} at {Time}",
-                    "Ammar-Yasser8", "2025-08-12 00:50:19");
-                TempData["Error"] = "حدث خطأ أثناء تحميل البيانات";
-                return View(new List<YarnItemViewModel>());
+                _logger.LogError(ex, "Error loading yarn overview by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-09-04 18:59:00");
+                TempData["Error"] = "حدث خطأ أثناء تحميل نظرة عامة على الغزل";
+                return RedirectToAction("Index", "YarnItems");
             }
         }
 

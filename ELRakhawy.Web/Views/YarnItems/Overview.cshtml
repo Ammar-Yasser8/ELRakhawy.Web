@@ -1,990 +1,2036 @@
 ﻿@using ELRakhawy.EL.ViewModels
-@using System.Text.Json
-@model IEnumerable<YarnItemViewModel>
+@model YarnOverviewViewModel
 
 @{
-    ViewData["Title"] = "لوحة تحكم مخزون الخيوط";
-    var currentTime = "2025-09-01 00:58:06";
+    ViewData["Title"] = "نظرة عامة على أرصدة الغزل";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var currentTime = "2025-09-04 18:39:33"; // ✅ Updated to current time
     var currentUser = "Ammar-Yasser8";
-
-    // Calculate statistics
-    var totalItems = Model.Count();
-    var activeItems = Model.Count(x => x.Status);
-    var totalBalance = Model.Sum(x => x.CurrentBalance);
-    var lowStockItems = Model.Count(x => x.CurrentBalance <= 10 && x.CurrentBalance > 0);
-    var zeroStockItems = Model.Count(x => x.CurrentBalance <= 0);
-    var availableItems = Model.Count(x => x.Status && x.CurrentBalance > 0);
-
-    // Prepare manufacturers data for charts
-    var manufacturers = Model
-        .SelectMany(x => x.ManufacturerNames ?? Enumerable.Empty<string>())
-        .GroupBy(x => x)
-        .Select(g => new
-        {
-            Name = g.Key,
-            Count = g.Count(),
-            Balance = Model
-                .Where(x => x.ManufacturerNames != null && x.ManufacturerNames.Contains(g.Key))
-                .Sum(x => x.CurrentBalance)
-        })
-        .OrderByDescending(x => x.Balance)
-        .Take(5)
-        .ToList();
 }
 
-<div class="dashboard-container">
+<div class="container-fluid">
     <!-- Header Section -->
-    <div class="dashboard-header bg-gradient-primary text-white rounded-4 p-4 mb-4">
-        <div class="row align-items-center">
-            <div class="col-md-6">
-                <h1 class="h3 mb-2">
-                    <i class="fas fa-chart-line me-2"></i>لوحة تحكم مخزون الخيوط
-                </h1>
-            </div>
-            <div class="col-md-6 text-md-end mt-3 mt-md-0">
-                <div class="btn-group">
-                    <a href="@Url.Action("Create")" class="btn btn-light">
-                        <i class="fas fa-plus-circle me-2"></i>إضافة صنف جديد
-                    </a>
-                    <button type="button" class="btn btn-light" id="refreshDashboard">
-                        <i class="fas fa-sync-alt me-2"></i>تحديث
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2 class="text-primary mb-0">
+                    <i class="fas fa-chart-line me-2"></i>
+                    نظرة عامة على أرصدة الغزل
+                </h2>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-outline-primary" onclick="refreshData()">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        تحديث
                     </button>
+                    <div class="dropdown">
+                        <button class="btn btn-success dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-download me-1"></i>
+                            تصدير ومشاركة
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <button class="dropdown-item" onclick="exportToExcel()">
+                                    <i class="fas fa-file-excel me-2 text-success"></i>
+                                    تصدير إلى Excel
+                                </button>
+                            </li>
+                            <li>
+                                <button class="dropdown-item" onclick="shareWhatsApp()">
+                                    <i class="fab fa-whatsapp me-2 text-success"></i>
+                                    مشاركة عبر واتساب
+                                </button>
+                            </li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <button class="dropdown-item" onclick="printOverview()">
+                                    <i class="fas fa-print me-2"></i>
+                                    طباعة
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-  
-
-    <!-- Items Grid -->
-    <div class="card border-0 rounded-4 shadow-sm">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-boxes text-primary me-2"></i>
-                    قائمة الأصناف
-                    <span class="badge bg-primary ms-2">@Model.Count()</span>
-                </h5>
-                
+    <!-- Statistics Cards with Arabic Numbers -->
+    <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-primary h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-boxes fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary" id="totalItemsDisplay">@Model.TotalItems</h4>
+                    <p class="text-muted mb-0">إجمالي الأصناف</p>
+                </div>
             </div>
+        </div>
 
-            <!-- Update the item card section in your Razor page -->
-            <div class="row g-4" id="itemsGrid">
-                @foreach (var item in Model)
-                {
-                    <div class="col-xl-4 col-md-6 item-card-wrapper"
-                         data-id="@item.Id"
-                         data-status="@(item.Status ? "active" : "inactive")"
-                         data-balance="@item.CurrentBalance"
-                         data-manufacturers="@(item.ManufacturerNames != null ? string.Join(",", item.ManufacturerNames) : "")"
-                         data-search="@item.Item.ToLower()">
-                        <div class="card h-100 border-0 rounded-4 shadow-sm item-card">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-3">
-                                    <div>
-                                        <h6 class="card-title mb-1">@item.Item</h6>
-                                        <span class="badge bg-@(item.Status ? "success" : "secondary")">
-                                            @(item.Status ? "نشط" : "غير نشط")
-                                        </span>
-                                    </div>
-                                    <div class="stock-indicator">
-                                        <span class="badge bg-@(item.CurrentBalance <= 0 ? "danger" :
-                                                                                                                               item.CurrentBalance <= 10 ? "warning" : "success")">
-                                        @item.CurrentBalance.ToString("N3") كجم
-                                    </span>
-                                </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-success h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-2x text-success mb-2"></i>
+                    <h4 class="text-success" id="availableItemsDisplay">@Model.AvailableItems</h4>
+                    <p class="text-muted mb-0">الأصناف المتاحة</p>
+                    <small class="text-success" id="percentageDisplay">@Model.PercentageAvailable.ToString("F1")%</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-info h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-weight fa-2x text-info mb-2"></i>
+                    <h4 class="text-info" id="totalQuantityDisplay">@Model.TotalQuantityBalance.ToString("N2")</h4>
+                    <p class="text-muted mb-0">إجمالي الكمية (كجم)</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-3 col-md-6 mb-3">
+            <div class="card border-warning h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-sort-numeric-up fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning" id="totalCountDisplay">@Model.TotalCountBalance</h4>
+                    <p class="text-muted mb-0">إجمالي العدد</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters and Controls -->
+    <div class="row mb-3">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="availableOnlyFilter"
+                                       @(Model.AvailableOnly ? "checked" : "") onchange="toggleAvailableFilter()">
+                                <label class="form-check-label" for="availableOnlyFilter">
+                                    <i class="fas fa-filter me-1"></i>
+                                    المتاح فقط
+                                </label>
                             </div>
 
-                                <div class="item-details small text-muted">
-                                @if (item.ManufacturerNames != null && item.ManufacturerNames.Any())
-                                    {
-                                        <div class="mb-1">
-                                            <i class="fas fa-industry me-1"></i>
-                                            @string.Join(", ", item.ManufacturerNames)
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrEmpty(item.OriginYarnName))
-                                    {
-                                        <div class="mb-1">
-                                            <i class="fas fa-link me-1"></i>
-                                            @item.OriginYarnName
-                                        </div>
-                                    }
+                            <div class="input-group" style="width: 250px;">
+                                <input type="text" class="form-control" id="searchInput"
+                                       placeholder="البحث في الأصناف..." onkeyup="filterItems()">
+                                <span class="input-group-text">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                        </div>
 
-                                    <!-- Enhanced Count Balance Display -->
-                                    <div class="mb-2">
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <span>
-                                                <i class="fas fa-boxes me-1"></i>
-                                                رصيد العدد:
+                        <div class="d-flex align-items-center gap-2">
+                            <small class="text-muted">
+                                آخر تحديث: <span id="lastUpdatedDisplay">@Model.LastUpdated.ToString("dd/MM/yyyy HH:mm")</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overview Table with Enhanced Display -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0" id="overviewTable">
+                            <thead class="table-dark sticky-top">
+                                <tr>
+                                    <th>صنف الغزل</th>
+                                    <th>الغزل الأصلي</th>
+                                    <th>الشركة المصنعة</th>
+                                    <th>رصيد الكمية</th>
+                                    <th>رصيد العدد والتعبئة</th>
+                                    <th>الحالة</th>
+                                    <th>إجمالي المعاملات</th>
+                                    <th>آخر معاملة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.OverviewItems)
+                                {
+                                    <tr class="yarn-item-row" data-yarn-id="@item.YarnItemId"
+                                        data-available="@item.IsAvailable.ToString().ToLower()"
+                                        data-search-text="@($"{item.YarnItemName} {item.OriginYarnName} {item.ManufacturerNames}".ToLower())">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="me-2">
+                                                    @if (item.IsAvailable)
+                                                    {
+                                                        <div class="bg-success rounded-circle" style="width: 10px; height: 10px;" title="متاح"></div>
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-danger rounded-circle" style="width: 10px; height: 10px;" title="غير متاح"></div>
+                                                    }
+                                                </div>
+                                                <div>
+                                                    <strong>@item.YarnItemName</strong>
+                                                    <small class="d-block text-muted">ID: @item.YarnItemId</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="text-info fw-bold">@(item.OriginYarnName ?? "غير محدد")</div>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">@(item.ManufacturerNames ?? "غير محدد")</small>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <span class="@(item.QuantityBalance > 0 ? "text-success" : item.QuantityBalance < 0 ? "text-danger" : "text-muted") fw-bold quantity-balance">
+                                                    @item.QuantityBalance.ToString("N3")
+                                                </span>
+                                                <small class="d-block text-muted">كجم</small>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div class="count-balance-cell" data-yarn-id="@item.YarnItemId">
+                                                <div class="d-flex align-items-center justify-content-center">
+                                                    <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                                                        <span class="visually-hidden">جاري التحميل...</span>
+                                                    </div>
+                                                    <small class="text-muted">جاري التحميل...</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span class="badge @(item.IsAvailable ? "bg-success" : "bg-danger") fs-6">
+                                                @if (item.IsAvailable)
+                                                {
+                                                    <i class="fas fa-check-circle me-1"></i>
+
+                                                    @:متاح
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-times-circle me-1"></i>
+
+                                                    @:غير متاح
+                                                }
                                             </span>
-                                            <button class="btn btn-link btn-sm p-0 text-info"
-                                                    onclick="loadPackagingBreakdown(@item.Id, this)"
-                                                    title="عرض تفاصيل التعبئة">
-                                                <i class="fas fa-info-circle"></i>
+                                        </td>
+                                        <td>
+                                            <div class="text-center">
+                                                <span class="fw-bold d-block transaction-count">@item.TotalTransactions</span>
+                                                @if (item.TotalTransactions > 0)
+                                                {
+                                                    <div class="d-flex justify-content-center gap-2 mt-1">
+                                                        <small class="text-success">
+                                                            <i class="fas fa-arrow-down me-1"></i>
+                                                            <span class="inbound-count">@item.InboundTransactions</span>
+                                                        </small>
+                                                        <small class="text-danger">
+                                                            <i class="fas fa-arrow-up me-1"></i>
+                                                            <span class="outbound-count">@item.OutboundTransactions</span>
+                                                        </small>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </td>
+                                        <td>
+                                            @if (item.LastTransactionDate.HasValue)
+                                            {
+                                                <div class="text-center">
+                                                    <span class="fw-bold last-transaction-date">@item.LastTransactionText</span>
+                                                    @if (item.DaysSinceLastTransaction >= 0)
+                                                    {
+                                                        <small class="d-block text-muted">
+                                                            منذ <span class="days-since">@item.DaysSinceLastTransaction</span> يوم
+                                                        </small>
+                                                    }
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">لا توجد معاملات</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <button type="button" class="btn btn-outline-info" title="عرض التفاصيل"
+                                                        onclick="viewItemDetails(@item.YarnItemId, '@item.YarnItemName')">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                                <a href="@Url.Action("Search", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
+                                                   class="btn btn-outline-primary" title="البحث في المعاملات">
+                                                    <i class="fas fa-search"></i>
+                                                </a>
+                                                @if (item.IsAvailable)
+                                                {
+                                                    <a href="@Url.Action("Outbound", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
+                                                       class="btn btn-outline-warning" title="إنشاء معاملة صادر">
+                                                        <i class="fas fa-arrow-up"></i>
+                                                    </a>
+                                                }
+                                                <a href="@Url.Action("Inbound", "YarnTransactions", new { YarnItemId = item.YarnItemId })"
+                                                   class="btn btn-outline-success" title="إنشاء معاملة وارد">
+                                                    <i class="fas fa-arrow-down"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!Model.OverviewItems.Any())
+    {
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle fa-2x mb-3"></i>
+                    <h5>لا توجد أصناف غزل</h5>
+                    <p>لم يتم العثور على أي أصناف غزل نشطة في النظام.</p>
+                    <a href="@Url.Action("Create", "YarnItems")" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>
+                        إضافة صنف جديد
+                    </a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- Item Details Modal -->
+<div class="modal fade" id="itemDetailsModal" tabindex="-1" aria-labelledby="itemDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="itemDetailsModalLabel">
+                    <i class="fas fa-info-circle me-2"></i>
+                    تفاصيل صنف الغزل
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Updated Modal Footer with Export Button -->
+            <div class="modal-footer">
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <!-- Left side - Export and additional actions -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-success btn-sm" onclick="exportTransactionsToExcel()" title="تصدير المعاملات إلى Excel">
+                            <i class="fas fa-file-excel me-1"></i>
+                            تصدير Excel
+                        </button>
+                        <button type="button" class="btn btn-info btn-sm" onclick="printTransactions()" title="طباعة المعاملات">
+                            <i class="fas fa-print me-1"></i>
+                            طباعة
+                        </button>
+                    </div>
+
+                    <!-- Right side - Main actions -->
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>
+                            إغلاق
+                        </button>
+                        <button type="button" class="btn btn-warning" onclick="location.href='@Url.Action("ResetBalance", "YarnTransactions")'">
+                            <i class="fas fa-sync-alt me-1"></i>
+                            إعادة ضبط الرصيد
+                        </button>
+                        <button type="button" class="btn btn-primary" id="seeMoreBtn" onclick="seeMoreTransactions()">
+                            <i class="fas fa-eye me-1"></i>
+                            عرض المزيد
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div id="loadingOverlay" class="loading-overlay" style="display: none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+</div>
+@section Scripts {
+    <script>
+        // Global variables and constants
+        let currentYarnItemId = 0;
+        let currentPage = 1;
+        const pageSize = 10;
+        const CURRENT_TIME = '2025-09-04 19:04:16';
+        const CURRENT_USER = 'Ammar-Yasser8';
+        convertNumbersToArabic();
+                    // ✅ Update convertNumbersToArabic function in Overview page
+            function convertNumbersToArabic() {
+                // Convert statistics cards
+                $('#totalItemsDisplay').text(toArabicDigits($('#totalItemsDisplay').text()));
+                $('#availableItemsDisplay').text(toArabicDigits($('#availableItemsDisplay').text()));
+                $('#totalQuantityDisplay').text(toArabicDigits($('#totalQuantityDisplay').text()));
+                $('#totalCountDisplay').text(toArabicDigits($('#totalCountDisplay').text()));
+                $('#percentageDisplay').text(toArabicDigits($('#percentageDisplay').text()));
+                $('#lastUpdatedDisplay').text(toArabicDigits($('#lastUpdatedDisplay').text()));
+
+                // ✅ Convert table numbers BUT preserve Transaction IDs
+                $('.quantity-balance').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.transaction-count').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.inbound-count').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.outbound-count').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.last-transaction-date').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                $('.days-since').each(function() {
+                    $(this).text(toArabicDigits($(this).text()));
+                });
+
+                // ✅ NEW: Handle Transaction IDs specifically - keep them in Latin
+                $('.transaction-id').each(function() {
+                    var text = $(this).text();
+                    if (isTransactionId(text)) {
+                        // Keep Transaction ID in Latin digits for easy copying
+                        $(this).text(text);
+                        // Add a class to indicate this is a copyable ID
+                        $(this).addClass('copyable-id');
+                    } else {
+                        $(this).text(toArabicDigitsExceptTransactionId(text));
+                    }
+                });
+            }
+        $(document).ready(function() {
+            console.log('🚀 Yarn Overview initialized at', CURRENT_TIME, 'by', CURRENT_USER);
+
+            // Convert all numbers to Arabic on page load
+            convertNumbersToArabic();
+
+            // Load packaging breakdown for all items
+            loadPackagingBreakdowns();
+
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            // Auto-refresh every 5 minutes
+            setInterval(function() {
+                refreshData();
+            }, 300000);
+
+            // Test modal functionality
+            console.log('🔍 Testing modal availability...');
+            if ($('#itemDetailsModal').length > 0) {
+                console.log('✅ Modal element found');
+            } else {
+                console.error('❌ Modal element NOT found');
+            }
+        });
+
+        // ✅ Arabic number conversion functions
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
+
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+        }
+
+        // ✅ Convert all displayed numbers to Arabic
+        function convertNumbersToArabic() {
+            $('#totalItemsDisplay').text(toArabicDigits($('#totalItemsDisplay').text()));
+            $('#availableItemsDisplay').text(toArabicDigits($('#availableItemsDisplay').text()));
+            $('#totalQuantityDisplay').text(toArabicDigits($('#totalQuantityDisplay').text()));
+            $('#totalCountDisplay').text(toArabicDigits($('#totalCountDisplay').text()));
+            $('#percentageDisplay').text(toArabicDigits($('#percentageDisplay').text()));
+            $('#lastUpdatedDisplay').text(toArabicDigits($('#lastUpdatedDisplay').text()));
+
+            $('.quantity-balance, .transaction-count, .inbound-count, .outbound-count, .last-transaction-date, .days-since').each(function() {
+                $(this).text(toArabicDigits($(this).text()));
+            });
+        }
+
+        // ✅ Load packaging breakdown for all yarn items
+        function loadPackagingBreakdowns() {
+            $('.count-balance-cell').each(function() {
+                const $cell = $(this);
+                const yarnItemId = $cell.data('yarn-id');
+                if (yarnItemId) {
+                    loadSinglePackagingBreakdown(yarnItemId, $cell);
+                }
+            });
+        }
+                // Add this function to handle Excel export from the modal
+        function exportTransactionsToExcel() {
+            if (!currentYarnItemId) {
+                alert('لا يوجد صنف محدد للتصدير');
+                return;
+            }
+
+            showLoadingOverlay();
+
+            try {
+                console.log('بدء تصدير معاملات Excel للصنف:', currentYarnItemId, 'في', new Date().toLocaleString('ar-EG'));
+
+                // Collect transaction data from the modal
+                const exportData = collectModalTransactionData();
+
+                // Generate Excel file for transactions
+                generateTransactionExcelFile(exportData);
+
+                console.log('تم تصدير معاملات Excel بنجاح');
+
+            } catch (error) {
+                console.error('فشل تصدير معاملات Excel:', error);
+                alert('حدث خطأ أثناء تصدير بيانات المعاملات: ' + error.message);
+            } finally {
+                setTimeout(hideLoadingOverlay, 1000);
+            }
+        }
+
+        // Collect transaction data from the current modal
+        function collectModalTransactionData() {
+            const modalTitle = $('#itemDetailsModalLabel').text();
+            const yarnItemName = modalTitle.replace('تفاصيل صنف الغزل: ', '').replace(/.*: /, '');
+
+            // Get yarn item summary data from modal
+            const quantityBalance = $('.card-body h4').first().text().trim();
+            const countBalance = $('.card-body h4').last().text().trim();
+
+            const data = {
+                yarnItem: {
+                    id: currentYarnItemId,
+                    name: yarnItemName || 'غير محدد',
+                    quantityBalance: quantityBalance || '0',
+                    countBalance: countBalance || '0'
+                },
+                transactions: [],
+                summary: {
+                    exportDate: new Date().toLocaleDateString('ar-EG'),
+                    exportTime: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}),
+                    exportedBy: CURRENT_USER,
+                    currentPage: currentPage,
+                    pageSize: pageSize
+                }
+            };
+
+            // Extract transactions from the table in modal
+            $('#modalBody table tbody tr').each(function() {
+                const row = $(this);
+                const cells = row.find('td');
+
+                if (cells.length >= 8) {
+                    const transaction = {
+                        transactionId: cells.eq(0).find('div').first().text().trim(),
+                        internalId: cells.eq(0).find('small').text().replace('داخلي: ', '').trim() || '',
+                        date: cells.eq(1).find('div').first().text().trim(),
+                        time: cells.eq(1).find('small').text().trim(),
+                        type: cells.eq(2).find('.badge').text().trim(),
+                        quantity: toLatinDigits(cells.eq(3).text().trim()),
+                        count: toLatinDigits(cells.eq(4).text().trim()),
+                        stakeholder: cells.eq(5).find('div').text().trim(),
+                        quantityBalance: toLatinDigits(cells.eq(6).text().trim()),
+                        comment: cells.eq(7).text().trim() === '-' ? '' : cells.eq(7).text().trim()
+                    };
+
+                    data.transactions.push(transaction);
+                }
+            });
+
+            return data;
+        }
+
+        // Generate Excel file specifically for transactions
+        function generateTransactionExcelFile(data) {
+            // Check if SheetJS is available
+            if (typeof XLSX === 'undefined') {
+                // Load SheetJS dynamically
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => generateTransactionExcelWithSheetJS(data);
+                script.onerror = () => generateTransactionExcelFallback(data);
+                document.head.appendChild(script);
+            } else {
+                generateTransactionExcelWithSheetJS(data);
+            }
+        }
+
+        // Generate Excel file using SheetJS for transactions
+        function generateTransactionExcelWithSheetJS(data) {
+            try {
+                // Create workbook
+                const workbook = XLSX.utils.book_new();
+
+                // Summary sheet
+                const summaryData = [
+                    ['تقرير معاملات صنف الغزل'],
+                    [''],
+                    ['معلومات الصنف'],
+                    ['معرف الصنف:', data.yarnItem.id],
+                    ['اسم الصنف:', data.yarnItem.name],
+                    ['رصيد الكمية الحالي:', data.yarnItem.quantityBalance + ' كجم'],
+                    ['رصيد العدد الحالي:', data.yarnItem.countBalance + ' وحدة'],
+                    [''],
+                    ['معلومات التصدير'],
+                    ['تاريخ التصدير:', data.summary.exportDate],
+                    ['وقت التصدير:', data.summary.exportTime],
+                    ['تم التصدير بواسطة:', data.summary.exportedBy],
+                    ['الصفحة المعروضة:', data.summary.currentPage],
+                    ['حجم الصفحة:', data.summary.pageSize],
+                    [''],
+                    ['إحصائيات المعاملات'],
+                    ['عدد المعاملات في هذا التقرير:', data.transactions.length.toString()],
+                    ['معاملات الوارد:', data.transactions.filter(t => t.type === 'وارد').length.toString()],
+                    ['معاملات الصادر:', data.transactions.filter(t => t.type === 'صادر').length.toString()],
+                    [''],
+                    ['ملاحظة: هذا التقرير يشمل المعاملات المعروضة في الصفحة الحالية فقط']
+                ];
+
+                const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+                // Set column widths for summary
+                summarySheet['!cols'] = [
+                    { width: 25 },
+                    { width: 25 }
+                ];
+
+                XLSX.utils.book_append_sheet(workbook, summarySheet, 'ملخص');
+
+                // Transactions sheet
+                const transactionHeaders = [
+                    'رقم المعاملة',
+                    'المعرف الداخلي',
+                    'التاريخ',
+                    'الوقت',
+                    'النوع',
+                    'الكمية (كجم)',
+                    'العدد',
+                    'الطرف المتعامل',
+                    'رصيد الكمية بعد المعاملة',
+                    'ملاحظات'
+                ];
+
+                const transactionData = [transactionHeaders];
+
+                data.transactions.forEach(transaction => {
+                    transactionData.push([
+                        transaction.transactionId,
+                        transaction.internalId,
+                        transaction.date,
+                        transaction.time,
+                        transaction.type,
+                        parseFloat(transaction.quantity) || 0,
+                        parseInt(transaction.count) || 0,
+                        transaction.stakeholder,
+                        parseFloat(transaction.quantityBalance) || 0,
+                        transaction.comment
+                    ]);
+                });
+
+                const transactionSheet = XLSX.utils.aoa_to_sheet(transactionData);
+
+                // Set column widths for transactions
+                transactionSheet['!cols'] = [
+                    { width: 20 }, // رقم المعاملة
+                    { width: 15 }, // المعرف الداخلي
+                    { width: 12 }, // التاريخ
+                    { width: 10 }, // الوقت
+                    { width: 8 },  // النوع
+                    { width: 12 }, // الكمية
+                    { width: 8 },  // العدد
+                    { width: 20 }, // الطرف المتعامل
+                    { width: 18 }, // رصيد الكمية
+                    { width: 25 }  // ملاحظات
+                ];
+
+                // Style the header row
+                if (transactionData.length > 1) {
+                    const headerRange = XLSX.utils.decode_range(transactionSheet['!ref']);
+                    for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                        if (!transactionSheet[cellAddress]) continue;
+                        transactionSheet[cellAddress].s = {
+                            font: { bold: true, color: { rgb: "FFFFFF" } },
+                            fill: { fgColor: { rgb: "366092" } },
+                            alignment: { horizontal: "center" }
+                        };
+                    }
+                }
+
+                XLSX.utils.book_append_sheet(workbook, transactionSheet, 'المعاملات');
+
+                // Generate filename
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const sanitizedItemName = data.yarnItem.name.replace(/[^\w\s-]/g, '').substring(0, 30);
+                const filename = `معاملات_${sanitizedItemName}_${timestamp}.xlsx`;
+
+                // Download file
+                XLSX.writeFile(workbook, filename);
+
+                console.log('تم إنشاء ملف Excel للمعاملات بنجاح:', filename);
+
+                // Show success message
+                setTimeout(() => {
+                    alert('تم تصدير معاملات الصنف بنجاح إلى ملف Excel!');
+                }, 500);
+
+            } catch (error) {
+                console.error('خطأ في generateTransactionExcelWithSheetJS:', error);
+                generateTransactionExcelFallback(data);
+            }
+        }
+
+        // Fallback CSV export for transactions
+        function generateTransactionExcelFallback(data) {
+            try {
+                console.log('استخدام CSV كبديل لتصدير معاملات Excel');
+
+                // Create CSV content
+                let csvContent = '\uFEFF'; // BOM for UTF-8
+
+                // Add summary
+                csvContent += 'تقرير معاملات صنف الغزل\n\n';
+                csvContent += 'معرف الصنف,' + data.yarnItem.id + '\n';
+                csvContent += 'اسم الصنف,' + data.yarnItem.name + '\n';
+                csvContent += 'رصيد الكمية الحالي,' + data.yarnItem.quantityBalance + ' كجم\n';
+                csvContent += 'رصيد العدد الحالي,' + data.yarnItem.countBalance + ' وحدة\n\n';
+
+                csvContent += 'معلومات التصدير\n';
+                csvContent += 'تاريخ التصدير,' + data.summary.exportDate + '\n';
+                csvContent += 'وقت التصدير,' + data.summary.exportTime + '\n';
+                csvContent += 'تم التصدير بواسطة,' + data.summary.exportedBy + '\n\n';
+
+                csvContent += 'إحصائيات المعاملات\n';
+                csvContent += 'عدد المعاملات,' + data.transactions.length + '\n';
+                csvContent += 'معاملات الوارد,' + data.transactions.filter(t => t.type === 'وارد').length + '\n';
+                csvContent += 'معاملات الصادر,' + data.transactions.filter(t => t.type === 'صادر').length + '\n\n';
+
+                // Add transaction headers
+                csvContent += 'رقم المعاملة,المعرف الداخلي,التاريخ,الوقت,النوع,الكمية (كجم),العدد,الطرف المتعامل,رصيد الكمية بعد المعاملة,ملاحظات\n';
+
+                // Add transaction data
+                data.transactions.forEach(transaction => {
+                    const row = [
+                        '"' + transaction.transactionId + '"',
+                        '"' + transaction.internalId + '"',
+                        '"' + transaction.date + '"',
+                        '"' + transaction.time + '"',
+                        transaction.type,
+                        transaction.quantity,
+                        transaction.count,
+                        '"' + transaction.stakeholder + '"',
+                        transaction.quantityBalance,
+                        '"' + transaction.comment + '"'
+                    ].join(',');
+                    csvContent += row + '\n';
+                });
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const sanitizedItemName = data.yarnItem.name.replace(/[^\w\s-]/g, '').substring(0, 30);
+                const filename = `معاملات_${sanitizedItemName}_${timestamp}.csv`;
+
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                    console.log('تم إنشاء ملف CSV للمعاملات بنجاح:', filename);
+                    alert('تم تصدير معاملات الصنف بنجاح إلى ملف CSV!');
+                } else {
+                    throw new Error('التصدير غير مدعوم في هذا المتصفح');
+                }
+
+            } catch (error) {
+                console.error('خطأ في generateTransactionExcelFallback:', error);
+                alert('حدث خطأ أثناء تصدير بيانات المعاملات: ' + error.message);
+            }
+        }
+        // ✅ Load packaging breakdown for a single yarn item
+        function loadSinglePackagingBreakdown(yarnItemId, $targetCell) {
+            $.ajax({
+                url: '/YarnTransactions/GetYarnItemBalance',
+                type: 'GET',
+                data: { yarnItemId: yarnItemId },
+                timeout: 10000,
+                success: function(response) {
+                    if (response && response.success) {
+                        renderPackagingDisplay(response, $targetCell);
+                    } else {
+                        showPackagingError($targetCell, 'لا توجد بيانات');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading packaging for yarn item', yarnItemId, ':', error);
+                    showPackagingError($targetCell, 'خطأ في التحميل');
+                }
+            });
+        }
+
+        // ✅ Render packaging display in cell
+        function renderPackagingDisplay(data, $targetCell) {
+            let html = '';
+            if (data.packagingBreakdown && data.packagingBreakdown.length > 0) {
+                const packagingParts = data.packagingBreakdown.map(p =>
+                    `<span class="badge bg-light text-dark border me-1 mb-1">
+                        <i class="fas fa-box me-1"></i>
+                        ${toArabicDigits(p.totalCount.toString())} ${p.packagingType}
+                    </span>`
+                ).join('');
+
+                html = `
+                    <div class="text-center">
+                        <div class="fw-bold text-success mb-1">
+                            ${toArabicDigits(data.countBalance.toString())} وحدة
+                        </div>
+                        <div class="packaging-breakdown">${packagingParts}</div>
+                        ${data.packagingBreakdown.length > 1 ?
+                            `<small class="text-info d-block mt-1">
+                                ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
+                            </small>` : ''}
+                    </div>`;
+            } else if (data.countBalance > 0) {
+                html = `
+                    <div class="text-center">
+                        <span class="fw-bold text-success">
+                            ${toArabicDigits(data.countBalance.toString())} وحدة
+                        </span>
+                        <small class="d-block text-muted">غير محددة التعبئة</small>
+                    </div>`;
+            } else {
+                html = `<div class="text-center"><span class="text-muted">لا توجد وحدات</span></div>`;
+            }
+            $targetCell.html(html);
+        }
+
+        // ✅ Show packaging error in cell
+        function showPackagingError($targetCell, message) {
+            $targetCell.html(`
+                <div class="text-center">
+                    <small class="text-danger">
+                        <i class="fas fa-exclamation-triangle me-1"></i>${message}
+                    </small>
+                </div>
+            `);
+        }
+
+        // Filter functions
+        function toggleAvailableFilter() {
+            const availableOnly = $('#availableOnlyFilter').is(':checked');
+            window.location.href = '@Url.Action("Overview", "YarnTransactions")?availableOnly=' + availableOnly;
+        }
+
+        function filterItems() {
+            const searchTerm = $('#searchInput').val().toLowerCase();
+            const availableOnly = $('#availableOnlyFilter').is(':checked');
+
+            $('.yarn-item-row').each(function() {
+                const row = $(this);
+                const searchText = row.data('search-text');
+                const isAvailable = row.data('available');
+
+                let showRow = true;
+                if (searchTerm && !searchText.includes(searchTerm)) showRow = false;
+                if (availableOnly && !isAvailable) showRow = false;
+
+                row.toggle(showRow);
+            });
+            updateVisibleCount();
+        }
+
+        function updateVisibleCount() {
+            const visibleRows = $('.yarn-item-row:visible').length;
+            const totalRows = $('.yarn-item-row').length;
+            console.log(`Showing ${visibleRows} of ${totalRows} items at ${CURRENT_TIME}`);
+        }
+
+        function refreshData() {
+            showLoadingOverlay();
+            const availableOnly = $('#availableOnlyFilter').is(':checked');
+            window.location.href = '@Url.Action("Overview", "YarnTransactions")?availableOnly=' + availableOnly;
+        }
+
+        // ✅ FIXED Modal functions with proper error handling and naming
+        function viewItemDetails(yarnItemId, yarnItemName) {
+            console.log('🔍 viewItemDetails called with:', yarnItemId, yarnItemName, 'at', CURRENT_TIME);
+
+            try {
+                // Validate inputs
+                if (!yarnItemId || yarnItemId <= 0) {
+                    console.error('❌ Invalid yarn item ID:', yarnItemId);
+                    alert('معرف الصنف غير صحيح');
+                    return;
+                }
+
+                if (!yarnItemName) {
+                    yarnItemName = 'صنف غير محدد';
+                }
+
+                currentYarnItemId = yarnItemId;
+                currentPage = 1;
+
+                // Set modal title with proper escaping
+                const safeYarnItemName = $('<div>').text(yarnItemName).html(); // HTML escape
+                $('#itemDetailsModalLabel').html(`<i class="fas fa-info-circle me-2"></i>تفاصيل صنف الغزل: ${safeYarnItemName}`);
+
+                // Check if modal exists
+                const modalElement = document.getElementById('itemDetailsModal');
+                if (!modalElement) {
+                    console.error('❌ Modal element not found');
+                    alert('خطأ: نافذة التفاصيل غير موجودة');
+                    return;
+                }
+
+                // Show modal using Bootstrap 5 syntax
+                const modal = new bootstrap.Modal(modalElement, {
+                    backdrop: 'static',
+                    keyboard: true
+                });
+                modal.show();
+
+                console.log('✅ Modal displayed successfully for yarn item:', yarnItemId);
+
+                // Load details with performance optimization
+                loadItemDetails();
+
+            } catch (error) {
+                console.error('❌ Error in viewItemDetails at', CURRENT_TIME, ':', error);
+                alert('حدث خطأ أثناء فتح نافذة التفاصيل: ' + error.message);
+            }
+        }
+
+        // ✅ تحسين أداء تحميل البيانات
+        let currentRequest = null;
+
+        function loadItemDetails() {
+            console.log('🔄 Loading details for yarn item:', currentYarnItemId, 'at', new Date().toLocaleString('ar-EG'));
+
+            // إلغاء أي طلب سابق إذا كان قيد التنفيذ
+            if (currentRequest) {
+                currentRequest.abort();
+                console.log('↪ Previous request aborted');
+            }
+
+            $('#modalBody').html(`
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+                        <span class="visually-hidden">جاري التحميل...</span>
+                    </div>
+                    <h6 class="text-muted">جاري تحميل تفاصيل الصنف...</h6>
+                    <div class="progress mt-3" style="height: 6px; width: 80%; margin: 0 auto;">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 0%"></div>
+                    </div>
+                    <small class="text-muted d-block mt-2">معرف الصنف: ${toArabicDigits(currentYarnItemId.toString())}</small>
+                </div>
+            `);
+
+            // بدء مؤقت لمراقبة الأداء
+            const startTime = performance.now();
+
+            currentRequest = $.ajax({
+                url: '@Url.Action("ItemDetails", "YarnTransactions")',
+                type: 'GET',
+                data: {
+                    id: currentYarnItemId,
+                    page: currentPage,
+                    pageSize: pageSize
+                },
+                timeout: 15000, // تقليل وقت الانتظار إلى 15 ثانية
+                beforeSend: function() {
+                    console.log('📤 Request sent for yarn item:', currentYarnItemId);
+                },
+                success: function(response) {
+                    const endTime = performance.now();
+                    console.log('✅ Request completed in', (endTime - startTime).toFixed(2), 'ms');
+
+                    // ✅ Show actual response structure
+                    console.log('🔍 RESPONSE STRUCTURE:');
+                    console.log('  - response.yarnItem:', response.yarnItem);
+                    console.log('  - Object.keys(response):', Object.keys(response || {}));
+
+                    if (response.yarnItem) {
+                        console.log('  - Object.keys(response.yarnItem):', Object.keys(response.yarnItem || {}));
+                    }
+
+                    if (response && response.success && response.yarnItem) {
+                        renderItemDetails(response);
+                    } else {
+                        console.error('❌ Response missing yarn item data:', response);
+                        showError(response?.message || 'بيانات الصنف غير متوفرة');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    const endTime = performance.now();
+
+                    // تجاهل الأخطاء الناتجة عن إلغاء الطلب
+                    if (status === 'abort') {
+                        console.log('Request aborted intentionally');
+                        return;
+                    }
+
+                    console.error('❌ AJAX Error:', {
+                        status: status,
+                        error: error,
+                        statusCode: xhr.status,
+                        yarnItemId: currentYarnItemId,
+                        duration: (endTime - startTime).toFixed(2) + 'ms'
+                    });
+
+                    let errorMessage = 'حدث خطأ أثناء تحميل البيانات';
+                    if (status === 'timeout') {
+                        errorMessage = 'انتهت مهلة الاتصال. يرجى المحاولة مرة أخرى.';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'خطأ في الخادم. يرجى المحاولة لاحقاً.';
+                    }
+                    showError(errorMessage);
+                },
+                complete: function() {
+                    currentRequest = null;
+                }
+            });
+        }
+
+        // ✅ Add debug function to test database directly
+        function debugYarnItem() {
+            console.log('🐛 Starting database debug for yarn item:', currentYarnItemId);
+
+            $.ajax({
+                url: '/YarnTransactions/DebugYarnItem',
+                type: 'GET',
+                data: { id: currentYarnItemId },
+                success: function(response) {
+                    console.log('🔍 DEBUG RESPONSE:', response);
+
+                    let debugHtml = `
+                        <div class="alert alert-info">
+                            <h6><i class="fas fa-database me-2"></i>فحص قاعدة البيانات</h6>
+                            <pre class="mt-3" style="font-size: 12px; text-align: left; direction: ltr;">
+        ${JSON.stringify(response, null, 2)}
+                            </pre>
+                            <button class="btn btn-primary btn-sm mt-3" onclick="loadItemDetails()">
+                                <i class="fas fa-arrow-left me-1"></i>العودة للتحميل العادي
+                            </button>
+                        </div>
+                    `;
+
+                    $('#modalBody').html(debugHtml);
+                },
+                error: function(xhr, status, error) {
+                    console.error('❌ Debug failed:', error);
+                    showError('فشل في فحص قاعدة البيانات: ' + error);
+                }
+            });
+        }
+
+                // ✅ تحديث دالة renderItemDetails لإضافة زر فحص البيانات
+                // ✅ تحسين دالة renderItemDetails لإضافة معلومات تصحيحية
+        function renderItemDetails(data) {
+            try {
+                console.log('🎨 Rendering item details:', data);
+
+                const yarnItem = data.yarnItem;
+                const transactions = data.transactions || [];
+                const pagination = data.pagination;
+
+                if (!yarnItem) {
+                    throw new Error('بيانات الصنف غير موجودة في الاستجابة');
+                }
+
+                // ✅ Use the new property names from controller
+                const yarnItemName = yarnItem.itemName || 'غير محدد';
+                const originYarnName = yarnItem.originYarnName || 'غير محدد';
+                const manufacturerName = yarnItem.manufacturerNames || 'غير محدد';
+
+                console.log('📋 Display names with new properties:', {
+                    yarnItem: yarnItemName,
+                    originYarn: originYarnName,
+                    manufacturer: manufacturerName,
+                    itemId: yarnItem.itemId
+                });
+
+                let html = `
+                    <!-- Item Summary -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card border-primary shadow-sm">
+                                <div class="card-header bg-primary text-white">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0">
+                                            <i class="fas fa-info me-2"></i>معلومات الصنف
+                                        </h6>
+                                        <div>
+                                            <small class="opacity-75 me-3">
+                                                <i class="fas fa-clock me-1"></i>${new Date().toLocaleString('ar-EG')}
+                                            </small>
+                                            <button class="btn btn-sm btn-outline-light" onclick="console.log('Raw data:', ${JSON.stringify(transactions).replace(/"/g, '&quot;')})">
+                                                <i class="fas fa-bug me-1"></i>فحص البيانات
                                             </button>
                                         </div>
-                                        <div class="packaging-display" id="packaging-@item.Id">
-                                            <span class="text-primary fw-bold">@item.CurrentCountBalance وحدة</span>
-                                            <small class="text-muted d-block">اضغط لعرض التفاصيل</small>
-                                        </div>
                                     </div>
                                 </div>
-
-                                <div class="item-actions mt-3 pt-3 border-top">
-                                    <div class="btn-group w-100">
-                                        <a href="@Url.Action("Edit", new { id = item.Id })"
-                                           class="btn btn-sm btn-outline-secondary">
-                                            <i class="fas fa-edit me-1"></i>
-                                            تعديل
-                                        </a>
-                                        <button class="btn btn-sm btn-outline-info"
-                                                onclick="showItemDetails(@item.Id)">
-                                            <i class="fas fa-eye me-1"></i>
-                                            التفاصيل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                }
-            </div>
-
-            <!-- Add this JavaScript to the existing Scripts section -->
-            <script>
-                // Add these functions to your existing JavaScript
-
-                // Convert to Arabic digits
-                function toArabicDigits(str) {
-                    if (!str) return str;
-                    return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-                }
-
-                // Load packaging breakdown for an item
-                function loadPackagingBreakdown(yarnItemId, buttonElement) {
-                    const displayElement = document.getElementById(`packaging-${yarnItemId}`);
-
-                    // Show loading state
-                    displayElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
-
-                    // Make AJAX call to get yarn item balance (reuse existing API)
-                    fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success && data.packagingBreakdown && data.packagingBreakdown.length > 0) {
-                                // Display packaging breakdown
-                                let packagingHtml = '';
-
-                                if (data.packagingBreakdown.length === 1) {
-                                    // Single packaging type
-                                    const pkg = data.packagingBreakdown[0];
-                                    packagingHtml = `
-                                        <div class="text-success fw-bold">
-                                            ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
-                                        </div>
-                                    `;
-                                } else {
-                                    // Multiple packaging types - show compact view
-                                    packagingHtml = `
-                                        <div class="packaging-compact">
-                                            ${data.packagingBreakdown.slice(0, 2).map(pkg =>
-                                                `<span class="badge bg-light text-dark border me-1 mb-1">
-                                                    ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
-                                                </span>`
-                                            ).join('')}
-                                            ${data.packagingBreakdown.length > 2 ?
-                                                `<span class="badge bg-info text-white">+${data.packagingBreakdown.length - 2} أخرى</span>` : ''}
-                                        </div>
-                                        <small class="text-muted d-block mt-1">
-                                            المجموع: ${toArabicDigits(data.countBalance.toString())} وحدة
-                                        </small>
-                                    `;
-                                }
-
-                                displayElement.innerHTML = packagingHtml;
-
-                                // Add click handler to show full breakdown
-                                if (data.packagingBreakdown.length > 1) {
-                                    displayElement.style.cursor = 'pointer';
-                                    displayElement.onclick = () => showFullPackagingBreakdown(data);
-                                }
-
-                            } else if (data.success && data.countBalance > 0) {
-                                // Has count but no packaging breakdown
-                                displayElement.innerHTML = `
-                                    <div class="text-success fw-bold">
-                                        ${toArabicDigits(data.countBalance.toString())} وحدة غير محددة
-                                    </div>
-                                `;
-                            } else {
-                                // No count balance
-                                displayElement.innerHTML = `
-                                    <div class="text-muted">
-                                        <i class="fas fa-times-circle me-1"></i>
-                                        لا يوجد رصيد
-                                    </div>
-                                `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error loading packaging breakdown:', error);
-                            displayElement.innerHTML = `
-                                <div class="text-danger">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    خطأ في التحميل
-                                </div>
-                            `;
-                        });
-                }
-
-                // Show full packaging breakdown in modal
-                function showFullPackagingBreakdown(data) {
-                    let modalContent = `
-                        <div class="row">
-                            <div class="col-12">
-                                <h6 class="text-primary mb-3">
-                                    <i class="fas fa-boxes me-2"></i>
-                                    تفاصيل التعبئة الكاملة - ${data.yarnItem}
-                                </h6>
-
-                                <div class="row g-2 mb-3">
-                                    ${data.packagingBreakdown.map(pkg => `
-                                        <div class="col-md-6">
-                                            <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                                <span class="fw-bold">${pkg.packagingType}</span>
-                                                <span class="badge bg-primary">
-                                                    ${toArabicDigits(pkg.totalCount.toString())} وحدة
-                                                </span>
-                                            </div>
-                                        </div>
-                                    `).join('')}
-                                </div>
-
-                                <div class="alert alert-info d-flex align-items-center">
-                                    <i class="fas fa-info-circle me-2"></i>
-                                    <div>
-                                        <strong>المجموع الكلي:</strong> ${toArabicDigits(data.countBalance.toString())} وحدة
-                                        موزعة على ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
-                                    </div>
-                                </div>
-
-                                <div class="text-muted small">
-                                    <strong>ملاحظة:</strong> عند إجراء معاملة صادر، يجب تحديد نوع التعبئة المطابق للرصيد المتاح
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    // Update modal content and show
-                    document.getElementById('modalContent').innerHTML = modalContent;
-                    document.querySelector('#detailsModal .modal-title').textContent = 'تفاصيل التعبئة';
-                    new bootstrap.Modal(document.getElementById('detailsModal')).show();
-                }
-
-                // Enhanced item details function
-                function showItemDetails(yarnItemId) {
-                    // Show loading state
-                    document.getElementById('modalContent').innerHTML = `
-                        <div class="text-center py-4">
-                            <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
-                            <div class="mt-2">جاري تحميل التفاصيل...</div>
-                        </div>
-                    `;
-
-                    // Show modal
-                    const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-                    modal.show();
-
-                    // Load full item details
-                    fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                let detailsHtml = `
+                                <div class="card-body">
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <h6 class="text-primary mb-3">معلومات أساسية</h6>
-                                            <table class="table table-borderless">
-                                                <tr>
-                                                    <td><strong>اسم الصنف:</strong></td>
-                                                    <td>${data.yarnItem || 'غير محدد'}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>الغزل الأصلي:</strong></td>
-                                                    <td>${data.originYarn || 'غير محدد'}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>الشركة المصنعة:</strong></td>
-                                                    <td>${data.manufacturer || 'غير محدد'}</td>
-                                                </tr>
-                                            </table>
-                                        </div>
-
-                                        <div class="col-md-6">
-                                            <h6 class="text-success mb-3">معلومات المخزون</h6>
-                                            <table class="table table-borderless">
-                                                <tr>
-                                                    <td><strong>رصيد الكمية:</strong></td>
-                                                    <td class="text-success fw-bold">
-                                                        ${toArabicDigits(data.quantityBalance.toFixed(3))} كجم
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>رصيد العدد:</strong></td>
-                                                    <td class="text-info fw-bold">
-                                                        ${data.packagingDisplay || 'لا يوجد رصيد'}
-                                                    </td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>عدد المعاملات:</strong></td>
-                                                    <td>${toArabicDigits(data.transactionCount.toString())}</td>
-                                                </tr>
-                                                <tr>
-                                                    <td><strong>آخر معاملة:</strong></td>
-                                                    <td>${data.lastTransactionDate || 'لا توجد معاملات'}</td>
-                                                </tr>
-                                            </table>
-                                        </div>
-                                    </div>
-
-                                    ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
-                                    <hr>
-                                    <div class="row">
-                                        <div class="col-12">
-                                            <h6 class="text-warning mb-3">
-                                                <i class="fas fa-boxes me-2"></i>
-                                                تفاصيل أنواع التعبئة
-                                            </h6>
-                                            <div class="row g-2">
-                                                ${data.packagingBreakdown.map(pkg => `
-                                                    <div class="col-md-4">
-                                                        <div class="card bg-light">
-                                                            <div class="card-body text-center py-2">
-                                                                <i class="fas fa-box text-primary mb-1"></i>
-                                                                <div class="fw-bold">${pkg.packagingType}</div>
-                                                                <div class="text-primary">
-                                                                    ${toArabicDigits(pkg.totalCount.toString())} وحدة
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                `).join('')}
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">اسم الصنف:</label>
+                                                <span class="ms-2 fw-bold text-dark">${yarnItemName}</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">الغزل الأصلي:</label>
+                                                <span class="ms-2 text-info fw-bold">${originYarnName}</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">الشركة المصنعة:</label>
+                                                <span class="ms-2 text-success">${manufacturerName}</span>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="fw-bold text-primary">معرف الصنف:</label>
+                                                <span class="ms-2 text-muted">${toArabicDigits((yarnItem.itemId || 0).toString())}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                    ` : ''}
-                                `;
-
-                                document.getElementById('modalContent').innerHTML = detailsHtml;
-                                document.querySelector('#detailsModal .modal-title').textContent = `تفاصيل الصنف - ${data.yarnItem}`;
-                            } else {
-                                document.getElementById('modalContent').innerHTML = `
-                                    <div class="alert alert-danger">
-                                        <i class="fas fa-exclamation-triangle me-2"></i>
-                                        فشل في تحميل تفاصيل الصنف: ${data.error || 'خطأ غير معروف'}
-                                    </div>
-                                `;
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error loading item details:', error);
-                            document.getElementById('modalContent').innerHTML = `
-                                <div class="alert alert-danger">
-                                    <i class="fas fa-exclamation-triangle me-2"></i>
-                                    حدث خطأ أثناء تحميل التفاصيل
-                                </div>
-                            `;
-                        });
-                }
-
-                // Auto-load packaging for items with count > 0 on page load
-                document.addEventListener('DOMContentLoaded', function() {
-                    // Auto-load packaging breakdown for items with high count balance
-                    document.querySelectorAll('.item-card-wrapper').forEach(card => {
-                        const itemId = card.dataset.id;
-                        const balance = parseFloat(card.dataset.balance);
-
-                        // Auto-load for items with quantity > 0 (likely to have count balance too)
-                        if (balance > 0) {
-                            setTimeout(() => {
-                                const infoButton = card.querySelector(`button[onclick*="${itemId}"]`);
-                                if (infoButton) {
-                                    loadPackagingBreakdown(itemId, infoButton);
-                                }
-                            }, 100 * parseInt(itemId)); // Stagger the requests
-                        }
-                    });
-                });
-            </script>
-
-            <!-- Add these styles to your existing CSS -->
-            <style>
-                .packaging-display {
-                    min-height: 40px;
-                    padding: 8px 0;
-                    border-radius: 6px;
-                    transition: background-color 0.2s ease;
-                }
-
-                    .packaging-display:hover {
-                        background-color: #f8f9fa;
-                    }
-
-                .packaging-compact .badge {
-                    font-size: 0.75em;
-                    margin-bottom: 2px;
-                }
-
-                .item-details {
-                    min-height: 120px; /* Increased to accommodate packaging info */
-                }
-
-                /* Loading state for packaging */
-                .packaging-display .fa-spinner {
-                    color: #6c757d;
-                }
-
-                /* Clickable packaging breakdown */
-                .packaging-display[style*="cursor: pointer"]:hover {
-                    background-color: #e3f2fd;
-                    border: 1px solid #2196f3;
-                    padding: 7px;
-                }
-
-                /* Modal enhancements */
-                .table td {
-                    padding: 0.5rem 0.75rem;
-                    border: none;
-                }
-
-                    .table td:first-child {
-                        width: 40%;
-                        color: #6c757d;
-                    }
-
-                .card.bg-light .card-body {
-                    background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
-                }
-
-                /* Responsive adjustments */
-                @@media (max-width: 768px) {
-                    .packaging-compact .badge
-
-                {
-                    font-size: 0.7em;
-                    padding: 0.25em 0.5em;
-                }
-
-                .item-details {
-                    min-height: 100px;
-                }
-
-                }</style>
-        </div>
-    </div>
-</div>
-
-<!-- Details Modal -->
-<div class="modal fade" id="detailsModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 rounded-4">
-            <div class="modal-header border-0">
-                <h5 class="modal-title">تفاصيل الصنف</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="modalContent">
-                <!-- Content will be loaded dynamically -->
-            </div>
-        </div>
-    </div>
-</div>
-
-
-    <style>
-        /* Dashboard Styles */
-        :root {
-            --primary-color: #4e73df;
-            --success-color: #1cc88a;
-            --warning-color: #f6c23e;
-            --danger-color: #e74a3b;
-            --light-color: #f8f9fc;
-            --card-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-            --transition: all 0.3s ease;
-        }
-
-        .dashboard-container {
-            padding: 1.5rem 0;
-        }
-
-        .dashboard-header {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
-        }
-
-        /* Card Styles */
-        .card {
-            transition: var(--transition);
-            border: none !important;
-            box-shadow: var(--card-shadow);
-        }
-
-        .stat-card:hover {
-            transform: translateY(-5px);
-        }
-
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: var(--transition);
-        }
-
-        .stat-card:hover .stat-icon {
-            transform: scale(1.1);
-        }
-
-        /* Chart Styles */
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-        }
-
-        /* Filter Styles */
-        .filter-tag {
-            display: inline-block;
-            padding: 0.25rem 0.75rem;
-            background: var(--light-color);
-            border-radius: 1rem;
-            font-size: 0.875rem;
-            margin: 0.25rem;
-            color: var(--primary-color);
-            border: 1px solid var(--primary-color);
-        }
-
-            .filter-tag .close {
-                margin-left: 0.5rem;
-                cursor: pointer;
-                opacity: 0.7;
-                transition: var(--transition);
-            }
-
-                .filter-tag .close:hover {
-                    opacity: 1;
-                }
-
-        /* Item Card Styles */
-        .item-card {
-            transition: var(--transition);
-        }
-
-            .item-card:hover {
-                transform: translateY(-5px);
-            }
-
-        .item-details {
-            min-height: 80px;
-        }
-
-        .stock-indicator {
-            font-size: 1.1rem;
-            font-weight: 500;
-        }
-
-        /* Custom Form Controls */
-        .form-select, .form-control {
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-        }
-
-            .form-select:focus, .form-control:focus {
-                box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
-                border-color: var(--primary-color);
-            }
-
-        /* Modal Styles */
-        .modal-content {
-            border: none;
-            box-shadow: var(--card-shadow);
-        }
-
-        .modal-header {
-            background: var(--light-color);
-            border-bottom: 2px solid #e3e6f0;
-        }
-
-        /* Responsive Adjustments */
-        @@media (max-width: 768px) {
-            .stat-card
-
-        {
-            margin-bottom: 1rem;
-        }
-
-        .chart-container {
-            height: 200px;
-        }
-
-        .dashboard-header h1 {
-            font-size: 1.5rem;
-        }
-
-        }
-
-        /* Animation Classes */
-        .fade-enter {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        .fade-enter-active {
-            opacity: 1;
-            transform: translateY(0);
-            transition: var(--transition);
-        }
-
-        /* Current User Info */
-        .current-user {
-            background: var(--light-color);
-            padding: 0.5rem 1rem;
-            border-radius: 2rem;
-            font-size: 0.875rem;
-        }
-
-            .current-user i {
-                color: var(--primary-color);
-            }
-    </style>
-
-
-<script>
-    // Add these functions to your existing JavaScript
-
-    // Convert to Arabic digits
-    function toArabicDigits(str) {
-        if (!str) return str;
-        return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-    }
-
-    // Load packaging breakdown for an item
-    function loadPackagingBreakdown(yarnItemId, buttonElement) {
-        const displayElement = document.getElementById(`packaging-${yarnItemId}`);
-
-        // Show loading state
-        displayElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري التحميل...';
-
-        // Make AJAX call to get yarn item balance (reuse existing API)
-        fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success && data.packagingBreakdown && data.packagingBreakdown.length > 0) {
-                    // Display packaging breakdown
-                    let packagingHtml = '';
-
-                    if (data.packagingBreakdown.length === 1) {
-                        // Single packaging type
-                        const pkg = data.packagingBreakdown[0];
-                        packagingHtml = `
-                            <div class="text-success fw-bold">
-                                ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
-                            </div>
-                        `;
-                    } else {
-                        // Multiple packaging types - show compact view
-                        packagingHtml = `
-                            <div class="packaging-compact">
-                                ${data.packagingBreakdown.slice(0, 2).map(pkg =>
-                                    `<span class="badge bg-light text-dark border me-1 mb-1">
-                                        ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
-                                    </span>`
-                                ).join('')}
-                                ${data.packagingBreakdown.length > 2 ?
-                                    `<span class="badge bg-info text-white">+${data.packagingBreakdown.length - 2} أخرى</span>` : ''}
-                            </div>
-                            <small class="text-muted d-block mt-1">
-                                المجموع: ${toArabicDigits(data.countBalance.toString())} وحدة
-                            </small>
-                        `;
-                    }
-
-                    displayElement.innerHTML = packagingHtml;
-
-                    // Add click handler to show full breakdown
-                    if (data.packagingBreakdown.length > 1) {
-                        displayElement.style.cursor = 'pointer';
-                        displayElement.onclick = () => showFullPackagingBreakdown(data);
-                    }
-
-                } else if (data.success && data.countBalance > 0) {
-                    // Has count but no packaging breakdown
-                    displayElement.innerHTML = `
-                        <div class="text-success fw-bold">
-                            ${toArabicDigits(data.countBalance.toString())} وحدة غير محددة
-                        </div>
-                    `;
-                } else {
-                    // No count balance
-                    displayElement.innerHTML = `
-                        <div class="text-muted">
-                            <i class="fas fa-times-circle me-1"></i>
-                            لا يوجد رصيد
-                        </div>
-                    `;
-                }
-            })
-            .catch(error => {
-                console.error('Error loading packaging breakdown:', error);
-                displayElement.innerHTML = `
-                    <div class="text-danger">
-                        <i class="fas fa-exclamation-triangle me-1"></i>
-                        خطأ في التحميل
-                    </div>
-                `;
-            });
-    }
-
-    // Show full packaging breakdown in modal
-    function showFullPackagingBreakdown(data) {
-        let modalContent = `
-            <div class="row">
-                <div class="col-12">
-                    <h6 class="text-primary mb-3">
-                        <i class="fas fa-boxes me-2"></i>
-                        تفاصيل التعبئة الكاملة - ${data.yarnItem}
-                    </h6>
-
-                    <div class="row g-2 mb-3">
-                        ${data.packagingBreakdown.map(pkg => `
-                            <div class="col-md-6">
-                                <div class="d-flex justify-content-between align-items-center p-2 bg-light rounded">
-                                    <span class="fw-bold">${pkg.packagingType}</span>
-                                    <span class="badge bg-primary">
-                                        ${toArabicDigits(pkg.totalCount.toString())} وحدة
-                                    </span>
-                                </div>
-                            </div>
-                        `).join('')}
-                    </div>
-
-                    <div class="alert alert-info d-flex align-items-center">
-                        <i class="fas fa-info-circle me-2"></i>
-                        <div>
-                            <strong>المجموع الكلي:</strong> ${toArabicDigits(data.countBalance.toString())} وحدة
-                            موزعة على ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
-                        </div>
-                    </div>
-
-                    <div class="text-muted small">
-                        <strong>ملاحظة:</strong> عند إجراء معاملة صادر، يجب تحديد نوع التعبئة المطابق للرصيد المتاح
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Update modal content and show
-        document.getElementById('modalContent').innerHTML = modalContent;
-        document.querySelector('#detailsModal .modal-title').textContent = 'تفاصيل التعبئة';
-        new bootstrap.Modal(document.getElementById('detailsModal')).show();
-    }
-
-    // Enhanced item details function
-    function showItemDetails(yarnItemId) {
-        // Show loading state
-        document.getElementById('modalContent').innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-spinner fa-spin fa-2x text-primary"></i>
-                <div class="mt-2">جاري تحميل التفاصيل...</div>
-            </div>
-        `;
-
-        // Show modal
-        const modal = new bootstrap.Modal(document.getElementById('detailsModal'));
-        modal.show();
-
-        // Load full item details
-        fetch(`/YarnTransactions/GetYarnItemBalance?yarnItemId=${yarnItemId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    let detailsHtml = `
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6 class="text-primary mb-3">معلومات أساسية</h6>
-                                <table class="table table-borderless">
-                                    <tr>
-                                        <td><strong>اسم الصنف:</strong></td>
-                                        <td>${data.yarnItem || 'غير محدد'}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>الغزل الأصلي:</strong></td>
-                                        <td>${data.originYarn || 'غير محدد'}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>الشركة المصنعة:</strong></td>
-                                        <td>${data.manufacturer || 'غير محدد'}</td>
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <div class="col-md-6">
-                                <h6 class="text-success mb-3">معلومات المخزون</h6>
-                                <table class="table table-borderless">
-                                    <tr>
-                                        <td><strong>رصيد الكمية:</strong></td>
-                                        <td class="text-success fw-bold">
-                                            ${toArabicDigits(data.quantityBalance.toFixed(3))} كجم
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>رصيد العدد:</strong></td>
-                                        <td class="text-info fw-bold">
-                                            ${data.packagingDisplay || 'لا يوجد رصيد'}
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>عدد المعاملات:</strong></td>
-                                        <td>${toArabicDigits(data.transactionCount.toString())}</td>
-                                    </tr>
-                                    <tr>
-                                        <td><strong>آخر معاملة:</strong></td>
-                                        <td>${data.lastTransactionDate || 'لا توجد معاملات'}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-
-                        ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
-                        <hr>
-                        <div class="row">
-                            <div class="col-12">
-                                <h6 class="text-warning mb-3">
-                                    <i class="fas fa-boxes me-2"></i>
-                                    تفاصيل أنواع التعبئة
-                                </h6>
-                                <div class="row g-2">
-                                    ${data.packagingBreakdown.map(pkg => `
-                                        <div class="col-md-4">
-                                            <div class="card bg-light">
-                                                <div class="card-body text-center py-2">
-                                                    <i class="fas fa-box text-primary mb-1"></i>
-                                                    <div class="fw-bold">${pkg.packagingType}</div>
-                                                    <div class="text-primary">
-                                                        ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                        <div class="col-md-6">
+                                            <div class="row text-center">
+                                                <div class="col-6">
+                                                    <div class="border-end pe-3">
+                                                        <h4 class="mb-1 ${(yarnItem.quantityBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                            ${toArabicDigits(((yarnItem.quantityBalance || 0).toFixed(3)))}
+                                                        </h4>
+                                                        <small class="text-muted">رصيد الكمية (كجم)</small>
                                                     </div>
+                                                </div>
+                                                <div class="col-6">
+                                                    <h4 class="mb-1 ${(yarnItem.countBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                        ${toArabicDigits((yarnItem.countBalance || 0).toString())}
+                                                    </h4>
+                                                    <small class="text-muted">رصيد العدد</small>
+                                                </div>
+                                            </div>
+                                            <hr class="my-3">
+                                            <div class="row text-center">
+                                                <div class="col-4">
+                                                    <h6 class="text-primary mb-1">${toArabicDigits(((yarnItem.totalInbound || 0).toFixed(3)))}</h6>
+                                                    <small class="text-muted">إجمالي الوارد</small>
+                                                </div>
+                                                <div class="col-4">
+                                                    <h6 class="text-danger mb-1">${toArabicDigits(((yarnItem.totalOutbound || 0).toFixed(3)))}</h6>
+                                                    <small class="text-muted">إجمالي الصادر</small>
+                                                </div>
+                                                <div class="col-4">
+                                                    <h6 class="text-info mb-1">${toArabicDigits((yarnItem.totalTransactions || 0).toString())}</h6>
+                                                    <small class="text-muted">المعاملات</small>
                                                 </div>
                                             </div>
                                         </div>
-                                    `).join('')}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                        ` : ''}
-                    `;
+                    </div>
+                `;
 
-                    document.getElementById('modalContent').innerHTML = detailsHtml;
-                    document.querySelector('#detailsModal .modal-title').textContent = `تفاصيل الصنف - ${data.yarnItem}`;
+                if (transactions.length > 0) {
+                    html += renderTransactionsTable(transactions, pagination);
                 } else {
-                    document.getElementById('modalContent').innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            فشل في تحميل تفاصيل الصنف: ${data.error || 'خطأ غير معروف'}
+                    html += `
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info text-center py-4">
+                                    <i class="fas fa-info-circle fa-2x mb-3 text-info"></i>
+                                    <h6 class="mb-2">لا توجد معاملات</h6>
+                                    <p class="mb-0 text-muted small">لم يتم تسجيل أي معاملات لهذا الصنف حتى الآن.</p>
+                                </div>
+                            </div>
                         </div>
                     `;
                 }
-            })
-            .catch(error => {
-                console.error('Error loading item details:', error);
-                document.getElementById('modalContent').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        حدث خطأ أثناء تحميل التفاصيل
-                    </div>
-                `;
-            });
-    }
 
-    // Auto-load packaging for items with count > 0 on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Auto-load packaging breakdown for items with high count balance
-        document.querySelectorAll('.item-card-wrapper').forEach(card => {
-            const itemId = card.dataset.id;
-            const balance = parseFloat(card.dataset.balance);
+                $('#modalBody').html(html);
+                $('[title]').tooltip();
 
-            // Auto-load for items with quantity > 0 (likely to have count balance too)
-            if (balance > 0) {
-                setTimeout(() => {
-                    const infoButton = card.querySelector(`button[onclick*="${itemId}"]`);
-                    if (infoButton) {
-                        loadPackagingBreakdown(itemId, infoButton);
-                    }
-                }, 100 * parseInt(itemId)); // Stagger the requests
+                console.log('✅ Item details rendered successfully');
+
+            } catch (error) {
+                console.error('❌ Error rendering item details:', error);
+                showError('حدث خطأ أثناء عرض البيانات: ' + error.message);
             }
+        }
+
+        // ✅ دالة منفصلة لعرض ملخص الصنف
+        function renderItemSummary(yarnItem) {
+            const yarnItemName = yarnItem.itemName || 'غير محدد';
+            const originYarnName = yarnItem.originYarnName || 'غير محدد';
+            const manufacturerName = yarnItem.manufacturerNames || 'غير محدد';
+
+            const summaryHtml = `
+                <!-- Item Summary -->
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <div class="card border-primary shadow-sm">
+                            <div class="card-header bg-primary text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-info me-2"></i>معلومات الصنف
+                                    </h6>
+                                    <small class="opacity-75">
+                                        <i class="fas fa-clock me-1"></i>${new Date().toLocaleString('ar-EG')}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">اسم الصنف:</label>
+                                            <span class="ms-2 fw-bold text-dark">${yarnItemName}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">الغزل الأصلي:</label>
+                                            <span class="ms-2 text-info fw-bold">${originYarnName}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">الشركة المصنعة:</label>
+                                            <span class="ms-2 text-success">${manufacturerName}</span>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="fw-bold text-primary">معرف الصنف:</label>
+                                            <span class="ms-2 text-muted">${toArabicDigits((yarnItem.itemId || 0).toString())}</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="row text-center">
+                                            <div class="col-6">
+                                                <div class="border-end pe-3">
+                                                    <h4 class="mb-1 ${(yarnItem.quantityBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                        ${toArabicDigits(((yarnItem.quantityBalance || 0).toFixed(3)))}
+                                                    </h4>
+                                                    <small class="text-muted">رصيد الكمية (كجم)</small>
+                                                </div>
+                                            </div>
+                                            <div class="col-6">
+                                                <h4 class="mb-1 ${(yarnItem.countBalance || 0) >= 0 ? 'text-success' : 'text-danger'}">
+                                                    ${toArabicDigits((yarnItem.countBalance || 0).toString())}
+                                                </h4>
+                                                <small class="text-muted">رصيد العدد</small>
+                                            </div>
+                                        </div>
+                                        <hr class="my-3">
+                                        <div class="row text-center">
+                                            <div class="col-4">
+                                                <h6 class="text-primary mb-1">${toArabicDigits(((yarnItem.totalInbound || 0).toFixed(3)))}</h6>
+                                                <small class="text-muted">إجمالي الوارد</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h6 class="text-danger mb-1">${toArabicDigits(((yarnItem.totalOutbound || 0).toFixed(3)))}</h6>
+                                                <small class="text-muted">إجمالي الصادر</small>
+                                            </div>
+                                            <div class="col-4">
+                                                <h6 class="text-info mb-1">${toArabicDigits((yarnItem.totalTransactions || 0).toString())}</h6>
+                                                <small class="text-muted">المعاملات</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div id="transactions-container"></div>
+            `;
+
+            $('#modalBody').html(summaryHtml);
+        }
+
+        // ✅ دالة منفصلة لعرض رسالة عدم وجود معاملات
+        function renderNoTransactions() {
+            const noTransactionsHtml = `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="alert alert-info text-center py-4">
+                            <i class="fas fa-info-circle fa-2x mb-3 text-info"></i>
+                            <h6 class="mb-2">لا توجد معاملات</h6>
+                            <p class="mb-0 text-muted small">لم يتم تسجيل أي معاملات لهذا الصنف حتى الآن.</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#transactions-container').html(noTransactionsHtml);
+        }
+
+        // ✅ إصلاح دالة معالجة القيم الفارغة
+                // ✅ إصلاح دالة معالجة القيم الفارغة لاستخدام الحقول الصحيحة
+        function handleNullValues(transactions) {
+            if (!transactions || !Array.isArray(transactions)) {
+                console.error('❌ Invalid transactions data:', transactions);
+                return [];
+            }
+
+            return transactions.map((transaction, index) => {
+                // استخدام الحقول الصحيحة من البيانات الواردة
+                return {
+                    TransactionId: transaction.transactionId || `TEMP-${currentYarnItemId}-${index + 1}`,
+                    InternalId: transaction.internalId || '',
+                    Date: transaction.date || transaction.Date || new Date(),
+                    IsInbound: transaction.isInbound || false,
+                    Quantity: parseFloat(transaction.quantity || 0),
+                    Count: parseInt(transaction.count || 0),
+                    StakeholderTypeName: transaction.stakeholderTypeName || 'غير محدد',
+                    StakeholderName: transaction.stakeholderName || 'غير محدد',
+                    QuantityBalance: parseFloat(transaction.quantityBalance || 0),
+                    Comment: transaction.comment || ''
+                };
+            });
+        }
+
+                // ✅ تحسين دالة فحص البيانات الخام
+        function debugRawTransactions(transactions) {
+            console.log('🔍 Raw transactions data:', transactions);
+
+            if (!transactions || !Array.isArray(transactions)) {
+                console.error('❌ Transactions is not an array or is null');
+                return;
+            }
+
+            console.log('📋 Transactions summary:');
+            console.log('   Count:', transactions.length);
+
+            transactions.forEach((transaction, index) => {
+                console.log(`   Transaction ${index}:`);
+                if (transaction) {
+                    console.log('     - transactionId:', transaction.transactionId);
+                    console.log('     - date:', transaction.date);
+                    console.log('     - quantity:', transaction.quantity);
+                    console.log('     - isInbound:', transaction.isInbound);
+                    console.log('     - stakeholderName:', transaction.stakeholderName);
+                    console.log('     - quantityBalance:', transaction.quantityBalance);
+                } else {
+                    console.log(`     Transaction ${index} is null or undefined`);
+                }
+            });
+        }
+
+        // ✅ تعديل دالة renderTransactionsTable لفحص البيانات أولاً
+                // ✅ إصلاح دالة عرض الجدول
+        function renderTransactionsTable(transactions, pagination) {
+            // فحص البيانات الخام أولاً
+            debugRawTransactions(transactions);
+
+            const safePageInfo = pagination || {
+                CurrentPage: 1,
+                TotalPages: 1,
+                TotalTransactions: 0,
+                HasNextPage: false,
+                HasPreviousPage: false
+            };
+
+            // Handle null values in transactions
+            const safeTransactions = handleNullValues(transactions);
+
+            console.log('📊 Rendering transactions table with', safeTransactions.length, 'transactions at', new Date().toLocaleString('ar-EG'));
+            console.log('📋 Processed transactions:', safeTransactions);
+
+            let html = `
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card border-info shadow-sm">
+                            <div class="card-header bg-info text-white">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-history me-2"></i>المعاملات الأخيرة
+                                    </h6>
+                                    <small class="opacity-75">
+                                        الصفحة ${toArabicDigits((safePageInfo.CurrentPage || 1).toString())} من ${toArabicDigits((safePageInfo.TotalPages || 1).toString())}
+                                    </small>
+                                </div>
+                            </div>
+                            <div class="card-body p-0">
+                                <div class="table-responsive">
+                                    <table class="table table-hover table-sm mb-0">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>رقم المعاملة</th>
+                                                <th>التاريخ</th>
+                                                <th>النوع</th>
+                                                <th>الكمية</th>
+                                                <th>العدد</th>
+                                                <th>التاجر</th>
+                                                <th>رصيد الكمية</th>
+                                                <th>ملاحظات</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+            `;
+
+            safeTransactions.forEach(function(transaction, index) {
+                try {
+                    const transactionDate = new Date(transaction.Date);
+                    const isToday = new Date().toDateString() === transactionDate.toDateString();
+
+                    html += `
+                        <tr>
+                            <td>
+                                <div class="fw-bold text-primary small">${transaction.TransactionId}</div>
+                                ${transaction.InternalId ? `<small class="text-muted d-block">داخلي: ${transaction.InternalId}</small>` : ''}
+                            </td>
+                            <td>
+                                <div class="fw-bold small">${toArabicDigits(transactionDate.toLocaleDateString('ar-EG'))}</div>
+                                <small class="text-muted">${toArabicDigits(transactionDate.toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}))}</small>
+                                ${isToday ? '<span class="badge bg-success ms-1">اليوم</span>' : ''}
+                            </td>
+                            <td>
+                                <span class="badge rounded-pill ${transaction.IsInbound ? 'bg-success' : 'bg-danger'} small">
+                                    ${transaction.IsInbound ? 'وارد' : 'صادر'}
+                                </span>
+                            </td>
+                            <td class="${transaction.IsInbound ? 'text-success' : 'text-danger'} fw-bold small">
+                                ${toArabicDigits((transaction.Quantity || 0).toFixed(3))}
+                            </td>
+                            <td class="fw-bold small">${toArabicDigits((transaction.Count || 0).toString())}</td>
+                            <td>
+                                <div class="fw-bold small">${transaction.StakeholderName}</div>
+                            </td>
+                            <td class="fw-bold text-primary small">${toArabicDigits((transaction.QuantityBalance || 0).toFixed(3))}</td>
+                            <td class="small">
+                                ${transaction.Comment ?
+                                    `<span class="text-muted" title="${transaction.Comment}">
+                                        ${transaction.Comment.length > 15 ? transaction.Comment.substring(0, 15) + '...' : transaction.Comment}
+                                    </span>` :
+                                    '<span class="text-muted">-</span>'
+                                }
+                            </td>
+                        </tr>
+                    `;
+                } catch (error) {
+                    console.error('Error rendering transaction row', index, ':', error, transaction);
+
+                    // عرض بيانات الخطأ لأغراض التصحيح
+                    html += `
+                        <tr class="table-warning">
+                            <td colspan="8" class="text-center">
+                                <small class="text-danger">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    خطأ في عرض المعاملة ${index + 1}
+                                </small>
+                            </td>
+                        </tr>
+                    `;
+                }
+            });
+
+            html += `</tbody></table></div></div></div></div></div>`;
+
+            // Add pagination if needed
+            if (safePageInfo.TotalPages > 1) {
+                html += `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <nav aria-label="تنقل المعاملات">
+                                <ul class="pagination pagination-sm justify-content-center mb-0">`;
+
+                if (safePageInfo.HasPreviousPage) {
+                    html += `<li class="page-item">
+                        <a class="page-link" href="#" onclick="loadPage(${safePageInfo.CurrentPage - 1}); return false;">
+                            <i class="fas fa-chevron-right me-1"></i>السابق
+                        </a>
+                    </li>`;
+                }
+
+                html += `<li class="page-item active">
+                    <span class="page-link">${toArabicDigits(safePageInfo.CurrentPage.toString())}</span>
+                </li>`;
+
+                if (safePageInfo.HasNextPage) {
+                    html += `<li class="page-item">
+                        <a class="page-link" href="#" onclick="loadPage(${safePageInfo.CurrentPage + 1}); return false;">
+                            التالي<i class="fas fa-chevron-left ms-1"></i>
+                        </a>
+                    </li>`;
+                }
+
+                html += `</ul></nav></div></div>`;
+            }
+
+            return html;
+        }
+
+        function loadPage(page) {
+            currentPage = page;
+            loadItemDetails();
+        }
+
+        function seeMoreTransactions() {
+            $('#itemDetailsModal').modal('hide');
+            const searchUrl = `@Url.Action("Search", "YarnTransactions")?YarnItemId=${currentYarnItemId}&FromDate=${new Date(Date.now() - 365*24*60*60*1000).toISOString().split('T')[0]}&ToDate=${new Date().toISOString().split('T')[0]}`;
+            window.location.href = searchUrl;
+        }
+
+        function showError(message) {
+            $('#modalBody').html(`
+                <div class="alert alert-danger text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x mb-3 text-danger"></i>
+                    <h5 class="mb-2">حدث خطأ</h5>
+                    <p class="mb-3">${message}</p>
+                    <div class="d-flex gap-2 justify-content-center">
+                        <button type="button" class="btn btn-primary btn-sm" onclick="loadItemDetails()">
+                            <i class="fas fa-redo me-1"></i>إعادة المحاولة
+                        </button>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i>إغلاق
+                        </button>
+                    </div>
+                </div>
+            `);
+        }
+
+                // Export functions
+        function exportToExcel() {
+            showLoadingOverlay();
+
+            try {
+                console.log('بدء تصدير Excel في', CURRENT_TIME);
+
+                // Collect data
+                const exportData = collectExportData();
+
+                // Generate Excel file
+                generateExcelFile(exportData);
+
+                console.log('تم تصدير Excel بنجاح');
+
+            } catch (error) {
+                console.error('فشل تصدير Excel:', error);
+                alert('حدث خطأ أثناء تصدير البيانات: ' + error.message);
+            } finally {
+                setTimeout(hideLoadingOverlay, 1000);
+            }
+        }
+
+        function collectExportData() {
+            const data = {
+                summary: {
+                    totalItems: toLatinDigits($('#totalItemsDisplay').text()),
+                    availableItems: toLatinDigits($('#availableItemsDisplay').text()),
+                    totalQuantity: toLatinDigits($('#totalQuantityDisplay').text().replace(/[^\d.,]/g, '')),
+                    totalCount: toLatinDigits($('#totalCountDisplay').text()),
+                    percentageAvailable: toLatinDigits($('#percentageDisplay').text().replace('%', '')),
+                    lastUpdated: toLatinDigits($('#lastUpdatedDisplay').text()),
+                    availableOnly: $('#availableOnlyFilter').is(':checked'),
+                    exportDate: new Date().toLocaleDateString('ar-EG'),
+                    exportTime: new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'}),
+                    exportedBy: CURRENT_USER
+                },
+                items: []
+            };
+
+            // Collect visible items
+            $('.yarn-item-row:visible').each(function() {
+                const row = $(this);
+                const item = {
+                    yarnItemId: row.data('yarn-id'),
+                    yarnItemName: row.find('td:first strong').text().trim(),
+                    originYarnName: row.find('td:nth-child(2) .text-info').text().trim() || 'غير محدد',
+                    manufacturerNames: row.find('td:nth-child(3) small').text().trim() || 'غير محدد',
+                    quantityBalance: toLatinDigits(row.find('.quantity-balance').text().trim()),
+                    countBalance: extractCountBalance(row.find('.count-balance-cell')),
+                    packagingBreakdown: extractPackagingBreakdown(row.find('.count-balance-cell')),
+                    isAvailable: row.data('available'),
+                    status: row.data('available') ? 'متاح' : 'غير متاح',
+                    totalTransactions: toLatinDigits(row.find('.transaction-count').text().trim()),
+                    inboundTransactions: toLatinDigits(row.find('.inbound-count').text().trim() || '0'),
+                    outboundTransactions: toLatinDigits(row.find('.outbound-count').text().trim() || '0'),
+                    lastTransactionDate: row.find('.last-transaction-date').text().trim() || 'لا توجد معاملات',
+                    daysSinceLastTransaction: toLatinDigits(row.find('.days-since').text().trim() || '0')
+                };
+                data.items.push(item);
+            });
+
+            return data;
+        }
+
+        function extractCountBalance(cell) {
+            const countText = cell.find('.fw-bold').text();
+            if (countText && countText.includes('وحدة')) {
+                return toLatinDigits(countText.replace(/[^\d]/g, ''));
+            }
+            return '0';
+        }
+
+        function extractPackagingBreakdown(cell) {
+            const badges = cell.find('.badge');
+            const breakdown = [];
+            badges.each(function() {
+                const text = $(this).text().trim();
+                if (text) {
+                    breakdown.push(text.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]));
+                }
+            });
+            return breakdown.join(', ') || 'غير محددة';
+        }
+
+        function generateExcelFile(data) {
+            // Check if SheetJS is available
+            if (typeof XLSX === 'undefined') {
+                // Load SheetJS dynamically
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+                script.onload = () => generateExcelWithSheetJS(data);
+                script.onerror = () => generateExcelFallback(data);
+                document.head.appendChild(script);
+            } else {
+                generateExcelWithSheetJS(data);
+            }
+        }
+
+        function generateExcelWithSheetJS(data) {
+            try {
+                // Create workbook
+                const workbook = XLSX.utils.book_new();
+
+                // Summary sheet
+                const summaryData = [
+                    ['نظرة عامة على أرصدة الغزل'],
+                    [''],
+                    ['تاريخ التصدير:', data.summary.exportDate],
+                    ['وقت التصدير:', data.summary.exportTime],
+                    ['تم التصدير بواسطة:', data.summary.exportedBy],
+                    ['آخر تحديث للبيانات:', data.summary.lastUpdated],
+                    ['فلتر المتاح فقط:', data.summary.availableOnly ? 'نعم' : 'لا'],
+                    [''],
+                    ['الإحصائيات العامة'],
+                    ['إجمالي الأصناف:', data.summary.totalItems],
+                    ['الأصناف المتاحة:', data.summary.availableItems],
+                    ['نسبة الأصناف المتاحة:', data.summary.percentageAvailable + '%'],
+                    ['إجمالي الكمية (كجم):', data.summary.totalQuantity],
+                    ['إجمالي العدد:', data.summary.totalCount],
+                    [''],
+                    ['عدد الأصناف في هذا التقرير:', data.items.length.toString()]
+                ];
+
+                const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+
+                // Set column widths for summary
+                summarySheet['!cols'] = [
+                    { width: 25 },
+                    { width: 20 }
+                ];
+
+                XLSX.utils.book_append_sheet(workbook, summarySheet, 'ملخص');
+
+                // Items sheet
+                const headers = [
+                    'معرف الصنف',
+                    'اسم الصنف',
+                    'الغزل الأصلي',
+                    'الشركة المصنعة',
+                    'رصيد الكمية (كجم)',
+                    'رصيد العدد',
+                    'تفاصيل التعبئة',
+                    'الحالة',
+                    'إجمالي المعاملات',
+                    'معاملات الوارد',
+                    'معاملات الصادر',
+                    'آخر معاملة',
+                    'أيام منذ آخر معاملة'
+                ];
+
+                const itemsData = [headers];
+
+                data.items.forEach(item => {
+                    itemsData.push([
+                        item.yarnItemId,
+                        item.yarnItemName,
+                        item.originYarnName,
+                        item.manufacturerNames,
+                        parseFloat(item.quantityBalance) || 0,
+                        parseInt(item.countBalance) || 0,
+                        item.packagingBreakdown,
+                        item.status,
+                        parseInt(item.totalTransactions) || 0,
+                        parseInt(item.inboundTransactions) || 0,
+                        parseInt(item.outboundTransactions) || 0,
+                        item.lastTransactionDate,
+                        parseInt(item.daysSinceLastTransaction) || 0
+                    ]);
+                });
+
+                const itemsSheet = XLSX.utils.aoa_to_sheet(itemsData);
+
+                // Set column widths for items
+                itemsSheet['!cols'] = [
+                    { width: 12 }, // معرف الصنف
+                    { width: 25 }, // اسم الصنف
+                    { width: 20 }, // الغزل الأصلي
+                    { width: 20 }, // الشركة المصنعة
+                    { width: 15 }, // رصيد الكمية
+                    { width: 12 }, // رصيد العدد
+                    { width: 25 }, // تفاصيل التعبئة
+                    { width: 10 }, // الحالة
+                    { width: 15 }, // إجمالي المعاملات
+                    { width: 12 }, // معاملات الوارد
+                    { width: 12 }, // معاملات الصادر
+                    { width: 18 }, // آخر معاملة
+                    { width: 20 }  // أيام منذ آخر معاملة
+                ];
+
+                // Style the header row
+                const headerRange = XLSX.utils.decode_range(itemsSheet['!ref']);
+                for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+                    if (!itemsSheet[cellAddress]) continue;
+                    itemsSheet[cellAddress].s = {
+                        font: { bold: true, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "366092" } },
+                        alignment: { horizontal: "center" }
+                    };
+                }
+
+                XLSX.utils.book_append_sheet(workbook, itemsSheet, 'تفاصيل الأصناف');
+
+                // Generate filename
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `ارصدة_الغزل_${timestamp}.xlsx`;
+
+                // Download file
+                XLSX.writeFile(workbook, filename);
+
+                console.log('تم إنشاء ملف Excel بنجاح:', filename);
+
+                // Show success message
+                setTimeout(() => {
+                    alert('تم تصدير البيانات بنجاح إلى ملف Excel!');
+                }, 500);
+
+            } catch (error) {
+                console.error('خطأ في generateExcelWithSheetJS:', error);
+                generateExcelFallback(data);
+            }
+        }
+
+        function generateExcelFallback(data) {
+            try {
+                console.log('استخدام CSV كبديل لتصدير Excel');
+
+                // Create CSV content
+                let csvContent = '\uFEFF'; // BOM for UTF-8
+
+                // Add summary
+                csvContent += 'نظرة عامة على أرصدة الغزل\n\n';
+                csvContent += 'تاريخ التصدير,' + data.summary.exportDate + '\n';
+                csvContent += 'وقت التصدير,' + data.summary.exportTime + '\n';
+                csvContent += 'تم التصدير بواسطة,' + data.summary.exportedBy + '\n';
+                csvContent += 'آخر تحديث للبيانات,' + data.summary.lastUpdated + '\n';
+                csvContent += 'فلتر المتاح فقط,' + (data.summary.availableOnly ? 'نعم' : 'لا') + '\n\n';
+
+                csvContent += 'الإحصائيات العامة\n';
+                csvContent += 'إجمالي الأصناف,' + data.summary.totalItems + '\n';
+                csvContent += 'الأصناف المتاحة,' + data.summary.availableItems + '\n';
+                csvContent += 'نسبة الأصناف المتاحة,' + data.summary.percentageAvailable + '%\n';
+                csvContent += 'إجمالي الكمية (كجم),' + data.summary.totalQuantity + '\n';
+                csvContent += 'إجمالي العدد,' + data.summary.totalCount + '\n\n';
+
+                // Add headers
+                csvContent += 'معرف الصنف,اسم الصنف,الغزل الأصلي,الشركة المصنعة,رصيد الكمية (كجم),رصيد العدد,تفاصيل التعبئة,الحالة,إجمالي المعاملات,معاملات الوارد,معاملات الصادر,آخر معاملة,أيام منذ آخر معاملة\n';
+
+                // Add items
+                data.items.forEach(item => {
+                    const row = [
+                        item.yarnItemId,
+                        '"' + item.yarnItemName + '"',
+                        '"' + item.originYarnName + '"',
+                        '"' + item.manufacturerNames + '"',
+                        item.quantityBalance,
+                        item.countBalance,
+                        '"' + item.packagingBreakdown + '"',
+                        item.status,
+                        item.totalTransactions,
+                        item.inboundTransactions,
+                        item.outboundTransactions,
+                        '"' + item.lastTransactionDate + '"',
+                        item.daysSinceLastTransaction
+                    ].join(',');
+                    csvContent += row + '\n';
+                });
+
+                // Create and download file
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                const filename = `ارصدة_الغزل_${timestamp}.csv`;
+
+                if (link.download !== undefined) {
+                    const url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', filename);
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(url);
+
+                    console.log('تم إنشاء ملف CSV بنجاح:', filename);
+                    alert('تم تصدير البيانات بنجاح إلى ملف CSV!');
+                } else {
+                    throw new Error('التصدير غير مدعوم في هذا المتصفح');
+                }
+
+            } catch (error) {
+                console.error('خطأ في generateExcelFallback:', error);
+                alert('حدث خطأ أثناء تصدير البيانات: ' + error.message);
+            }
+        }
+
+        // دالة مساعدة لتحويل الأرقام العربية إلى لاتينية
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        }
+               function shareWhatsApp() {
+            showLoadingOverlay();
+
+            try {
+                // جمع بيانات النظرة العامة
+                const totalItems = toLatinDigits($('#totalItemsDisplay').text());
+                const availableItems = toLatinDigits($('#availableItemsDisplay').text());
+                const totalQuantity = toLatinDigits($('#totalQuantityDisplay').text().replace(/[^\d.,]/g, ''));
+                const totalCount = toLatinDigits($('#totalCountDisplay').text());
+                const lastUpdated = toLatinDigits($('#lastUpdatedDisplay').text());
+                const availableOnly = $('#availableOnlyFilter').is(':checked');
+                const percentageAvailable = toLatinDigits($('#percentageDisplay').text());
+
+                // إنشاء رسالة WhatsApp
+                let message = `تقرير نظرة عامة على أرصدة الغزل\n\n`;
+
+                message += `الإحصائيات الرئيسية:\n`;
+                message += `• إجمالي الأصناف: ${totalItems} صنف\n`;
+                message += `• الأصناف المتاحة: ${availableItems} صنف (${percentageAvailable}%)\n`;
+                message += `• إجمالي الكمية: ${totalQuantity} كجم\n`;
+                message += `• إجمالي العدد: ${totalCount} وحدة\n`;
+                message += `• آخر تحديث: ${lastUpdated}\n\n`;
+
+                message += `إعدادات التقرير:\n`;
+                message += `• نوع العرض: ${availableOnly ? 'الأصناف المتاحة فقط' : 'جميع الأصناف'}\n`;
+                message += `• وقت التقرير: ${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG', {hour: '2-digit', minute: '2-digit'})}\n\n`;
+
+                // جمع بيانات الأصناف المرئية
+                const items = [];
+                $('.yarn-item-row:visible').each(function() {
+                    const row = $(this);
+                    const yarnName = row.find('td:first strong').text().trim();
+                    const originYarn = row.find('td:nth-child(2) .text-info').text().trim();
+                    const manufacturer = row.find('td:nth-child(3) small').text().trim();
+                    const quantityBalance = row.find('.quantity-balance').text().trim();
+                    const statusBadge = row.find('td:nth-child(6) .badge').text().trim();
+                    const transactionCount = row.find('.transaction-count').text().trim();
+                    const isAvailable = row.data('available');
+
+                    items.push({
+                        name: yarnName,
+                        origin: originYarn,
+                        manufacturer: manufacturer,
+                        quantity: quantityBalance,
+                        status: statusBadge,
+                        transactions: transactionCount,
+                        available: isAvailable
+                    });
+                });
+
+                // إضافة تفاصيل الأصناف
+                if (items.length > 0) {
+                    message += `تفاصيل الأصناف ${availableOnly ? '(المتاحة فقط)' : ''}:\n\n`;
+
+                    // تحديد عدد العناصر المعروضة لتجنب طول الرسالة
+                    const maxItems = Math.min(items.length, 10);
+                    const displayItems = items.slice(0, maxItems);
+
+                    displayItems.forEach((item, index) => {
+                        const statusText = item.available ? 'متاح' : 'غير متاح';
+                        const originText = item.origin && item.origin !== 'غير محدد' ? ` (${item.origin})` : '';
+                        const manufacturerText = item.manufacturer && item.manufacturer !== 'غير محدد' ? ` - ${item.manufacturer}` : '';
+
+                        message += `${item.name}${originText}${manufacturerText}\n`;
+                        message += `   الرصيد: ${item.quantity} كجم\n`;
+                        message += `   الحالة: ${statusText}\n`;
+                        message += `   عدد المعاملات: ${item.transactions}\n`;
+
+                        if (index < maxItems - 1) message += `\n`;
+                    });
+
+                    if (items.length > maxItems) {
+                        message += `\nو ${items.length - maxItems} صنف إضافي\n`;
+                    }
+                } else {
+                    message += `ملاحظة: لا توجد أصناف ${availableOnly ? 'متاحة' : ''} للعرض حاليًا\n`;
+                }
+
+                // إضافة تذييل الرسالة
+                message += `\n───\n`;
+                message += `مصدر التقرير: نظام إدارة مخزون الغزل\n`;
+                message += `المستخدم: ${CURRENT_USER}\n`;
+                message += `وقت الإنشاء: ${new Date().toLocaleString('ar-EG', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                })}`;
+
+                hideLoadingOverlay();
+
+                // فتح واتساب مع الرسالة
+                const encodedMessage = encodeURIComponent(message);
+                const whatsappUrl = `https://wa.me/?text=${encodedMessage}`;
+
+                // التحقق من طول الرسالة (واتساب له حدود أحرف)
+                if (message.length > 4000) {
+                    // إنشاء نسخة مختصرة مع تحذير
+                    const truncatedMessage = message.substring(0, 3900) + '\n\nتم اختصار التقرير بسبب طول الرسالة';
+                    const truncatedUrl = `https://wa.me/?text=${encodeURIComponent(truncatedMessage)}`;
+
+                    if (confirm('الرسالة طويلة جدًا لواتساب. هل تريد إرسال نسخة مختصرة؟')) {
+                        window.open(truncatedUrl, '_blank');
+                    }
+                } else {
+                    window.open(whatsappUrl, '_blank');
+                }
+
+                console.log('تم إنشاء رسالة واتساب بنجاح في', CURRENT_TIME);
+
+            } catch (error) {
+                hideLoadingOverlay();
+                console.error('خطأ في إنشاء رسالة واتساب:', error);
+                alert('حدث خطأ أثناء إنشاء رسالة واتساب: ' + error.message);
+            }
+        }
+
+        // دالة مساعدة لتحويل الأرقام العربية إلى لاتينية
+        function toLatinDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        }
+        function printOverview() { window.print(); }
+        function showLoadingOverlay() { $('#loadingOverlay').show(); }
+        function hideLoadingOverlay() { $('#loadingOverlay').hide(); }
+
+        // Clean up on modal close
+        $('#itemDetailsModal').on('hidden.bs.modal', function () {
+            currentYarnItemId = null;
+            currentPage = 1;
+            console.log('🔒 Modal closed and cleaned up at', CURRENT_TIME);
         });
-    });
-</script>
 
-<!-- Add these styles to your existing CSS -->
+        // Keyboard shortcuts
+        $(document).keydown(function(e) {
+            if (e.ctrlKey && e.keyCode === 82) { e.preventDefault(); refreshData(); }
+            if (e.keyCode === 27) { $('#itemDetailsModal').modal('hide'); }
+        });
+
+        console.log('✅ Yarn Overview page fully loaded with enhanced debugging at', CURRENT_TIME, 'by', CURRENT_USER);
+    </script>
+}
 <style>
-    .packaging-display {
-        min-height: 40px;
-        padding: 8px 0;
-        border-radius: 6px;
-        transition: background-color 0.2s ease;
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
     }
 
-        .packaging-display:hover {
-            background-color: #f8f9fa;
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .yarn-item-row {
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+        .yarn-item-row:hover {
+            background-color: rgba(0, 123, 255, 0.1);
         }
 
-    .packaging-compact .badge {
-        font-size: 0.75em;
-        margin-bottom: 2px;
+    .border-end {
+        border-right: 1px solid #dee2e6 !important;
     }
 
-    .item-details {
-        min-height: 120px; /* Increased to accommodate packaging info */
-    }
-
-    /* Loading state for packaging */
-    .packaging-display .fa-spinner {
-        color: #6c757d;
-    }
-
-    /* Clickable packaging breakdown */
-    .packaging-display[style*="cursor: pointer"]:hover {
-        background-color: #e3f2fd;
-        border: 1px solid #2196f3;
-        padding: 7px;
-    }
-
-    /* Modal enhancements */
-    .table td {
-        padding: 0.5rem 0.75rem;
-        border: none;
-    }
-
-        .table td:first-child {
-            width: 40%;
-            color: #6c757d;
-        }
-
-    .card.bg-light .card-body {
-        background: linear-gradient(145deg, #f8f9fa 0%, #e9ecef 100%);
-    }
-
-    /* Responsive adjustments */
     @@media (max-width: 768px) {
-        .packaging-compact .badge
+        .border-end {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.5rem;
+        }
 
-    {
-        font-size: 0.7em;
-        padding: 0.25em 0.5em;
+        .btn-group-sm > .btn {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.8rem;
+        }
     }
 
-    .item-details {
-        min-height: 100px;
+    @@media print {
+        .btn, .dropdown, .form-check, .input-group, .no-print {
+            display: none !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+        }
+
+        .table {
+            font-size: 11px;
+        }
+
+        .modal {
+            display: none !important;
+        }
     }
 
-    }</style>
+    .card:hover {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        transition: box-shadow 0.3s;
+    }
+
+    .pagination-sm .page-link {
+        font-size: 0.875rem;
+    }
+</style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">

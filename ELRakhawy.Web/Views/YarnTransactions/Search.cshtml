@@ -4,949 +4,583 @@
 @{
     ViewData["Title"] = "البحث في معاملات الغزل";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var currentTime = "2025-09-04 20:06:09"; // ✅ Updated current time
-    var currentUser = "Ammar-Yasser8";
 }
 
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link href="https://cdn.jsdelivr.net/npm/@@ttskch/select2-bootstrap4-theme/dist/select2-bootstrap4.min.css" rel="stylesheet" />
 <style>
-    :root {
-        --primary-color: #4e73df;
-        --success-color: #1cc88a;
-        --info-color: #36b9cc;
-        --warning-color: #f6c23e;
-        --danger-color: #e74a3b;
-        --light-color: #f8f9fc;
-        --transition: all 0.3s ease;
+    /* ✅ Simple Arabic date and number styling */
+    .arabic-input {
+        direction: rtl;
+        font-family: 'Arial', 'Tahoma', sans-serif;
     }
 
-    .search-container {
-        background: var(--light-color);
-        min-height: 100vh;
-        padding: 1.5rem 0;
+    .arabic-display {
+        direction: rtl;
+        font-family: 'Arial', 'Tahoma', sans-serif;
+        unicode-bidi: bidi-override;
     }
 
-    .session-info {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 1rem;
-        margin-bottom: 1.5rem;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+    .date-input-arabic {
+        direction: ltr; /* Keep LTR for date picker functionality */
+        font-family: 'Arial', 'Tahoma', sans-serif;
     }
 
-    .search-card {
-        border: none;
-        border-radius: 1rem;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        overflow: hidden;
+    /* ✅ Arabic date display below input */
+    .arabic-date-display {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        color: #495057;
+        direction: rtl;
+        font-family: 'Arial', 'Tahoma', sans-serif;
+        margin-top: 0.25rem;
+        min-height: 1.5rem;
     }
 
-    .search-header {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #224abe 100%);
-        color: white;
-        padding: 1.5rem;
-    }
-
-    .filter-section {
-        background: white;
-        border-radius: 1rem;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-
-    .form-control, .form-select {
-        border-radius: 0.5rem;
-        border: 1px solid #d1d3e2;
-        transition: var(--transition);
-    }
-
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
+        .arabic-date-display.has-date {
+            background: #e3f2fd;
+            border-color: #2196f3;
+            color: #1976d2;
+            font-weight: 500;
         }
 
-    .btn {
-        border-radius: 0.5rem;
-        transition: var(--transition);
+    /* Table styling for Arabic numbers */
+    .table .arabic-cell {
+        direction: rtl;
+        font-family: 'Arial', 'Tahoma', sans-serif;
     }
 
-        .btn:hover {
-            transform: translateY(-1px);
-        }
-
-    .stats-card {
-        background: white;
-        border-radius: 1rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        transition: var(--transition);
-    }
-
-        .stats-card:hover {
-            transform: translateY(-2px);
-        }
-
-    .stat-item {
-        text-align: center;
-        padding: 1rem;
-    }
-
-    .stat-value {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 0.25rem;
-    }
-
-    .results-table {
-        background: white;
-        border-radius: 1rem;
-        overflow: hidden;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-
-    .table th {
-        background: var(--primary-color);
-        color: white;
-        border: none;
-        font-weight: 600;
-    }
-
-    .table td {
-        border-color: #e3e6f0;
-        vertical-align: middle;
-    }
-
-    .select2-container--bootstrap4 .select2-selection {
-        border-radius: 0.5rem;
-        border: 1px solid #d1d3e2;
-    }
-
-    .select2-container--bootstrap4 .select2-selection--single {
-        height: calc(2.25rem + 2px);
-    }
-
-    .toast {
-        border-radius: 0.75rem;
-        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    }
-
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        display: none;
-        z-index: 9999;
-    }
-
-    .loading-spinner {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        color: white;
-    }
-
-    /* ✅ Transaction ID styling - make them copyable and keep Latin */
-    .transaction-id {
+    /* ID display styling */
+    .id-display {
         font-family: 'Courier New', monospace;
-        font-weight: bold;
+        background-color: rgba(13, 110, 253, 0.1);
         padding: 2px 6px;
         border-radius: 4px;
-        background-color: rgba(13, 110, 253, 0.1);
-        border: 1px dashed rgba(13, 110, 253, 0.3);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        letter-spacing: 0.5px;
+        border: 1px solid rgba(13, 110, 253, 0.3);
         color: #0d6efd;
     }
+</style>
 
-        .transaction-id:hover {
-            background-color: rgba(13, 110, 253, 0.2);
-            border-color: rgba(13, 110, 253, 0.5);
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .transaction-id::after {
-            content: ' 📋';
-            opacity: 0;
-            transition: opacity 0.2s ease;
-        }
-
-        .transaction-id:hover::after {
-            opacity: 1;
-        }
-
-    @@media (max-width: 768px) {
-        .search-container
-
-    {
-        padding: 1rem 0;
-    }
-
-    .session-info {
-        text-align: center;
-    }
-
-    .filter-section {
-        padding: 1rem;
-    }
-
-    .table {
-        font-size: 0.875rem;
-    }
-
-    .stat-item {
-        margin-bottom: 1rem;
-    }
-
-    .transaction-id::after {
-        display: none;
-    }
-
-    }
-
-    @@media print {
-        .no-print
-
-    {
-        display: none !important;
-    }
-
-    .search-card {
-        box-shadow: none;
-    }
-
-    .transaction-id {
-        background: none !important;
-        border: none !important;
-        color: black !important;
-    }
-
-    }</style>
-
-<div class="search-container">
-    <div class="container-fluid">
-        <!-- Breadcrumb -->
-        <nav class="mb-3 no-print" aria-label="breadcrumb">
-            <ol class="breadcrumb bg-white p-3 rounded-3 shadow-sm">
-                <li class="breadcrumb-item">
-                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none">
-                        <i class="fas fa-home me-1"></i>الرئيسية
-                    </a>
-                </li>
-                <li class="breadcrumb-item">
-                    <a href="@Url.Action("Index", "YarnItems")" class="text-decoration-none">
-                        <i class="fas fa-boxes me-1"></i>الأصناف
-                    </a>
-                </li>
-                <li class="breadcrumb-item active">
-                    <i class="fas fa-search me-1"></i>@ViewData["Title"]
-                </li>
-            </ol>
-        </nav>
-
-        <!-- Session Info -->
-        <div class="session-info no-print">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <div class="d-flex align-items-center">
-                        <i class="fas fa-user-circle fa-2x me-3"></i>
-                        <div>
-                            <h6 class="mb-1">@currentUser</h6>
-                            <small class="opacity-75">
-                                <i class="fas fa-clock me-1"></i>
-                                <span id="currentTime">@currentTime</span>
-                            </small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 text-md-end mt-2 mt-md-0">
-                    <div class="d-flex align-items-center justify-content-md-end">
-                        <i class="fas fa-database me-2"></i>
-                        <span>نظام إدارة معاملات الغزل</span>
-                    </div>
-                </div>
-            </div>
+<div class="container-fluid">
+    <!-- Search Form -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4><i class="fas fa-search me-2"></i>البحث في معاملات الغزل</h4>
+            <small class="opacity-75">البحث بالتاريخ الميلادي مع عرض الأرقام العربية</small>
         </div>
 
-        <!-- Main Search Card -->
-        <div class="card search-card">
-            <div class="search-header">
-                <div class="row align-items-center">
-                    <div class="col">
-                        <h4 class="mb-0">
-                            <i class="fas fa-search me-2"></i>
-                            البحث في معاملات الغزل
-                        </h4>
-                        <p class="mb-0 mt-1 opacity-75">
-                            البحث في المعاملات المرتبطة بالشركات المتخصصة في الغزل
-                        </p>
+        <div class="card-body">
+            @using (Html.BeginForm("Search", "YarnTransactions", FormMethod.Post, new { @class = "needs-validation", @id = "searchForm" }))
+            {
+                @Html.AntiForgeryToken()
+
+                <div class="row g-3">
+                    <!-- ✅ Simple Date Range with Arabic Display -->
+                    <div class="col-md-3">
+                        <label for="FromDate" class="form-label">
+                            <i class="fas fa-calendar-alt text-primary me-1"></i>من تاريخ
+                        </label>
+                        @Html.TextBoxFor(m => m.FromDate, "{0:yyyy-MM-dd}", new {
+                        @class = "form-control date-input-arabic",
+                                        @type = "date",
+                                        @id = "FromDate"
+                                        })
+                    <div class="arabic-date-display" id="fromDateArabic">
+                        <i class="fas fa-calendar-alt me-1"></i>اختر التاريخ
                     </div>
-                    <div class="col-auto no-print">
-                        <button type="button" class="btn btn-light btn-sm" onclick="resetForm()">
-                            <i class="fas fa-refresh me-1"></i>تحديث
-                        </button>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="ToDate" class="form-label">
+                        <i class="fas fa-calendar-alt text-primary me-1"></i>إلى تاريخ
+                    </label>
+                    @Html.TextBoxFor(m => m.ToDate, "{0:yyyy-MM-dd}", new {
+                                        @class = "form-control date-input-arabic",
+                                        @type = "date",
+                                        @id = "ToDate"
+                                        })
+                    <div class="arabic-date-display" id="toDateArabic">
+                        <i class="fas fa-calendar-alt me-1"></i>اختر التاريخ
+                    </div>
+                </div>
+
+                <!-- Internal ID Search -->
+                <div class="col-md-3">
+                    <label for="InternalId" class="form-label">
+                        <i class="fas fa-file-alt text-info me-1"></i>رقم الإذن الداخلي
+                    </label>
+                    @Html.TextBoxFor(m => m.InternalId, new {
+                                        @class = "form-control arabic-input",
+                                        @placeholder = "أدخل رقم الإذن الداخلي",
+                                        @id = "InternalId"
+                                        })
+                </div>
+
+                <!-- External ID Search -->
+                <div class="col-md-3">
+                    <label for="ExternalId" class="form-label">
+                        <i class="fas fa-external-link-alt text-warning me-1"></i>رقم الإذن الخارجي
+                    </label>
+                    @Html.TextBoxFor(m => m.ExternalId, new {
+                                        @class = "form-control arabic-input",
+                                        @placeholder = "أدخل رقم الإذن الخارجي",
+                                        @id = "ExternalId"
+                                        })
+                </div>
+
+                <!-- Transaction Type -->
+                <div class="col-md-4">
+                    <label for="TransactionType" class="form-label">
+                        <i class="fas fa-exchange-alt text-primary me-1"></i>نوع المعاملة
+                    </label>
+                    @Html.DropDownListFor(m => m.TransactionType, new List<SelectListItem>
+                                        {
+                        new SelectListItem { Text = "جميع الأنواع", Value = "" },
+                                        new SelectListItem { Text = "وارد", Value = "inbound" },
+                                        new SelectListItem { Text = "صادر", Value = "outbound" }
+                                        }, new { @class = "form-select", @id = "TransactionType" })
+                </div>
+
+                <!-- Yarn Item -->
+                <div class="col-md-4">
+                    <label for="YarnItemId" class="form-label">
+                        <i class="fas fa-box text-primary me-1"></i>صنف الغزل
+                    </label>
+                    @Html.DropDownListFor(m => m.YarnItemId,
+                                        new SelectList(Model.AvailableItems, "Value", "Text"),
+                                        "اختر صنف الغزل",
+                                        new { @class = "form-select", @id = "YarnItemId" })
+                </div>
+
+                <!-- Stakeholder -->
+                <div class="col-md-4">
+                    <label for="StakeholderId" class="form-label">
+                        <i class="fas fa-user-tie text-primary me-1"></i>تاجر الغزل
+                    </label>
+                    @Html.DropDownListFor(m => m.StakeholderId,
+                                        new SelectList(Model.YarnStakeholders, "Value", "Text"),
+                                        "اختر تاجر الغزل",
+                                        new { @class = "form-select", @id = "StakeholderId" })
+                </div>
+            </div>
+
+            <!-- Advanced Filters -->
+            <div class="mt-3">
+                <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+                    <i class="fas fa-cog me-1"></i>خيارات متقدمة
+                </button>
+            </div>
+
+            <div class="collapse mt-3" id="advancedFilters">
+                <div class="card card-body bg-light">
+                    <div class="row g-3">
+                        <!-- Packaging Style -->
+                        <div class="col-md-4">
+                            <label for="PackagingStyleId" class="form-label">
+                                <i class="fas fa-cube text-success me-1"></i>نمط التعبئة
+                            </label>
+                            @Html.DropDownListFor(m => m.PackagingStyleId,
+                                                        new SelectList(Model.PackagingStyles, "Value", "Text"),
+                                                        "اختر نمط التعبئة",
+                                                        new { @class = "form-select", @id = "PackagingStyleId" })
+                        </div>
+
+                        <!-- Quantity Range -->
+                        <div class="col-md-4">
+                            <label for="MinQuantity" class="form-label">
+                                <i class="fas fa-weight text-success me-1"></i>أقل كمية (كجم)
+                            </label>
+                            @Html.TextBoxFor(m => m.MinQuantity, new {
+                                                        @class = "form-control arabic-input",
+                                                        @type = "number",
+                                                        @step = "0.001",
+                                                        @placeholder = "٠.٠",
+                                                        @id = "MinQuantity"
+                                                        })
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="MaxQuantity" class="form-label">
+                                <i class="fas fa-weight text-success me-1"></i>أعلى كمية (كجم)
+                            </label>
+                            @Html.TextBoxFor(m => m.MaxQuantity, new {
+                                                        @class = "form-control arabic-input",
+                                                        @type = "number",
+                                                        @step = "0.001",
+                                                        @placeholder = "٠.٠",
+                                                        @id = "MaxQuantity"
+                                                        })
+                        </div>
+
+                        <!-- Count Range -->
+                        <div class="col-md-6">
+                            <label for="MinCount" class="form-label">
+                                <i class="fas fa-sort-numeric-up text-info me-1"></i>أقل عدد
+                            </label>
+                            @Html.TextBoxFor(m => m.MinCount, new {
+                                                        @class = "form-control arabic-input",
+                                                        @type = "number",
+                                                        @placeholder = "٠",
+                                                        @id = "MinCount"
+                                                        })
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="MaxCount" class="form-label">
+                                <i class="fas fa-sort-numeric-up text-info me-1"></i>أعلى عدد
+                            </label>
+                            @Html.TextBoxFor(m => m.MaxCount, new {
+                                                        @class = "form-control arabic-input",
+                                                        @type = "number",
+                                                        @placeholder = "٠",
+                                                        @id = "MaxCount"
+                                                        })
+                        </div>
+
+                        <!-- Comment Search -->
+                        <div class="col-12">
+                            <label for="CommentSearch" class="form-label">
+                                <i class="fas fa-comment text-secondary me-1"></i>البحث في التعليقات
+                            </label>
+                            @Html.TextBoxFor(m => m.CommentSearch, new {
+                                                        @class = "form-control",
+                                                        @placeholder = "أدخل كلمة للبحث في التعليقات",
+                                                        @id = "CommentSearch"
+                                                        })
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <div class="card-body p-0">
-                @using (Html.BeginForm("Search", "YarnTransactions", FormMethod.Post, new { @class = "needs-validation", @id = "searchForm", novalidate = "novalidate" }))
-                {
-                    @Html.AntiForgeryToken()
-
-                    <div class="filter-section">
-                        <div class="row g-3">
-                            <!-- Date Range -->
-                            <div class="col-md-6 col-lg-3">
-                                <label for="FromDate" class="form-label">
-                                    <i class="fas fa-calendar-alt text-primary me-1"></i>من تاريخ
-                                </label>
-                                @Html.TextBoxFor(m => m.FromDate, new {
-                                @class = "form-control",
-                                                        @type = "date",
-                                                        @id = "FromDate"
-                                                        })
-                            <div class="invalid-feedback">يرجى اختيار تاريخ البداية</div>
-                        </div>
-
-                        <div class="col-md-6 col-lg-3">
-                            <label for="ToDate" class="form-label">
-                                <i class="fas fa-calendar-alt text-primary me-1"></i>إلى تاريخ
-                            </label>
-                            @Html.TextBoxFor(m => m.ToDate, new {
-                                                        @class = "form-control",
-                                                        @type = "date",
-                                                        @id = "ToDate"
-                                                        })
-                            <div class="invalid-feedback">يرجى اختيار تاريخ النهاية</div>
-                        </div>
-
-                        <!-- Transaction ID -->
-                        <div class="col-md-6 col-lg-3">
-                            <label for="TransactionId" class="form-label">
-                                <i class="fas fa-hashtag text-primary me-1"></i>رقم المعاملة
-                            </label>
-                            @Html.TextBoxFor(m => m.TransactionId, new {
-                                                        @class = "form-control transaction-id-input",
-                                                        @placeholder = "أدخل رقم المعاملة",
-                                                        @id = "TransactionId"
-                                                        })
-                        </div>
-
-                        <!-- Transaction Type -->
-                        <div class="col-md-6 col-lg-3">
-                            <label for="TransactionType" class="form-label">
-                                <i class="fas fa-exchange-alt text-primary me-1"></i>نوع المعاملة
-                            </label>
-                            @Html.DropDownListFor(m => m.TransactionType, new List<SelectListItem>
-                                                        {
-                                new SelectListItem { Text = "جميع الأنواع", Value = "" },
-                                                        new SelectListItem { Text = "وارد", Value = "inbound" },
-                                                        new SelectListItem { Text = "صادر", Value = "outbound" }
-                                                        }, new { @class = "form-select", @id = "TransactionType" })
-                        </div>
-
-                        <!-- Yarn Item -->
-                        <div class="col-md-6 col-lg-4">
-                            <label for="YarnItemId" class="form-label">
-                                <i class="fas fa-box text-primary me-1"></i>صنف الغزل
-                            </label>
-                            @Html.DropDownListFor(m => m.YarnItemId,
-                                                        new SelectList(Model.AvailableItems, "Value", "Text"),
-                                                        "اختر صنف الغزل",
-                                                        new { @class = "form-select select2-yarn", @id = "YarnItemId" })
-                        </div>
-
-                        <!-- Stakeholder Type -->
-                        <div class="col-md-6 col-lg-4">
-                            <label for="StakeholderTypeId" class="form-label">
-                                <i class="fas fa-users text-primary me-1"></i>نوع التاجر
-                            </label>
-                            @Html.DropDownListFor(m => m.StakeholderTypeId,
-                                                        new SelectList(Model.StakeholderTypes, "Value", "Text"),
-                                                        "اختر نوع التاجر",
-                                                        new { @class = "form-select select2-type", @id = "StakeholderTypeId" })
-                        </div>
-
-                        <!-- Yarn Stakeholder -->
-                        <div class="col-md-6 col-lg-4">
-                            <label for="StakeholderId" class="form-label">
-                                <i class="fas fa-user-tie text-primary me-1"></i>تاجر الغزل
-                            </label>
-                            @Html.DropDownListFor(m => m.StakeholderId,
-                                                        new SelectList(Model.YarnStakeholders, "Value", "Text"),
-                                                        "اختر تاجر الغزل",
-                                                        new { @class = "form-select select2-stakeholder", @id = "StakeholderId" })
-                        </div>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="d-flex gap-2 flex-wrap">
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="fas fa-search me-1"></i>بحث
-                                </button>
-                                <button type="button" class="btn btn-secondary" id="clearFilters">
-                                    <i class="fas fa-times me-1"></i>مسح الفلاتر
-                                </button>
-                                <button type="button" class="btn btn-info" onclick="quickSearch('today')">
-                                    <i class="fas fa-calendar-day me-1"></i>اليوم
-                                </button>
-                                <button type="button" class="btn btn-info" onclick="quickSearch('week')">
-                                    <i class="fas fa-calendar-week me-1"></i>هذا الأسبوع
-                                </button>
-                                <button type="button" class="btn btn-info" onclick="quickSearch('month')">
-                                    <i class="fas fa-calendar-alt me-1"></i>هذا الشهر
-                                </button>
-                                <a href="@Url.Action("Index", "YarnItems")" class="btn btn-outline-secondary">
-                                    <i class="fas fa-arrow-right me-1"></i>العودة للقائمة
-                                </a>
-                            </div>
-                        </div>
-                    </div>
+            <!-- Search Buttons -->
+            <div class="mt-4">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>بحث
+                    </button>
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                        <i class="fas fa-times me-1"></i>مسح
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="setToday()">
+                        <i class="fas fa-calendar-day me-1"></i>اليوم
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="setThisWeek()">
+                        <i class="fas fa-calendar-week me-1"></i>هذا الأسبوع
+                    </button>
+                    <button type="button" class="btn btn-outline-info" onclick="setThisMonth()">
+                        <i class="fas fa-calendar-alt me-1"></i>هذا الشهر
+                    </button>
                 </div>
-                                }
+            </div>
+                        }
+        </div>
+    </div>
 
-                <!-- Search Results -->
-                @if (ViewBag.SearchPerformed == true)
+    <!-- Results Section -->
+    @if (ViewBag.SearchPerformed == true)
+    {
+        <div class="card mt-4">
+            <div class="card-header bg-success text-white">
+                <h5><i class="fas fa-list me-2"></i>نتائج البحث</h5>
+            </div>
+
+            <div class="card-body">
+              
+
+                @if (Model.Results != null && Model.Results.Any())
                 {
-                    <!-- Statistics Cards -->
-                    <div class="container-fluid p-3">
-                        <div class="row g-3 mb-4">
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stats-card p-3">
-                                    <div class="stat-item">
-                                        <div class="stat-value text-primary" id="totalTransactions">@Model.TotalTransactions</div>
-                                        <div class="text-muted small">إجمالي المعاملات</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stats-card p-3">
-                                    <div class="stat-item">
-                                        <div class="stat-value text-success" id="totalInbound">@Model.TotalInbound.ToString("N2")</div>
-                                        <div class="text-muted small">إجمالي الوارد (كجم)</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stats-card p-3">
-                                    <div class="stat-item">
-                                        <div class="stat-value text-danger" id="totalOutbound">@Model.TotalOutbound.ToString("N2")</div>
-                                        <div class="text-muted small">إجمالي الصادر (كجم)</div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-md-3 col-sm-6">
-                                <div class="stats-card p-3">
-                                    <div class="stat-item">
-                                        <div class="stat-value @(Model.NetBalance >= 0 ? "text-success" : "text-danger")" id="netBalance">
-                                            @Model.NetBalance.ToString("N2")
-                                        </div>
-                                        <div class="text-muted small">الرصيد الصافي (كجم)</div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        @if (Model.Results != null && Model.Results.Any())
-                        {
-                            <!-- Results Table -->
-                            <div class="results-table">
-                                <div class="table-responsive">
-                                    <table class="table table-striped table-hover mb-0" id="resultsTable">
-                                        <thead>
-                                            <tr>
-                                                <th>رقم المعاملة</th>
-                                                <th>التاريخ</th>
-                                                <th>صنف الغزل</th>
-                                                <th>الغزل الأصلي</th>
-                                                <th>نوع المعاملة</th>
-                                                <th>الكمية (كجم)</th>
-                                                <th>العدد</th>
-                                                <th>تاجر الغزل</th>
-                                                <th>رصيد الكمية</th>
-                                                <th>رصيد العدد</th>
-                                                <th>ملاحظات</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            @foreach (var item in Model.Results)
+                    <!-- Results Table -->
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>أرقام الإذن</th>
+                                    <th>التاريخ</th>
+                                    <th>صنف الغزل</th>
+                                    <th>نوع المعاملة</th>
+                                    <th>الكمية (كجم)</th>
+                                    <th>العدد</th>
+                                    <th>تاجر الغزل</th>
+                                    <th>نمط التعبئة</th>
+                                    <th>الرصيد</th>
+                                    <th>ملاحظات</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model.Results)
+                                {
+                                    <tr>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.InternalId))
                                             {
-                                                <tr>
-                                                    <td>
-                                                        <!-- ✅ Transaction ID stays in Latin and is copyable -->
-                                                        <div class="transaction-id" onclick="copyTransactionId('@item.TransactionId')" title="انقر للنسخ">
-                                                            @item.TransactionId
-                                                        </div>
-                                                        @if (!string.IsNullOrEmpty(item.InternalId))
-                                                        {
-                                                            <small class="text-muted d-block internal-id">داخلي: @item.InternalId</small>
-                                                        }
-                                                        @if (!string.IsNullOrEmpty(item.ExternalId))
-                                                        {
-                                                            <small class="text-muted d-block external-id">خارجي: @item.ExternalId</small>
-                                                        }
-                                                    </td>
-                                                    <td>
-                                                        <span class="fw-bold transaction-date">@item.Date.ToString("dd/MM/yyyy")</span>
-                                                        <small class="text-muted d-block transaction-time">@item.Date.ToString("HH:mm")</small>
-                                                    </td>
-                                                    <td>
-                                                        <span class="fw-bold text-primary">@item.YarnItemName</span>
-                                                    </td>
-                                                    <td>
-                                                        <span class="text-muted">@(item.OriginYarnName ?? "غير محدد")</span>
-                                                    </td>
-                                                    <td>
-                                                        @if (item.IsInbound)
-                                                        {
-                                                            <span class="badge bg-success rounded-pill">
-                                                                <i class="fas fa-arrow-down me-1"></i>وارد
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="badge bg-danger rounded-pill">
-                                                                <i class="fas fa-arrow-up me-1"></i>صادر
-                                                            </span>
-                                                        }
-                                                    </td>
-                                                    <td class="@(item.IsInbound ? "text-success" : "text-danger") fw-bold quantity-value">
-                                                        @item.Quantity.ToString("N2")
-                                                    </td>
-                                                    <td class="fw-bold count-value">@item.Count</td>
-                                                    
-                                                    <td>
-                                                        <span class="fw-bold">@item.StakeholderName</span>
-                                                    </td>
-                                                    <td class="fw-bold balance-quantity">@item.QuantityBalance.ToString("N2")</td>
-                                                    <td class="fw-bold balance-count">@item.CountBalance</td>
-                                                    <td>
-                                                        @if (!string.IsNullOrEmpty(item.Comment))
-                                                        {
-                                                            <span class="text-muted" title="@item.Comment">
-                                                                @(item.Comment.Length > 30 ? item.Comment.Substring(0, 30) + "..." : item.Comment)
-                                                            </span>
-                                                        }
-                                                        else
-                                                        {
-                                                            <span class="text-muted">-</span>
-                                                        }
-                                                    </td>
-                                                </tr>
+                                                <div class="id-display mb-1">
+                                                    <i class="fas fa-file-alt me-1"></i>
+                                                    <small>داخلي:</small> <span class="arabic-display">@item.InternalId</span>
+                                                </div>
                                             }
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <!-- Export Options -->
-                                <div class="p-3 border-top no-print">
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <div class="text-muted">
-                                            <i class="fas fa-info-circle me-1"></i>
-                                            عرض <span id="resultsCount">@Model.Results.Count()</span> من إجمالي <span id="totalCount">@Model.TotalTransactions</span> معاملة
-                                        </div>
-                                        <div class="d-flex gap-2">
-                                            <button type="button" class="btn btn-success btn-sm" onclick="exportToExcel()">
-                                                <i class="fas fa-file-excel me-1"></i>تصدير Excel
-                                            </button>
-                                            <button type="button" class="btn btn-info btn-sm" onclick="printResults()">
-                                                <i class="fas fa-print me-1"></i>طباعة
-                                            </button>
-                                            <button type="button" class="btn btn-secondary btn-sm" onclick="copyToClipboard()">
-                                                <i class="fas fa-copy me-1"></i>نسخ
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        }
-                        else
-                        {
-                            <div class="alert alert-warning rounded-3" role="alert">
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-exclamation-triangle fa-2x me-3"></i>
-                                    <div>
-                                        <h6 class="alert-heading mb-1">لم يتم العثور على نتائج</h6>
-                                        <p class="mb-0">لم يتم العثور على معاملات غزل تطابق معايير البحث المحددة. يرجى تعديل المعايير والمحاولة مرة أخرى.</p>
-                                    </div>
-                                </div>
-                            </div>
-                        }
+                                            @if (!string.IsNullOrEmpty(item.ExternalId))
+                                            {
+                                                <div class="id-display">
+                                                    <i class="fas fa-external-link-alt me-1"></i>
+                                                    <small>خارجي:</small> <span class="arabic-display">@item.ExternalId</span>
+                                                </div>
+                                            }
+                                            @if (string.IsNullOrEmpty(item.InternalId) && string.IsNullOrEmpty(item.ExternalId))
+                                            {
+                                                <span class="text-muted">غير محدد</span>
+                                            }
+                                        </td>
+                                        <td class="arabic-display">@item.Date.ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>
+                                            <strong>@item.YarnItemName</strong>
+                                            @if (!string.IsNullOrEmpty(item.OriginYarnName))
+                                            {
+                                                <br>
+                                
+                                                <small class="text-muted">@item.OriginYarnName</small>
+                                            }
+                                        </td>
+                                        <td>
+                                            @if (item.IsInbound)
+                                            {
+                                                <span class="badge bg-success"><i class="fas fa-arrow-down me-1"></i>وارد</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger"><i class="fas fa-arrow-up me-1"></i>صادر</span>
+                                            }
+                                        </td>
+                                        <td class="@(item.IsInbound ? "text-success" : "text-danger") fw-bold arabic-cell">
+                                            @item.Quantity.ToString("N2")
+                                        </td>
+                                        <td class="fw-bold arabic-cell">@item.Count</td>
+                                        <td>
+                                            <strong>@item.StakeholderName</strong>
+                                            <br><small class="text-muted">@item.StakeholderTypeName</small>
+                                        </td>
+                                        <td>@item.PackagingStyleName</td>
+                                        <td>
+                                            <small class="text-muted">كمية:</small> <span class="arabic-cell">@item.QuantityBalance.ToString("N2")</span><br>
+                                            <small class="text-muted">عدد:</small> <span class="arabic-cell">@item.CountBalance</span>
+                                        </td>
+                                        <td>
+                                            @if (!string.IsNullOrEmpty(item.Comment))
+                                            {
+                                                <span title="@item.Comment">
+                                                    @(item.Comment.Length > 30 ? item.Comment.Substring(0, 30) + "..." : item.Comment)
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">-</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        لم يتم العثور على معاملات تطابق معايير البحث المحددة.
                     </div>
                 }
             </div>
         </div>
-    </div>
+    }
 </div>
-
-<!-- Loading Overlay -->
-<div class="loading-overlay" id="loadingOverlay">
-    <div class="loading-spinner">
-        <div class="spinner-border text-light" role="status">
-            <span class="visually-hidden">جاري التحميل...</span>
-        </div>
-        <div class="mt-2 text-center">جاري تحميل البيانات...</div>
-    </div>
-</div>
-
-<!-- Toast Container -->
-<div class="toast-container position-fixed bottom-0 end-0 p-3"></div>
 
 @section Scripts {
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $(document).ready(function() {
-            const CURRENT_USER = '@currentUser';
-            const CURRENT_TIME = '@currentTime';
+            console.log('🗓️ Simple Arabic Date System Loading...');
+            console.log('👤 User: Ammar-Yasser8 | Time: 2025-10-11 12:38:59');
 
-            console.log('🔍 Search page initialized at', CURRENT_TIME, 'by', CURRENT_USER);
-
-            // Initialize Select2
-            $('.select2-yarn, .select2-type, .select2-stakeholder').select2({
-                theme: 'bootstrap4',
-                dir: 'rtl',
-                language: 'ar',
-                width: '100%'
-            });
-
-            // ✅ Convert numbers to Arabic while preserving Transaction IDs
-            convertNumbersToArabic();
-
-            // Real-time clock update
-            function updateClock() {
-                const now = new Date();
-                const timeString = now.toISOString().slice(0, 19).replace('T', ' ');
-                $('#currentTime').text(toArabicDigits(timeString));
+            // ✅ Arabic/Latin conversion functions
+            function toArabicDigits(str) {
+                if (typeof str !== 'string') str = str.toString();
+                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
             }
-            setInterval(updateClock, 1000);
 
-            // Form submission with loading
-            $('#searchForm').on('submit', function() {
-                showLoading();
-                showToast('info', 'جاري البحث', 'يتم الآن البحث في معاملات الغزل...');
-            });
+            function toLatinDigits(str) {
+                if (typeof str !== 'string') str = str.toString();
+                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
 
-            // Stakeholder type change handler
-            $('#StakeholderTypeId').change(function() {
-                var typeId = $(this).val();
-                var stakeholderSelect = $('#StakeholderId');
+            // ✅ Format date to Arabic display
+            function formatDateToArabic(dateStr) {
+                if (!dateStr) return '';
 
-                if (typeId) {
-                    stakeholderSelect.prop('disabled', true).empty().append('<option value="">جاري التحميل...</option>');
+                try {
+                    const date = new Date(dateStr);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
 
-                    $.ajax({
-                        url: '@Url.Action("GetStakeholdersByForm", "YarnTransactions")',
-                        type: 'GET',
-                        data: { formName: 'غزل' }, // Always filter by yarn forms
-                        success: function(response) {
-                            stakeholderSelect.empty().append('<option value="">اختر تاجر الغزل</option>');
+                    const formattedDate = `${day}/${month}/${year}`;
+                    return toArabicDigits(formattedDate);
+                } catch (error) {
+                    console.error('Date formatting error:', error);
+                    return toArabicDigits(dateStr);
+                }
+            }
 
-                            if (response.success && response.data && response.data.length > 0) {
-                                $.each(response.data, function(index, item) {
-                                    stakeholderSelect.append('<option value="' + item.id + '">' + item.name + '</option>');
-                                });
-                                stakeholderSelect.prop('disabled', false);
-                                showToast('success', 'تم التحديث', 'تم تحميل تجار الغزل بنجاح');
-                            } else {
-                                stakeholderSelect.append('<option value="">لا توجد تجار غزل لهذا النوع</option>');
-                                showToast('warning', 'تنبيه', 'لا توجد تجار غزل متاحين لهذا النوع');
-                            }
-                        },
-                        error: function() {
-                            stakeholderSelect.empty().append('<option value="">خطأ في تحميل التجار</option>');
-                            showToast('error', 'خطأ', 'حدث خطأ أثناء تحميل تجار الغزل');
-                        }
-                    });
+            // ✅ Update Arabic date display
+            function updateArabicDateDisplay(inputId, displayId) {
+                const dateValue = $(`#${inputId}`).val();
+                const $display = $(`#${displayId}`);
+
+                if (dateValue) {
+                    const arabicDate = formatDateToArabic(dateValue);
+                    $display.html(`<i class="fas fa-calendar-check me-1 text-success"></i>${arabicDate}`)
+                           .addClass('has-date');
                 } else {
-                    stakeholderSelect.empty().append('<option value="">اختر تاجر الغزل</option>').prop('disabled', true);
+                    $display.html('<i class="fas fa-calendar-alt me-1"></i>اختر التاريخ')
+                           .removeClass('has-date');
+                }
+            }
+
+            // ✅ Date change handlers
+            $('#FromDate').on('change', function() {
+                updateArabicDateDisplay('FromDate', 'fromDateArabic');
+                console.log('From date changed:', $(this).val());
+            });
+
+            $('#ToDate').on('change', function() {
+                updateArabicDateDisplay('ToDate', 'toDateArabic');
+                console.log('To date changed:', $(this).val());
+            });
+
+            // ✅ Real-time Arabic display for number inputs
+            $('.arabic-input').on('input', function() {
+                const cursorPos = this.selectionStart;
+                const originalValue = $(this).val();
+                const arabicValue = toArabicDigits(originalValue);
+
+                if (originalValue !== arabicValue) {
+                    $(this).val(arabicValue);
+                    try {
+                        this.setSelectionRange(cursorPos, cursorPos);
+                    } catch (ex) {
+                        // Ignore cursor positioning errors
+                    }
                 }
             });
 
-            // Clear filters
-            $('#clearFilters').click(function() {
-                resetForm();
-                showToast('info', 'تم المسح', 'تم مسح جميع المرشحات');
+            // ✅ Form submission with conversion
+            $('#searchForm').on('submit', function(e) {
+                console.log('🔄 Form submission - converting Arabic numbers to Latin');
+
+                // Convert Arabic numbers to Latin before submission
+                $('.arabic-input').each(function() {
+                    const originalValue = $(this).val();
+                    const latinValue = toLatinDigits(originalValue);
+
+                    if (originalValue !== latinValue) {
+                        console.log('Converting:', originalValue, '→', latinValue);
+                        $(this).val(latinValue);
+                    }
+                });
+
+                // Show loading state
+                const submitBtn = $(this).find('button[type="submit"]');
+                const originalText = submitBtn.html();
+                submitBtn.prop('disabled', true)
+                       .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري البحث...');
+
+                // Re-enable button after form processes
+                setTimeout(() => {
+                    submitBtn.prop('disabled', false).html(originalText);
+                }, 3000);
+
+                console.log('✅ Form ready for submission');
             });
 
-            // Date validation
-            $('#FromDate, #ToDate').change(function() {
-                validateDates();
-            });
+            // ✅ Convert display elements to Arabic
+            function convertDisplayToArabic() {
+                $('.arabic-display').each(function() {
+                    if (!$(this).is('input, textarea, select')) {
+                        const originalText = $(this).text();
+                        const arabicText = toArabicDigits(originalText);
+                        $(this).text(arabicText);
+                    }
+                });
 
-            // Initialize tooltips
-            $('[title]').tooltip();
-
-            // Auto-refresh every 5 minutes if no search results
-            if (!@(ViewBag.SearchPerformed == true ? "true" : "false")) {
-                setInterval(function() {
-                    updateClock();
-                }, 300000); // 5 minutes
+                $('.arabic-cell').each(function() {
+                    const originalText = $(this).text();
+                    const arabicText = toArabicDigits(originalText);
+                    $(this).text(arabicText);
+                });
             }
 
-            console.log('✅ Search page ready');
-        });
-
-        // ✅ Arabic/Latin conversion functions
-        function toArabicDigits(str) {
-            if (typeof str !== 'string') str = str.toString();
-            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-        }
-
-        function toLatinDigits(str) {
-            if (typeof str !== 'string') str = str.toString();
-            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-        }
-
-        function isTransactionId(str) {
-            if (typeof str !== 'string') return false;
-
-            var transactionIdPatterns = [
-                /^[A-Z]{2,4}-\d{8}-\d{4}$/,  // TXN-20250904-0001
-                /^[A-Z]{3}-\d{8}-\d{4}$/,    // OUT-20250904-0001
-                /^[A-Z]{2}-\d{8}-\d{4}$/,    // IN-20250904-0001
-                /^\d{8}-\d{4}$/,             // 20250904-0001
-                /^T\d{10,}$/,                // T1725476398001
-                /^TXN\d{8,}$/,               // TXN20250904001
-                /^RST-\d{8}-\d{4}$/          // RST-20250904-0001
-            ];
-
-            return transactionIdPatterns.some(pattern => pattern.test(str));
-        }
-
-        function toArabicDigitsExceptTransactionId(str) {
-            if (typeof str !== 'string') str = str.toString();
-
-            if (isTransactionId(str)) {
-                return str; // Keep Transaction IDs in Latin
-            }
-
-            return toArabicDigits(str);
-        }
-
-        // ✅ Convert numbers to Arabic while preserving Transaction IDs
-        function convertNumbersToArabic() {
-            console.log('🔄 Converting numbers to Arabic at', CURRENT_TIME);
-
-            // Convert statistics
-            $('#totalTransactions').text(toArabicDigits($('#totalTransactions').text()));
-            $('#totalInbound').text(toArabicDigits($('#totalInbound').text()));
-            $('#totalOutbound').text(toArabicDigits($('#totalOutbound').text()));
-            $('#netBalance').text(toArabicDigits($('#netBalance').text()));
-            $('#resultsCount').text(toArabicDigits($('#resultsCount').text()));
-            $('#totalCount').text(toArabicDigits($('#totalCount').text()));
-
-            // Convert current time in header
-            $('#currentTime').text(toArabicDigits($('#currentTime').text()));
-
-            // Convert table values BUT preserve Transaction IDs
-            $('.transaction-date').each(function() {
-                $(this).text(toArabicDigits($(this).text()));
-            });
-
-            $('.transaction-time').each(function() {
-                $(this).text(toArabicDigits($(this).text()));
-            });
-
-            $('.quantity-value').each(function() {
-                $(this).text(toArabicDigits($(this).text()));
-            });
-
-            $('.count-value').each(function() {
-                $(this).text(toArabicDigits($(this).text()));
-            });
-
-            $('.balance-quantity').each(function() {
-                $(this).text(toArabicDigits($(this).text()));
-            });
-
-            $('.balance-count').each(function() {
-                $(this).text(toArabicDigits($(this).text()));
-            });
-
-            // Convert internal/external IDs only if they're not transaction IDs
-            $('.internal-id, .external-id').each(function() {
-                var text = $(this).text();
-                // Extract the ID part after "داخلي: " or "خارجي: "
-                var parts = text.split(': ');
-                if (parts.length === 2) {
-                    var idPart = parts[1];
-                    var convertedId = toArabicDigitsExceptTransactionId(idPart);
-                    $(this).text(parts[0] + ': ' + convertedId);
-                }
-            });
-
-            // Transaction IDs are NOT converted - they stay in Latin (handled by CSS class .transaction-id)
-            console.log('✅ Numbers converted to Arabic (Transaction IDs preserved)');
-        }
-
-        // ✅ Copy Transaction ID functionality
-        function copyTransactionId(transactionId) {
-            try {
-                const tempInput = document.createElement('input');
-                tempInput.value = transactionId;
-                document.body.appendChild(tempInput);
-                tempInput.select();
-                document.execCommand('copy');
-                document.body.removeChild(tempInput);
-
-                showToast('success', 'تم النسخ', `رقم المعاملة: ${transactionId}`);
-                console.log('✅ Transaction ID copied:', transactionId, 'at', CURRENT_TIME);
-            } catch (error) {
-                console.error('❌ Error copying transaction ID:', error);
-                prompt('انسخ رقم المعاملة من هنا:', transactionId);
-            }
-        }
-
-        // Utility functions
-        function showLoading() {
-            $('#loadingOverlay').fadeIn();
-        }
-
-        function hideLoading() {
-            $('#loadingOverlay').fadeOut();
-        }
-
-        function showToast(type, title, message) {
-            const iconMap = {
-                success: 'check-circle',
-                error: 'exclamation-circle',
-                warning: 'exclamation-triangle',
-                info: 'info-circle'
+            // ✅ Quick date functions
+            window.setToday = function() {
+                const today = new Date().toISOString().split('T')[0];
+                $('#FromDate, #ToDate').val(today).trigger('change');
+                console.log('✅ Set to today:', today);
             };
 
-            const toast = `
-                <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                    <div class="toast-header">
-                        <i class="fas fa-${iconMap[type]} me-2 text-${type}"></i>
-                        <strong class="me-auto">${title}</strong>
-                        <small class="text-muted">الآن</small>
-                        <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-                    </div>
-                    <div class="toast-body">${message}</div>
-                </div>
-            `;
+            window.setThisWeek = function() {
+                const today = new Date();
+                const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
+                const lastDay = new Date();
 
-            $('.toast-container').append(toast);
-            const toastElement = $('.toast').last();
-            const bsToast = new bootstrap.Toast(toastElement[0]);
-            bsToast.show();
+                $('#FromDate').val(firstDay.toISOString().split('T')[0]).trigger('change');
+                $('#ToDate').val(lastDay.toISOString().split('T')[0]).trigger('change');
+                console.log('✅ Set to this week');
+            };
 
-            setTimeout(() => {
-                toastElement.remove();
-            }, 5000);
-        }
+            window.setThisMonth = function() {
+                const today = new Date();
+                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+                const lastDay = new Date();
 
-        function resetForm() {
-            $('#searchForm')[0].reset();
-            $('.select2-yarn, .select2-type, .select2-stakeholder').val(null).trigger('change');
+                $('#FromDate').val(firstDay.toISOString().split('T')[0]).trigger('change');
+                $('#ToDate').val(lastDay.toISOString().split('T')[0]).trigger('change');
+                console.log('✅ Set to this month');
+            };
 
-            // Set default dates
+            // ✅ Reset function
+            window.resetForm = function() {
+                $('#searchForm')[0].reset();
+
+                // Reset date displays
+                $('#fromDateArabic, #toDateArabic')
+                    .html('<i class="fas fa-calendar-alt me-1"></i>اختر التاريخ')
+                    .removeClass('has-date');
+
+                // Set default dates (last 30 days)
+                const today = new Date();
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(today.getDate() - 30);
+
+                $('#FromDate').val(thirtyDaysAgo.toISOString().split('T')[0]).trigger('change');
+                $('#ToDate').val(today.toISOString().split('T')[0]).trigger('change');
+
+                console.log('✅ Form reset with default dates');
+            };
+
+            // ✅ Initialize page
+            convertDisplayToArabic();
+
+            // Set initial dates and update displays
             const today = new Date();
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(today.getDate() - 30);
 
             $('#FromDate').val(thirtyDaysAgo.toISOString().split('T')[0]);
             $('#ToDate').val(today.toISOString().split('T')[0]);
-        }
 
-        function validateDates() {
-            const fromDate = $('#FromDate').val();
-            const toDate = $('#ToDate').val();
+            // Update Arabic displays for initial dates
+            updateArabicDateDisplay('FromDate', 'fromDateArabic');
+            updateArabicDateDisplay('ToDate', 'toDateArabic');
 
-            if (fromDate && toDate && fromDate > toDate) {
-                showToast('error', 'خطأ في التاريخ', 'تاريخ البداية يجب أن يكون أقل من تاريخ النهاية');
-                $('#ToDate').focus();
-                return false;
-            }
-            return true;
-        }
-
-        function quickSearch(period) {
-            const today = new Date();
-            let fromDate = new Date();
-
-            switch(period) {
-                case 'today':
-                    fromDate = new Date(today);
-                    break;
-                case 'week':
-                    fromDate.setDate(today.getDate() - 7);
-                    break;
-                case 'month':
-                    fromDate.setMonth(today.getMonth() - 1);
-                    break;
-            }
-
-            $('#FromDate').val(fromDate.toISOString().split('T')[0]);
-            $('#ToDate').val(today.toISOString().split('T')[0]);
-
-            showToast('info', 'تم التحديث', `تم تعيين فترة البحث: ${period === 'today' ? 'اليوم' : period === 'week' ? 'هذا الأسبوع' : 'هذا الشهر'}`);
-        }
-
-        function exportToExcel() {
-            showLoading();
-            const form = $('<form>', {
-                method: 'POST',
-                action: '@Url.Action("ExportToExcel", "YarnTransactions")'
-            });
-
-            form.append($('@Html.AntiForgeryToken()'));
-
-            const formData = $('#searchForm').serializeArray();
-            $.each(formData, function(i, field) {
-                form.append($('<input>', {
-                    type: 'hidden',
-                    name: field.name,
-                    value: field.value
-                }));
-            });
-
-            form.appendTo('body').submit().remove();
-            hideLoading();
-            showToast('success', 'تم التصدير', 'تم تصدير البيانات إلى Excel بنجاح');
-        }
-
-        function printResults() {
-            window.print();
-        }
-
-        function copyToClipboard() {
-            const table = document.getElementById('resultsTable');
-            const range = document.createRange();
-            range.selectNode(table);
-            window.getSelection().removeAllRanges();
-            window.getSelection().addRange(range);
-
-            try {
-                document.execCommand('copy');
-                showToast('success', 'تم النسخ', 'تم نسخ الجدول إلى الحافظة');
-            } catch (err) {
-                showToast('error', 'خطأ', 'فشل في نسخ البيانات');
-            }
-
-            window.getSelection().removeAllRanges();
-        }
-
-        // Keep Transaction ID input in Latin
-        $('#TransactionId').on('input', function() {
-            // Don't convert Transaction ID search input - keep it Latin for searching
+            console.log('✅ Simple Arabic Date System Ready!');
+            console.log('📅 Features: Normal calendar with Arabic number display');
         });
-
-        // Hide loading on page load
-        $(window).on('load', function() {
-            hideLoading();
-        });
-
-        console.log('✅ Search page scripts loaded at', CURRENT_TIME, 'by', CURRENT_USER);
     </script>
 }

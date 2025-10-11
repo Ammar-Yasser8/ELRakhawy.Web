@@ -83,38 +83,33 @@ namespace ELRakhawy.EL.ViewModels
     }
     public class YarnTransactionSearchViewModel
     {
-        [Display(Name = "من تاريخ")]
         public DateTime? FromDate { get; set; }
-
-        [Display(Name = "إلى تاريخ")]
         public DateTime? ToDate { get; set; }
-
-        [Display(Name = "رقم الإذن")]
         public string? TransactionId { get; set; }
-
-        [Display(Name = "صنف الغزل")]
+        public string? InternalId { get; set; }  // ✅ New
+        public string? ExternalId { get; set; }   // ✅ New
+        public string? TransactionType { get; set; }
         public int? YarnItemId { get; set; }
-
-        [Display(Name = "نوع الجهة")]
         public int? StakeholderTypeId { get; set; }
-
-        [Display(Name = "الجهة")]
         public int? StakeholderId { get; set; }
+        public int? PackagingStyleId { get; set; }  // ✅ New
+        public decimal? MinQuantity { get; set; }   // ✅ New
+        public decimal? MaxQuantity { get; set; }   // ✅ New
+        public int? MinCount { get; set; }          // ✅ New  
+        public int? MaxCount { get; set; }          // ✅ New
+        public string? CommentSearch { get; set; }  // ✅ New
 
-        [Display(Name = "نوع المعاملة")]
-        public string? TransactionType { get; set; } // "inbound", "outbound", or null for all
-
+        // Existing properties
         public List<SelectListItem> AvailableItems { get; set; } = new();
         public List<SelectListItem> StakeholderTypes { get; set; } = new();
-        public List<SelectListItem> Stakeholders { get; set; } = new();
-        public SelectList YarnStakeholders { get; set; }
-
+        public List<SelectListItem> YarnStakeholders { get; set; } = new();
+        public List<SelectListItem> PackagingStyles { get; set; } = new(); // ✅ New
         public List<YarnTransactionViewModel> Results { get; set; } = new();
 
-        // Summary properties
+        // Statistics
+        public int TotalTransactions { get; set; }
         public decimal TotalInbound { get; set; }
         public decimal TotalOutbound { get; set; }
         public decimal NetBalance { get; set; }
-        public int TotalTransactions { get; set; }
     }
 }

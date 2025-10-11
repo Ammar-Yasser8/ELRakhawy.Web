@@ -166,6 +166,7 @@ namespace ELRakhawy.Web.Controllers
 
 
         // GET: YarnTransactions/Search
+        // GET: YarnTransactions/Search
         public IActionResult Search()
         {
             try
@@ -176,43 +177,54 @@ namespace ELRakhawy.Web.Controllers
                     ToDate = DateTime.Today,
                     AvailableItems = GetActiveYarnItems(),
                     StakeholderTypes = GetStakeholderTypes(),
-                    YarnStakeholders = GetYarnStakeholders(), // New method for yarn-related stakeholders
+                    YarnStakeholders = GetYarnStakeholders().ToList(),
+                    PackagingStyles = GetPackagingStyles(), // ✅ Add packaging styles
                     Results = new List<YarnTransactionViewModel>()
                 };
 
-                _logger.LogInformation("Yarn transaction search form loaded by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-09-01 12:04:03");
+                _logger.LogInformation("Yarn transaction search form with Arabic dates loaded by {User} at {Time}",
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
                 return View(viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading yarn transaction search form by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-09-01 12:04:03");
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 TempData["Error"] = "حدث خطأ أثناء تحميل صفحة البحث";
                 return RedirectToAction("Index", "YarnItems");
             }
         }
 
-        // POST: YarnTransactions/Search 
+        // POST: YarnTransactions/Search - Enhanced with all fields
         [HttpPost]
         public IActionResult Search(YarnTransactionSearchViewModel model)
         {
             try
             {
-                var currentTime = "2025-09-01 12:04:03";
+                var currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
                 var currentUser = "Ammar-Yasser8";
 
-                _logger.LogInformation("Enhanced yarn transaction search initiated by {User} at {Time} with criteria: {@SearchCriteria}",
+                // ✅ Convert Arabic numbers to Latin for database search
+                model = ConvertArabicNumbersToLatin(model);
+
+                _logger.LogInformation("Enhanced yarn transaction search with Arabic/Latin conversion initiated by {User} at {Time} with criteria: {@SearchCriteria}",
                     currentUser, currentTime, new
                     {
                         model.FromDate,
                         model.ToDate,
-                        model.TransactionId,
+                        model.InternalId,
+                        model.ExternalId,
                         model.TransactionType,
                         model.YarnItemId,
                         model.StakeholderTypeId,
-                        model.StakeholderId
+                        model.StakeholderId,
+                        model.PackagingStyleId,
+                        model.MinQuantity,
+                        model.MaxQuantity,
+                        model.MinCount,
+                        model.MaxCount,
+                        model.CommentSearch
                     });
 
                 // Get yarn-related stakeholder IDs first
@@ -220,7 +232,7 @@ namespace ELRakhawy.Web.Controllers
 
                 var query = _unitOfWork.Repository<YarnTransaction>()
                     .GetAll(includeEntities: "YarnItem,StakeholderType,Stakeholder,PackagingStyle,YarnItem.OriginYarn,YarnItem.Manufacturers")
-                    .Where(t => yarnStakeholderIds.Contains(t.StakeholderId)) // Filter by yarn stakeholders only
+                    .Where(t => yarnStakeholderIds.Contains(t.StakeholderId))
                     .AsEnumerable();
 
                 // Apply date filters
@@ -236,38 +248,99 @@ namespace ELRakhawy.Web.Controllers
                     _logger.LogDebug("Applied ToDate filter: {ToDate}", model.ToDate.Value);
                 }
 
+                // ✅ Enhanced ID searches with both Arabic and Latin matching
+                if (!string.IsNullOrEmpty(model.InternalId))
+                {
+                    var searchTerm = model.InternalId.Trim();
+                    var arabicSearchTerm = ConvertToArabicDigits(searchTerm);
+                    var latinSearchTerm = ConvertToLatinDigits(searchTerm);
+
+                    query = query.Where(t => !string.IsNullOrEmpty(t.InternalId) &&
+                        (t.InternalId.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                         t.InternalId.Contains(arabicSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                         t.InternalId.Contains(latinSearchTerm, StringComparison.OrdinalIgnoreCase)));
+
+                    _logger.LogDebug("Applied InternalId filter: Original={Original}, Arabic={Arabic}, Latin={Latin}",
+                        searchTerm, arabicSearchTerm, latinSearchTerm);
+                }
+
+                if (!string.IsNullOrEmpty(model.ExternalId))
+                {
+                    var searchTerm = model.ExternalId.Trim();
+                    var arabicSearchTerm = ConvertToArabicDigits(searchTerm);
+                    var latinSearchTerm = ConvertToLatinDigits(searchTerm);
+
+                    query = query.Where(t => !string.IsNullOrEmpty(t.ExternalId) &&
+                        (t.ExternalId.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                         t.ExternalId.Contains(arabicSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                         t.ExternalId.Contains(latinSearchTerm, StringComparison.OrdinalIgnoreCase)));
+
+                    _logger.LogDebug("Applied ExternalId filter: Original={Original}, Arabic={Arabic}, Latin={Latin}",
+                        searchTerm, arabicSearchTerm, latinSearchTerm);
+                }
+
                 if (model.YarnItemId.HasValue)
                 {
                     query = query.Where(t => t.YarnItemId == model.YarnItemId.Value);
-                    _logger.LogDebug("Applied YarnItemId filter: {YarnItemId}", model.YarnItemId.Value);
                 }
 
                 if (model.StakeholderTypeId.HasValue)
                 {
                     query = query.Where(t => t.StakeholderTypeId == model.StakeholderTypeId.Value);
-                    _logger.LogDebug("Applied StakeholderTypeId filter: {StakeholderTypeId}", model.StakeholderTypeId.Value);
                 }
 
                 if (model.StakeholderId.HasValue)
                 {
                     query = query.Where(t => t.StakeholderId == model.StakeholderId.Value);
-                    _logger.LogDebug("Applied specific StakeholderId filter: {StakeholderId}", model.StakeholderId.Value);
                 }
 
-                if (!string.IsNullOrEmpty(model.TransactionId))
+                if (model.PackagingStyleId.HasValue)
                 {
-                    query = query.Where(t => t.TransactionId.Contains(model.TransactionId.Trim()));
-                    _logger.LogDebug("Applied TransactionId filter: {TransactionId}", model.TransactionId);
+                    query = query.Where(t => t.PackagingStyleId == model.PackagingStyleId.Value);
                 }
 
+                // ✅ Quantity range filters (already converted to Latin)
+                if (model.MinQuantity.HasValue)
+                {
+                    query = query.Where(t => (t.Inbound + t.Outbound) >= model.MinQuantity.Value);
+                }
+
+                if (model.MaxQuantity.HasValue)
+                {
+                    query = query.Where(t => (t.Inbound + t.Outbound) <= model.MaxQuantity.Value);
+                }
+
+                // ✅ Count range filters (already converted to Latin)
+                if (model.MinCount.HasValue)
+                {
+                    query = query.Where(t => t.Count >= model.MinCount.Value);
+                }
+
+                if (model.MaxCount.HasValue)
+                {
+                    query = query.Where(t => t.Count <= model.MaxCount.Value);
+                }
+
+                // ✅ Comment search with Arabic/Latin support
+                if (!string.IsNullOrEmpty(model.CommentSearch))
+                {
+                    var commentSearchTerm = model.CommentSearch.Trim();
+                    var arabicCommentTerm = ConvertToArabicDigits(commentSearchTerm);
+                    var latinCommentTerm = ConvertToLatinDigits(commentSearchTerm);
+
+                    query = query.Where(t => !string.IsNullOrEmpty(t.Comment) &&
+                        (t.Comment.Contains(commentSearchTerm, StringComparison.OrdinalIgnoreCase) ||
+                         t.Comment.Contains(arabicCommentTerm, StringComparison.OrdinalIgnoreCase) ||
+                         t.Comment.Contains(latinCommentTerm, StringComparison.OrdinalIgnoreCase)));
+                }
+
+                // Transaction type filter
                 if (!string.IsNullOrEmpty(model.TransactionType))
                 {
                     if (model.TransactionType == "inbound")
                         query = query.Where(t => t.Inbound > 0);
                     else if (model.TransactionType == "outbound")
                         query = query.Where(t => t.Outbound > 0);
-
-                    _logger.LogDebug("Applied TransactionType filter: {TransactionType}", model.TransactionType);
                 }
 
                 // Execute query and map results
@@ -298,7 +371,7 @@ namespace ELRakhawy.Web.Controllers
                     })
                     .ToList();
 
-                // Calculate enhanced statistics
+                // Calculate statistics
                 model.Results = results;
                 model.TotalTransactions = results.Count;
                 model.TotalInbound = results.Where(r => r.IsInbound).Sum(r => r.Quantity);
@@ -308,18 +381,17 @@ namespace ELRakhawy.Web.Controllers
                 // Reload dropdown data
                 model.AvailableItems = GetActiveYarnItems();
                 model.StakeholderTypes = GetStakeholderTypes();
-                model.YarnStakeholders = GetYarnStakeholders();
+                model.YarnStakeholders = GetYarnStakeholders().ToList();
+                model.PackagingStyles = GetPackagingStyles();
 
-                // Set search performed flag
                 ViewBag.SearchPerformed = true;
 
-                _logger.LogInformation("Enhanced yarn transaction search completed by {User} at {Time} - Found {Count} yarn-related results, TotalInbound: {TotalInbound}, TotalOutbound: {TotalOutbound}, NetBalance: {NetBalance}",
-                    currentUser, currentTime, results.Count, model.TotalInbound, model.TotalOutbound, model.NetBalance);
+                _logger.LogInformation("Enhanced search completed by {User} at {Time} - Found {Count} results",
+                    currentUser, currentTime, results.Count);
 
-                // Add success message if results found
                 if (results.Any())
                 {
-                    TempData["Success"] = $"تم العثور على {results.Count} معاملة غزل مطابقة لمعايير البحث";
+                    TempData["Success"] = $"تم العثور على {ConvertToArabicDigits(results.Count.ToString())} معاملة غزل مطابقة لمعايير البحث";
                 }
                 else
                 {
@@ -331,21 +403,100 @@ namespace ELRakhawy.Web.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error in enhanced yarn transaction search by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-09-01 12:04:03");
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
                 TempData["Error"] = "حدث خطأ أثناء البحث في معاملات الغزل";
 
-                // Ensure model has required data for error display
                 model.Results = new List<YarnTransactionViewModel>();
                 model.AvailableItems = GetActiveYarnItems();
                 model.StakeholderTypes = GetStakeholderTypes();
-                model.YarnStakeholders = GetYarnStakeholders();
+                model.YarnStakeholders = GetYarnStakeholders().ToList();
+                model.PackagingStyles = GetPackagingStyles();
                 ViewBag.SearchPerformed = true;
 
                 return View(model);
             }
         }
 
+        // ✅ Helper methods for Arabic/Latin number conversion
+        private string ConvertToArabicDigits(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+
+            var arabicDigits = new char[] { '٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩' };
+            var result = input.ToCharArray();
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                if (char.IsDigit(result[i]))
+                {
+                    result[i] = arabicDigits[result[i] - '0'];
+                }
+            }
+
+            return new string(result);
+        }
+
+        private string ConvertToLatinDigits(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return input;
+
+            var arabicToLatin = new Dictionary<char, char>
+    {
+        { '٠', '0' }, { '١', '1' }, { '٢', '2' }, { '٣', '3' }, { '٤', '4' },
+        { '٥', '5' }, { '٦', '6' }, { '٧', '7' }, { '٨', '8' }, { '٩', '9' }
+    };
+
+            var result = input.ToCharArray();
+
+            for (int i = 0; i < result.Length; i++)
+            {
+                if (arabicToLatin.ContainsKey(result[i]))
+                {
+                    result[i] = arabicToLatin[result[i]];
+                }
+            }
+
+            return new string(result);
+        }
+
+        private YarnTransactionSearchViewModel ConvertArabicNumbersToLatin(YarnTransactionSearchViewModel model)
+        {
+            // Convert string fields that might contain Arabic numbers
+            if (!string.IsNullOrEmpty(model.InternalId))
+                model.InternalId = ConvertToLatinDigits(model.InternalId);
+
+            if (!string.IsNullOrEmpty(model.ExternalId))
+                model.ExternalId = ConvertToLatinDigits(model.ExternalId);
+
+            if (!string.IsNullOrEmpty(model.CommentSearch))
+                model.CommentSearch = ConvertToLatinDigits(model.CommentSearch);
+
+            // Note: Numeric fields (MinQuantity, MaxQuantity, MinCount, MaxCount) 
+            // are automatically handled by model binding, but we can add extra safety
+
+            return model;
+        }
+        // ✅ Helper method to get packaging styles
+        private List<SelectListItem> GetPackagingStyles()
+        {
+            try
+            {
+                return _unitOfWork.Repository<PackagingStyles>()
+                    .GetAll()
+                    .Select(p => new SelectListItem
+                    {
+                        Value = p.Id.ToString(),
+                        Text = p.StyleName
+                    })
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting packaging styles");
+                return new List<SelectListItem>();
+            }
+        }
         // Helper method to get yarn stakeholder IDs based on form relationship
         private List<int> GetYarnStakeholderIds()
         {
