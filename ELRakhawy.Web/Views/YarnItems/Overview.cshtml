@@ -146,7 +146,6 @@
                                     <th>صنف الغزل</th>
                                     <th>الغزل الأصلي</th>
                                     <th>الشركة المصنعة</th>
-                                    <th>رصيد الكمية</th>
                                     <th>رصيد العدد والتعبئة</th>
                                     <th>الحالة</th>
                                     <th>إجمالي المعاملات</th>
@@ -184,14 +183,7 @@
                                         <td>
                                             <small class="text-muted">@(item.ManufacturerNames ?? "غير محدد")</small>
                                         </td>
-                                        <td>
-                                            <div class="text-center">
-                                                <span class="@(item.QuantityBalance > 0 ? "text-success" : item.QuantityBalance < 0 ? "text-danger" : "text-muted") fw-bold quantity-balance">
-                                                    @item.QuantityBalance.ToString("N3")
-                                                </span>
-                                                <small class="d-block text-muted">كجم</small>
-                                            </div>
-                                        </td>
+                                        
                                         <td>
                                             <div class="count-balance-cell" data-yarn-id="@item.YarnItemId">
                                                 <div class="d-flex align-items-center justify-content-center">
@@ -344,7 +336,7 @@
                             <i class="fas fa-times me-1"></i>
                             إغلاق
                         </button>
-                        <button type="button" class="btn btn-warning" onclick="location.href='@Url.Action("ResetBalance", "YarnTransactions")'">
+                        <button type="button" class="btn btn-warning" onclick="location.href='@Url.Action("ResetPackagingBalance", "YarnTransactions")'">
                             <i class="fas fa-sync-alt me-1"></i>
                             إعادة ضبط الرصيد
                         </button>
@@ -374,8 +366,8 @@
         const CURRENT_TIME = '2025-09-04 19:04:16';
         const CURRENT_USER = 'Ammar-Yasser8';
         convertNumbersToArabic();
-                    // ✅ Update convertNumbersToArabic function in Overview page
-            function convertNumbersToArabic() {
+        // ✅ Update convertNumbersToArabic function in Overview page
+        function convertNumbersToArabic() {
                 // Convert statistics cards
                 $('#totalItemsDisplay').text(toArabicDigits($('#totalItemsDisplay').text()));
                 $('#availableItemsDisplay').text(toArabicDigits($('#availableItemsDisplay').text()));
@@ -776,74 +768,404 @@
                 alert('حدث خطأ أثناء تصدير بيانات المعاملات: ' + error.message);
             }
         }
-        // ✅ Load packaging breakdown for a single yarn item
+        // ✅ Enhanced function to load packaging breakdown for a single yarn item
         function loadSinglePackagingBreakdown(yarnItemId, $targetCell) {
             $.ajax({
                 url: '/YarnTransactions/GetYarnItemBalance',
                 type: 'GET',
                 data: { yarnItemId: yarnItemId },
                 timeout: 10000,
+                beforeSend: function() {
+                    // Show loading state
+                    $targetCell.html(`
+                        <div class="text-center">
+                            <span class="spinner-border spinner-border-sm text-primary me-1"></span>
+                            <small class="text-muted">جاري التحميل...</small>
+                        </div>
+                    `);
+                },
                 success: function(response) {
                     if (response && response.success) {
-                        renderPackagingDisplay(response, $targetCell);
+                   
+                        
+        renderEnhancedPackagingDisplay(response, $targetCell);
+
+         console.log('✅ Packaging breakdown loaded for yarn item:', {
+                            yarnItemId: yarnItemId,
+                            totalWeight: response.totalQuantityBalance,
+                            totalCount: response.totalCountBalance,
+                            packagingTypes: response.packagingTypesCount,
+                            balanceMatches: response.balanceMatches,
+                            user: 'Ammar-Yasser8',
+                            time: '2025-10-11 14:35:01'
+                        });
                     } else {
-                        showPackagingError($targetCell, 'لا توجد بيانات');
+                        showPackagingError($targetCell, response.error || 'لا توجد بيانات');
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Error loading packaging for yarn item', yarnItemId, ':', error);
-                    showPackagingError($targetCell, 'خطأ في التحميل');
+                    console.error('❌ Error loading packaging for yarn item', yarnItemId, ':', {
+                        status: status,
+                        error: error,
+                        statusCode: xhr.status,
+                        user: 'Ammar-Yasser8',
+                        time: '2025-10-11 14:35:01'
+                    });
+
+                    let errorMessage = 'خطأ في التحميل';
+                    if (status === 'timeout') {
+                        errorMessage = 'انتهت مهلة التحميل';
+                    } else if (xhr.status === 404) {
+                        errorMessage = 'الصنف غير موجود';
+                    } else if (xhr.status === 500) {
+                        errorMessage = 'خطأ في الخادم';
+                    }
+
+                    showPackagingError($targetCell, errorMessage);
                 }
             });
         }
 
-        // ✅ Render packaging display in cell
-        function renderPackagingDisplay(data, $targetCell) {
+              // ✅ Enhanced function to render packaging display with proper negative handling
+        function renderEnhancedPackagingDisplay(data, $targetCell) {
             let html = '';
-            if (data.packagingBreakdown && data.packagingBreakdown.length > 0) {
-                const packagingParts = data.packagingBreakdown.map(p =>
-                    `<span class="badge bg-light text-dark border me-1 mb-1">
-                        <i class="fas fa-box me-1"></i>
-                        ${toArabicDigits(p.totalCount.toString())} ${p.packagingType}
-                    </span>`
-                ).join('');
 
+            if (data.packagingBreakdown && data.packagingBreakdown.length > 0) {
+                // ✅ Separate positive and negative packaging items
+                const positivePackaging = data.packagingBreakdown.filter(pkg =>
+                    pkg.specificWeight > 0 || pkg.totalCount > 0
+                );
+                const negativePackaging = data.packagingBreakdown.filter(pkg =>
+                    pkg.specificWeight < 0 || pkg.totalCount < 0
+                );
+
+                let packagingPartsHtml = '';
+
+                // ✅ Display POSITIVE packaging items
+                if (positivePackaging.length > 0) {
+                    const positiveParts = positivePackaging.map((pkg, index) => {
+                        const bgClass = pkg.totalCount > 50 ? 'bg-success' :
+                                       pkg.totalCount > 20 ? 'bg-info' :
+                                       pkg.totalCount > 0 ? 'bg-light text-dark border' : 'bg-secondary text-white';
+
+                        return `
+                            <div class="packaging-item mb-1">
+                                <span class="badge ${bgClass} me-1 d-inline-block" style="min-width: 120px;">
+                                    <i class="fas fa-cube me-1"></i>
+                                    ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
+                                </span>
+                                <div class="small text-success fw-bold mt-1">
+                                    ${toArabicDigits(pkg.specificWeight.toFixed(2))} كجم
+                                    ${pkg.totalCount > 0 ? `
+                                        <span class="text-muted">
+                                            (${toArabicDigits(pkg.averageWeightPerUnit.toFixed(3))} كجم/وحدة)
+                                        </span>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    packagingPartsHtml += positiveParts;
+                }
+
+                // ✅ Display NEGATIVE packaging items with WARNING
+                if (negativePackaging.length > 0) {
+                    const negativeParts = negativePackaging.map((pkg, index) => {
+                        return `
+                            <div class="packaging-item mb-1 alert alert-danger py-2 px-2">
+                                <span class="badge bg-danger me-1 d-inline-block" style="min-width: 120px;">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    ${toArabicDigits(pkg.totalCount.toString())} ${pkg.packagingType}
+                                </span>
+                                <div class="small text-danger fw-bold mt-1">
+                                    ${toArabicDigits(pkg.specificWeight.toFixed(2))} كجم
+                                    <span class="text-muted">(رصيد سالب!)</span>
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    وارد: ${toArabicDigits(pkg.totalInbound.toFixed(2))} كجم (${toArabicDigits(pkg.inboundCount.toString())} وحدة) |
+                                    صادر: ${toArabicDigits(pkg.totalOutbound.toFixed(2))} كجم (${toArabicDigits(pkg.outboundCount.toString())} وحدة)
+                                </div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    packagingPartsHtml += negativeParts;
+                }
+
+                // ✅ Enhanced display with proper total and warnings
+                html = `
+                    <div class="packaging-display">
+                        <!-- Total Balance Summary -->
+                        <div class="balance-summary mb-2 p-2 ${negativePackaging.length > 0 ? 'bg-danger bg-opacity-25 border-danger' : 'bg-light'} rounded">
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <div class="fw-bold ${data.totalQuantityBalance < 0 ? 'text-danger' : 'text-primary'}">
+                                        ${toArabicDigits(data.totalQuantityBalance.toFixed(2))}
+                                    </div>
+                                    <small class="text-muted">كجم إجمالي</small>
+                                </div>
+                                <div class="col-6">
+                                    <div class="fw-bold ${data.totalCountBalance < 0 ? 'text-danger' : 'text-success'}">
+                                        ${toArabicDigits(data.totalCountBalance.toString())}
+                                    </div>
+                                    <small class="text-muted">وحدة إجمالي</small>
+                                </div>
+                            </div>
+                            ${negativePackaging.length > 0 ? `
+                                <div class="alert alert-warning mb-0 mt-2 py-1 px-2 small">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    <strong>تحذير:</strong> يوجد ${toArabicDigits(negativePackaging.length.toString())} نوع تعبئة برصيد سالب
+                                </div>
+                            ` : ''}
+                        </div>
+
+                        <!-- Packaging Breakdown -->
+                        <div class="packaging-breakdown">
+                            <div class="small text-info fw-semibold mb-1">
+                                <i class="fas fa-boxes me-1"></i>
+                                التفصيل حسب التعبئة:
+                            </div>
+                            ${packagingPartsHtml || '<div class="text-muted small">لا توجد تفاصيل تعبئة</div>'}
+                        </div>
+
+                        <!-- Balance Status -->
+                        <div class="packaging-info mt-2">
+                            ${data.packagingBreakdown.length > 1 ?
+                                `<small class="text-info d-block">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة مختلف
+                                    ${positivePackaging.length > 0 ? `(${toArabicDigits(positivePackaging.length.toString())} موجب` : ''}
+                                    ${negativePackaging.length > 0 ? `, ${toArabicDigits(negativePackaging.length.toString())} سالب)` : ')'}
+                                </small>` : ''}
+
+                            ${!data.balanceMatches ?
+                                `<small class="text-warning d-block">
+                                    <i class="fas fa-exclamation-triangle me-1"></i>
+                                    تحذير: عدم تطابق في الحسابات
+                                    ${data.balanceDiscrepancy ?
+                                        `<br><span class="text-muted">فرق: ${toArabicDigits(Math.abs(data.balanceDiscrepancy.weightDifference).toFixed(2))} كجم</span>`
+                                        : ''}
+                                </small>` :
+                                negativePackaging.length === 0 ?
+                                `<small class="text-success d-block">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    الحسابات متطابقة وجميع الأرصدة موجبة
+                                </small>` : ''}
+                        </div>
+                    </div>
+                `;
+
+            } else if (data.totalCountBalance > 0 || data.totalQuantityBalance > 0) {
+                // ✅ Handle case with balance but no packaging breakdown
                 html = `
                     <div class="text-center">
                         <div class="fw-bold text-success mb-1">
-                            ${toArabicDigits(data.countBalance.toString())} وحدة
+                            ${toArabicDigits(data.totalQuantityBalance.toFixed(2))} كجم
                         </div>
-                        <div class="packaging-breakdown">${packagingParts}</div>
-                        ${data.packagingBreakdown.length > 1 ?
-                            `<small class="text-info d-block mt-1">
-                                ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
-                            </small>` : ''}
-                    </div>`;
-            } else if (data.countBalance > 0) {
-                html = `
-                    <div class="text-center">
-                        <span class="fw-bold text-success">
-                            ${toArabicDigits(data.countBalance.toString())} وحدة
-                        </span>
-                        <small class="d-block text-muted">غير محددة التعبئة</small>
-                    </div>`;
+                        <div class="fw-bold text-primary mb-1">
+                            ${toArabicDigits(data.totalCountBalance.toString())} وحدة
+                        </div>
+                        <small class="text-muted">غير محددة التعبئة</small>
+                        ${!data.balanceMatches ?
+                            '<br><small class="text-warning"><i class="fas fa-exclamation-triangle me-1"></i>عدم تطابق</small>'
+                            : ''}
+                    </div>
+                `;
+
             } else {
-                html = `<div class="text-center"><span class="text-muted">لا توجد وحدات</span></div>`;
+                // ✅ No inventory available
+                html = `
+                    <div class="text-center text-muted p-2">
+                        <i class="fas fa-inbox fa-2x mb-2"></i>
+                        <div class="small">لا توجد وحدات</div>
+                        <div class="small">في المخزون</div>
+                    </div>
+                `;
             }
+
             $targetCell.html(html);
+
+            // ✅ Add click handler for detailed view
+            if (data.packagingBreakdown && data.packagingBreakdown.length > 0) {
+                $targetCell.addClass('clickable-cell').attr('title', 'انقر لعرض التفاصيل');
+                $targetCell.off('click').on('click', function(e) {
+                    e.stopPropagation();
+                    showDetailedPackagingModal(data);
+                });
+            }
         }
 
-        // ✅ Show packaging error in cell
+        // Helper function to convert numbers to Arabic digits
+        function toArabicDigits(str) {
+            if (!str) return str;
+            const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+            return str.toString().replace(/\d/g, digit => arabicDigits[digit]);
+        }
+        // ✅ Enhanced function to show packaging error
         function showPackagingError($targetCell, message) {
             $targetCell.html(`
-                <div class="text-center">
-                    <small class="text-danger">
-                        <i class="fas fa-exclamation-triangle me-1"></i>${message}
-                    </small>
+                <div class="text-center text-danger p-2">
+                    <i class="fas fa-exclamation-triangle fa-lg mb-1"></i>
+                    <div class="small fw-semibold">${message}</div>
+                    <button class="btn btn-outline-primary btn-sm mt-1" onclick="retryPackagingLoad(this)">
+                        <i class="fas fa-redo-alt me-1"></i>إعادة المحاولة
+                    </button>
                 </div>
             `);
         }
 
+        // ✅ New function to show detailed packaging modal
+        function showDetailedPackagingModal(data) {
+            const modalContent = `
+                <div class="packaging-details-modal">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <div class="card border-primary">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title text-primary">
+                                        ${toArabicDigits(data.totalQuantityBalance.toFixed(3))}
+                                    </h5>
+                                    <p class="card-text">إجمالي الكمية (كجم)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card border-success">
+                                <div class="card-body text-center">
+                                    <h5 class="card-title text-success">
+                                        ${toArabicDigits(data.totalCountBalance.toString())}
+                                    </h5>
+                                    <p class="card-text">إجمالي العدد (وحدة)</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h6 class="fw-bold text-dark mb-3">
+                        <i class="fas fa-boxes me-2"></i>تفاصيل الأوزان حسب التعبئة
+                    </h6>
+
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-primary">
+                                <tr>
+                                    <th>نوع التعبئة</th>
+                                    <th>العدد</th>
+                                    <th>الوزن المحدد</th>
+                                    <th>متوسط الوزن</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${data.packagingBreakdown.map(pkg => `
+                                    <tr>
+                                        <td>
+                                            <i class="fas fa-cube text-info me-2"></i>
+                                            <strong>${pkg.packagingType}</strong>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">
+                                                ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="fw-bold text-success">
+                                                ${toArabicDigits(pkg.specificWeight.toFixed(2))} كجم
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="text-info">
+                                                ${toArabicDigits(pkg.averageWeightPerUnit.toFixed(3))} كجم/وحدة
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    ${!data.balanceMatches ? `
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>تحذير:</strong> يوجد اختلاف في الحسابات بين المجموع المحسوب والرصيد المسجل
+                        </div>
+                    ` : ''}
+
+                    <div class="text-muted small mt-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        آخر تحديث: ${data.lastTransactionDate} |
+                        عدد المعاملات: ${toArabicDigits((data.transactionCount || 0).toString())}
+                    </div>
+                </div>
+            `;
+
+            Swal.fire({
+                title: `تفاصيل المخزون - ${data.yarnItem}`,
+                html: modalContent,
+                icon: null,
+                showCloseButton: true,
+                showConfirmButton: true,
+                confirmButtonText: '<i class="fas fa-times me-1"></i>إغلاق',
+                confirmButtonColor: '#6c757d',
+                width: '800px',
+                customClass: {
+                    popup: 'packaging-details-popup'
+                }
+            });
+        }
+
+        // ✅ Function to retry loading packaging data
+        function retryPackagingLoad(buttonElement) {
+            const $cell = $(buttonElement).closest('td, th');
+            const yarnItemId = $cell.data('yarn-item-id');
+
+            if (yarnItemId) {
+                loadSinglePackagingBreakdown(yarnItemId, $cell);
+            } else {
+                console.error('❌ No yarn item ID found for retry');
+            }
+        }
+
+        // ✅ Batch loading function for multiple yarn items (if needed)
+        function loadMultiplePackagingBreakdowns(yarnItemIds, callback) {
+            console.log('🔄 Loading packaging breakdowns for', yarnItemIds.length, 'yarn items');
+
+            const promises = yarnItemIds.map(itemId => {
+                return new Promise((resolve) => {
+                    $.ajax({
+                        url: '/YarnTransactions/GetYarnItemBalance',
+                        type: 'GET',
+                        data: { yarnItemId: itemId },
+                        timeout: 15000,
+                        success: function(response) {
+                            resolve({ itemId, response, success: true });
+                        },
+                        error: function(xhr, status, error) {
+                            resolve({ itemId, error, success: false });
+                        }
+                    });
+                });
+            });
+
+            Promise.all(promises).then(results => {
+                console.log('✅ Batch packaging load completed:', {
+                    total: results.length,
+                    successful: results.filter(r => r.success).length,
+                    failed: results.filter(r => !r.success).length,
+                    user: 'Ammar-Yasser8',
+                    time: '2025-10-11 14:35:01'
+                });
+
+                if (callback) callback(results);
+            });
+        }
+
+        // ✅ Utility function to convert numbers to Arabic
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
         // Filter functions
         function toggleAvailableFilter() {
             const availableOnly = $('#availableOnlyFilter').is(':checked');
@@ -1957,6 +2279,8 @@
         console.log('✅ Yarn Overview page fully loaded with enhanced debugging at', CURRENT_TIME, 'by', CURRENT_USER);
     </script>
 }
+
+
 <style>
     .loading-overlay {
         position: fixed;

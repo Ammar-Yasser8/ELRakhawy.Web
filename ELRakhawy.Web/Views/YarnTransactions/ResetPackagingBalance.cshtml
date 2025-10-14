@@ -1,0 +1,1165 @@
+﻿@using static ELRakhawy.Web.Controllers.YarnTransactionsController
+@model YarnResetPackagingBalanceViewModel
+@{
+    ViewData["Title"] = "تعديل رصيد التعبئة";
+    var currentTime = "٢٠٢٥-١٠-١٣ ٢٢:٤٢:٠٢";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<div class="container-fluid mt-4">
+    
+    <!-- Alerts -->
+    @if (TempData["Success"] != null || TempData["Error"] != null || TempData["Info"] != null)
+    {
+        var alertType = TempData["Success"] != null ? "success" : TempData["Info"] != null ? "info" : "danger";
+        var alertIcon = TempData["Success"] != null ? "fa-check-circle" : TempData["Info"] != null ? "fa-info-circle" : "fa-exclamation-circle";
+        var alertMessage = TempData["Success"] ?? TempData["Info"] ?? TempData["Error"];
+        
+        <div class="alert alert-@alertType alert-dismissible fade show mb-4 border-0 shadow-sm">
+            <i class="fas @alertIcon me-2"></i>
+            @alertMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!Model.ShowConfirmation)
+    {
+        <!-- Main Form -->
+        <div class="row">
+            <!-- Selection Panel -->
+            <div class="col-lg-5 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-search me-2"></i>اختيار الصنف ونوع التعبئة
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <form id="packagingBalanceForm" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="ShowConfirmation" value="false" />
+                            
+                            <!-- Yarn Item Selection -->
+                            <div class="mb-3">
+                                <label for="YarnItemId" class="form-label required fw-semibold">
+                                    <i class="fas fa-yarn text-primary me-1"></i>صنف الغزل
+                                </label>
+                                <select id="YarnItemId" name="YarnItemId" class="form-select form-select-lg" required>
+                                    <option value="">-- اختر صنف الغزل --</option>
+                                    @foreach (var item in Model.AvailableItems)
+                                    {
+                                        <option value="@item.Value" @@(item.Value == Model.YarnItemId.ToString() ? "selected" : "")>
+                                            @item.Text
+                                        </option>
+                                    }
+                                </select>
+                                <span class="text-danger" asp-validation-for="YarnItemId"></span>
+                                <div class="form-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-lightbulb me-1"></i>
+                                        اختر الصنف أولاً لعرض الأرصدة الحالية
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Packaging Style Selection -->
+                            <div class="mb-3">
+                                <label for="PackagingStyleId" class="form-label required fw-semibold">
+                                    <i class="fas fa-boxes text-success me-1"></i>نوع التعبئة
+                                </label>
+                                <select id="PackagingStyleId" name="PackagingStyleId" class="form-select form-select-lg" required disabled>
+                                    <option value="">-- اختر نوع التعبئة --</option>
+                                    @foreach (var packaging in Model.AvailablePackagingStyles)
+                                    {
+                                        <option value="@packaging.Value" @@(packaging.Value == Model.PackagingStyleId.ToString() ? "selected" : "")>
+                                            @packaging.Text
+                                        </option>
+                                    }
+                                </select>
+                                <span class="text-danger" asp-validation-for="PackagingStyleId"></span>
+                                <div class="form-text">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        حدد نوع التعبئة المراد تعديل رصيده
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Current Balance Display -->
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">
+                                    <i class="fas fa-chart-bar text-info me-1"></i>الرصيد الحالي
+                                </label>
+                                <div id="currentBalanceCard" class="card border-light bg-light">
+                                    <div class="card-body text-center">
+                                        <div id="currentBalanceDisplay">
+                                            <small class="text-muted">
+                                                <i class="fas fa-arrow-up me-1"></i>
+                                                اختر الصنف ونوع التعبئة أولاً
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Reason Input -->
+                            <div class="mb-4">
+                                <label for="ReasonForReset" class="form-label fw-semibold">
+                                    <i class="fas fa-comment text-warning me-1"></i>سبب التعديل
+                                </label>
+                                <textarea id="ReasonForReset" name="ReasonForReset" class="form-control" rows="3" 
+                                          placeholder="اذكر السبب التفصيلي لتعديل رصيد هذا النوع من التعبئة (اختياري)">@Model.ReasonForReset</textarea>
+                                <span class="text-danger" asp-validation-for="ReasonForReset"></span>
+                                <div class="form-text">
+                                    <small class="text-muted">
+                                        أمثلة: جرد فعلي، تصحيح خطأ إدخال، تلف في التعبئة، إعادة تصنيف
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- Reset Date -->
+                            <div class="mb-4">
+                                <label for="ResetDate" class="form-label required fw-semibold">
+                                    <i class="fas fa-calendar-alt text-danger me-1"></i>تاريخ التعديل
+                                </label>
+                                <input type="date" id="ResetDate" name="ResetDate"
+                                       value="@Model.ResetDate.ToString("yyyy-MM-dd")" 
+                                       class="form-control form-control-lg" required />
+                                <span class="text-danger" asp-validation-for="ResetDate"></span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Adjustment Panel -->
+            <div class="col-lg-7 mb-4">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0">
+                            <i class="fas fa-sliders-h me-2"></i>تحديد القيم الجديدة
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="adjustmentSection" style="display: none;">
+                            <!-- ✅ Enhanced Arabic Input Fields -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label for="DesiredQuantityBalance" class="form-label required fw-semibold">
+                                        <i class="fas fa-weight text-primary me-1"></i>الكمية المطلوبة (كجم)
+                                    </label>
+                                    <div class="input-group input-group-lg">
+                                        <input type="text" 
+                                               id="DesiredQuantityBalance" name="DesiredQuantityBalance"
+                                               value="@Model.DesiredQuantityBalance"
+                                               class="form-control arabic-number-input text-end"
+                                               placeholder="٠.٠٠٠"
+                                               data-type="decimal"
+                                               data-max="999999.999"
+                                               style="direction: rtl !important; font-size: 1.2rem;"
+                                               required />
+                                        <span class="input-group-text">كجم</span>
+                                    </div>
+                                    <span class="text-danger" asp-validation-for="DesiredQuantityBalance"></span>
+                                    <div class="form-text">
+                                        <small class="text-success">✅ يمكنك الكتابة بالأرقام العربية أو الإنجليزية (مثال: ٢٥.٥٠٠ أو 25.500)</small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label for="DesiredCountBalance" class="form-label required fw-semibold">
+                                        <i class="fas fa-hashtag text-success me-1"></i>العدد المطلوب (وحدة)
+                                    </label>
+                                    <div class="input-group input-group-lg">
+                                        <input type="text"
+                                               id="DesiredCountBalance" name="DesiredCountBalance"
+                                               value="@Model.DesiredCountBalance"
+                                               class="form-control arabic-number-input text-end"
+                                               placeholder="٠"
+                                               data-type="integer"
+                                               data-max="999999"
+                                               style="direction: rtl !important; font-size: 1.2rem;"
+                                               required />
+                                        <span class="input-group-text">وحدة</span>
+                                    </div>
+                                    <span class="text-danger" asp-validation-for="DesiredCountBalance"></span>
+                                    <div class="form-text">
+                                        <small class="text-success">✅ يمكنك الكتابة بالأرقام العربية أو الإنجليزية (مثال: ١٠٠ أو 100)</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Adjustment Preview -->
+                            <div id="adjustmentPreview" class="card border-warning mb-4" style="display: none;">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-calculator me-2"></i>معاينة التعديل
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-md-4">
+                                            <div class="border-end">
+                                                <h6 class="text-primary mb-1">الحالي</h6>
+                                                <div id="currentValues" class="small">
+                                                    <div class="fw-bold text-primary" id="currentQty">٠.٠٠٠ كجم</div>
+                                                    <div class="text-success" id="currentCount">٠ وحدة</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="border-end">
+                                                <h6 class="text-success mb-1">المطلوب</h6>
+                                                <div id="desiredValues" class="small">
+                                                    <div class="fw-bold text-primary" id="desiredQty">٠.٠٠٠ كجم</div>
+                                                    <div class="text-success" id="desiredCount">٠ وحدة</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <h6 class="mb-1" id="adjustmentTitle">التعديل</h6>
+                                            <div id="adjustmentValues" class="small">
+                                                <div class="fw-bold" id="adjustmentQty">٠.٠٠٠ كجم</div>
+                                                <div id="adjustmentCount">٠ وحدة</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Impact Analysis -->
+                            <div id="impactAnalysis" class="alert alert-info" style="display: none;">
+                                <h6><i class="fas fa-chart-line me-2"></i>تأثير التعديل على الرصيد الإجمالي</h6>
+                                <div id="impactContent"></div>
+                            </div>
+                        </div>
+
+                        <!-- Initial Message -->
+                        <div id="initialMessage" class="text-center text-muted p-5">
+                            <i class="fas fa-arrow-left fa-3x mb-3 opacity-50"></i>
+                            <h5 class="mb-2">اختر الصنف ونوع التعبئة</h5>
+                            <p class="mb-0">لعرض خيارات التعديل والمعاينة</p>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div id="actionButtons" class="d-flex gap-2 justify-content-end mt-4" style="display: none !important;">
+                            <a href="@Url.Action("Overview")" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-times me-1"></i>إلغاء
+                            </a>
+                            <button type="button" class="btn btn-warning btn-lg" onclick="previewAdjustment()" id="previewBtn" disabled>
+                                <i class="fas fa-eye me-1"></i>معاينة التعديل
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Overall Balance Info -->
+        <div id="overallBalanceCard" class="card border-info mb-3" style="display: none;">
+            <div class="card-header bg-info text-white">
+                <h6 class="mb-0">
+                    <i class="fas fa-chart-pie me-1"></i>نظرة عامة على أرصدة الصنف
+                </h6>
+            </div>
+            <div class="card-body" id="overallBalanceInfo">
+                <!-- Will be populated via JavaScript -->
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Confirmation View -->
+        <div class="card shadow-lg border-0">
+            <div class="card-header bg-gradient text-white" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                <h5 class="mb-0">
+                    <i class="fas fa-check-circle me-2"></i>تأكيد تعديل رصيد التعبئة
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Confirmation Details will be added when implementing confirmation flow -->
+                <div class="alert alert-warning">
+                    <i class="fas fa-info-circle me-2"></i>
+                    سيتم تنفيذ منطق التأكيد هنا عند اكتمال النموذج
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function() {
+            console.log('🚀 Enhanced Arabic Number Input System Loading...');
+            console.log('📅 Current UTC Time: 2025-10-13 22:42:02');
+            console.log('👤 Current User: Ammar-Yasser8');
+            console.log('🌐 Primary Repository: https://github.com/Ammar-Yasser8/ELRakhawy.Web');
+            console.log('📚 User Repositories: [ELRakhawy.Web, Ammar-Yasser8, VectorEG, juana-18, Handasita]');
+            console.log('🔧 Feature: Full Arabic Number Input Support');
+
+            // Initialize Select2
+            initializeSelect2();
+
+            // Initialize form handlers
+            initializeFormHandlers();
+
+            // Initialize Arabic number inputs
+            initializeArabicNumberInputs();
+
+            // Load initial data if values are present
+            checkInitialValues();
+
+            console.log('✅ Enhanced Arabic Number System Ready!');
+        });
+
+        // Global variables
+        var currentPackagingBalance = null;
+        var currentOverallBalance = null;
+
+        // ✅ Arabic-English number mapping
+        var arabicToEnglishMap = {
+            '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+            '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+        };
+        
+        var englishToArabicMap = {
+            '0': '٠', '1': '١', '2': '٢', '3': '٣', '4': '٤',
+            '5': '٥', '6': '٦', '7': '٧', '8': '٨', '9': '٩'
+        };
+
+        // ✅ Initialize Arabic number inputs
+        function initializeArabicNumberInputs() {
+            $('.arabic-number-input').each(function() {
+                var $input = $(this);
+                var inputType = $input.data('type');
+                var maxValue = $input.data('max');
+
+                // Handle input events
+                $input.on('input keyup paste', function(e) {
+                    handleArabicNumberInput(this, inputType, maxValue);
+                });
+
+                // Handle keypress for validation
+                $input.on('keypress', function(e) {
+                    return allowArabicNumericInput(e, this, inputType);
+                });
+
+                // Handle focus for user guidance
+                $input.on('focus', function() {
+                    $(this).addClass('arabic-input-focused');
+                });
+
+                $input.on('blur', function() {
+                    $(this).removeClass('arabic-input-focused');
+                    validateArabicField($(this), inputType, maxValue);
+                });
+            });
+        }
+
+        // ✅ Enhanced Arabic number input handler
+        function handleArabicNumberInput(input, type, maxValue) {
+            var $input = $(input);
+            var originalValue = $input.val();
+            var cursorPos = input.selectionStart;
+            
+            // Convert Arabic to English for processing
+            var englishValue = convertArabicToEnglish(originalValue);
+            
+            // Clean the value based on type
+            var cleanedValue = cleanNumericValue(englishValue, type);
+            
+            // Validate range
+            var numericValue = parseFloat(cleanedValue) || 0;
+            if (numericValue > maxValue) {
+                cleanedValue = maxValue.toString();
+                showArabicWarning(`القيمة تتجاوز الحد الأقصى (${formatArabicNumber(maxValue.toString())})`);
+            }
+            
+            if (numericValue < 0) {
+                cleanedValue = '0';
+                showArabicWarning('القيمة يجب أن تكون موجبة');
+            }
+            
+            // Convert back to Arabic for display
+            var arabicValue = convertEnglishToArabic(cleanedValue);
+            
+            // Update input only if value changed
+            if (originalValue !== arabicValue) {
+                $input.val(arabicValue);
+                
+                // Restore cursor position
+                try {
+                    var newCursorPos = Math.min(cursorPos, arabicValue.length);
+                    input.setSelectionRange(newCursorPos, newCursorPos);
+                } catch (e) {
+                    // Ignore cursor positioning errors
+                }
+            }
+            
+            // Store English value in hidden field or data attribute for form submission
+            $input.attr('data-english-value', cleanedValue);
+            
+            // Trigger validation and preview update
+            validateArabicField($input, type, maxValue);
+            updateAdjustmentPreview();
+        }
+
+        // ✅ Clean numeric value based on type
+        function cleanNumericValue(value, type) {
+            if (type === 'decimal') {
+                // Remove all non-numeric except decimal point
+                value = value.replace(/[^\d.-]/g, '');
+                
+                // Handle multiple decimal points
+                var parts = value.split('.');
+                if (parts.length > 2) {
+                    value = parts[0] + '.' + parts.slice(1).join('');
+                }
+                
+                // Limit decimal places to 3
+                if (parts[1] && parts[1].length > 3) {
+                    value = parts[0] + '.' + parts[1].substring(0, 3);
+                }
+            } else {
+                // Integer only
+                value = value.replace(/[^\d]/g, '');
+            }
+            
+            // Remove leading zeros
+            if (value && value !== '0' && !value.startsWith('0.')) {
+                value = value.replace(/^0+/, '') || '0';
+            }
+            
+            return value;
+        }
+
+        // ✅ Allow Arabic and English numeric input
+        function allowArabicNumericInput(e, input, type) {
+            var charCode = e.which || e.keyCode;
+            var char = String.fromCharCode(charCode);
+            var $input = $(input);
+            var currentValue = $input.val();
+            
+            // Allow control keys
+            if ([8, 9, 27, 13, 46].indexOf(charCode) !== -1 || // backspace, tab, escape, enter, delete
+                (charCode >= 35 && charCode <= 40) || // arrow keys, home, end
+                (e.ctrlKey && [65, 67, 86, 88].indexOf(charCode) !== -1)) { // Ctrl+A, C, V, X
+                return true;
+            }
+            
+            // Allow Arabic digits
+            if ('٠١٢٣٤٥٦٧٨٩'.indexOf(char) !== -1) {
+                return true;
+            }
+            
+            // Allow English digits
+            if (charCode >= 48 && charCode <= 57) {
+                return true;
+            }
+            
+            // Allow decimal point for decimal inputs
+            if (type === 'decimal' && (char === '.' || char === '٫')) {
+                // Only allow one decimal point
+                var arabicDecimalExists = currentValue.indexOf('٫') !== -1;
+                var englishDecimalExists = currentValue.indexOf('.') !== -1;
+                return !arabicDecimalExists && !englishDecimalExists;
+            }
+            
+            // Block everything else
+            return false;
+        }
+
+        // ✅ Validate Arabic input field
+        function validateArabicField($input, type, maxValue) {
+            var arabicValue = $input.val();
+            var englishValue = convertArabicToEnglish(arabicValue);
+            var isValid = true;
+            var errorMessage = '';
+            
+            if (!arabicValue || arabicValue.trim() === '') {
+                isValid = false;
+                errorMessage = 'هذا الحقل مطلوب';
+            } else if (isNaN(parseFloat(englishValue))) {
+                isValid = false;
+                errorMessage = 'يجب إدخال رقم صحيح';
+            } else {
+                var numValue = parseFloat(englishValue);
+                if (numValue < 0) {
+                    isValid = false;
+                    errorMessage = 'القيمة يجب أن تكون موجبة';
+                } else if (numValue > maxValue) {
+                    isValid = false;
+                    errorMessage = `القيمة تتجاوز الحد الأقصى (${formatArabicNumber(maxValue.toString())})`;
+                }
+            }
+            
+            // Update field appearance
+            if (isValid) {
+                $input.removeClass('is-invalid').addClass('is-valid');
+                $input.siblings('.invalid-feedback').remove();
+            } else {
+                $input.removeClass('is-valid').addClass('is-invalid');
+                var $feedback = $input.siblings('.invalid-feedback');
+                if ($feedback.length === 0) {
+                    $input.after(`<div class="invalid-feedback">${errorMessage}</div>`);
+                } else {
+                    $feedback.text(errorMessage);
+                }
+            }
+            
+            return isValid;
+        }
+
+        // ✅ Convert Arabic numbers to English
+        function convertArabicToEnglish(text) {
+            if (!text) return '';
+            return text.replace(/[٠-٩]/g, function(match) {
+                return arabicToEnglishMap[match] || match;
+            }).replace(/٫/g, '.'); // Handle Arabic decimal separator
+        }
+
+        // ✅ Convert English numbers to Arabic
+        function convertEnglishToArabic(text) {
+            if (!text) return '';
+            return text.replace(/[0-9]/g, function(match) {
+                return englishToArabicMap[match] || match;
+            });
+        }
+
+        // ✅ Format number for Arabic display
+        function formatArabicNumber(str) {
+            return convertEnglishToArabic(str.toString());
+        }
+
+        // ✅ Get English numeric value from Arabic input
+        function getEnglishNumericValue(arabicValue) {
+            var englishValue = convertArabicToEnglish(arabicValue || '');
+            return parseFloat(englishValue) || 0;
+        }
+
+        // ✅ Initialize Select2 dropdowns
+        function initializeSelect2() {
+            $('#YarnItemId, #PackagingStyleId').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                language: {
+                    noResults: function () {
+                        return "لا توجد نتائج";
+                    },
+                    searching: function () {
+                        return "جاري البحث...";
+                    }
+                }
+            });
+        }
+
+        // ✅ Initialize form event handlers
+        function initializeFormHandlers() {
+            // Yarn item selection
+            $('#YarnItemId').on('change', function() {
+                var yarnItemId = $(this).val();
+                if (yarnItemId) {
+                    $('#PackagingStyleId').prop('disabled', false);
+                    loadOverallBalance(parseInt(yarnItemId));
+                    resetPackagingSelection();
+                } else {
+                    resetForm();
+                }
+            });
+
+            // Packaging style selection
+            $('#PackagingStyleId').on('change', function() {
+                var packagingId = $(this).val();
+                var yarnItemId = $('#YarnItemId').val();
+
+                if (packagingId && yarnItemId) {
+                    loadPackagingBalance(parseInt(yarnItemId), parseInt(packagingId));
+                } else {
+                    resetPackagingBalance();
+                }
+            });
+
+            // Auto-hide alerts
+            $('.alert-dismissible').delay(8000).fadeOut(300);
+        }
+
+        // ✅ Check for initial values
+        function checkInitialValues() {
+            var yarnItemId = $('#YarnItemId').val();
+            var packagingId = $('#PackagingStyleId').val();
+
+            if (yarnItemId) {
+                $('#PackagingStyleId').prop('disabled', false);
+                loadOverallBalance(parseInt(yarnItemId));
+
+                if (packagingId) {
+                    loadPackagingBalance(parseInt(yarnItemId), parseInt(packagingId));
+                }
+            }
+        }
+
+        // ✅ Load overall yarn item balance
+        function loadOverallBalance(yarnItemId) {
+            $.ajax({
+                url: '/YarnTransactions/GetYarnItemBalance',
+                type: 'GET',
+                data: { yarnItemId: yarnItemId },
+                beforeSend: function() {
+                    $('#overallBalanceCard').fadeOut();
+                },
+                success: function(response) {
+                    if (response && response.success) {
+                        currentOverallBalance = response;
+                        displayOverallBalance(response);
+                    } else {
+                        console.error('Failed to load overall balance:', response.error);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Ajax error loading overall balance:', error);
+                    showArabicError('فشل في تحميل الرصيد الإجمالي');
+                }
+            });
+        }
+
+        // ✅ Load packaging-specific balance
+        function loadPackagingBalance(yarnItemId, packagingId) {
+            $.ajax({
+                url: '/YarnTransactions/GetPackagingBalance',
+                type: 'GET',
+                data: {
+                    yarnItemId: yarnItemId,
+                    packagingStyleId: packagingId
+                },
+                beforeSend: function() {
+                    $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
+                },
+                success: function(response) {
+                    if (response && response.success) {
+                        currentPackagingBalance = response;
+                        displayPackagingBalance(response);
+                        showAdjustmentSection();
+                    } else {
+                        showArabicError('خطأ في تحميل رصيد التعبئة: ' + (response.error || 'خطأ غير معروف'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Ajax error loading packaging balance:', error);
+                    showArabicError('خطأ في الاتصال أثناء تحميل رصيد التعبئة');
+                }
+            });
+        }
+
+        // ✅ Display overall balance information (with Arabic numbers)
+        function displayOverallBalance(data) {
+            var html = `
+                <div class="row">
+                    <div class="col-md-3 text-center border-end">
+                        <h5 class="text-primary mb-1">${formatArabicNumber(data.totalQuantityBalance.toFixed(2))}</h5>
+                        <small class="text-muted">إجمالي الكمية (كجم)</small>
+                    </div>
+                    <div class="col-md-3 text-center border-end">
+                        <h5 class="text-success mb-1">${formatArabicNumber(data.totalCountBalance.toString())}</h5>
+                        <small class="text-muted">إجمالي العدد (وحدة)</small>
+                    </div>
+                    <div class="col-md-3 text-center border-end">
+                        <h5 class="text-info mb-1">${formatArabicNumber(data.packagingTypesCount.toString())}</h5>
+                        <small class="text-muted">أنواع التعبئة</small>
+                    </div>
+                    <div class="col-md-3 text-center">
+                        <div class="badge ${data.balanceMatches ? 'bg-success' : 'bg-warning'} fs-6">
+                            ${data.balanceMatches ? 'متطابق' : 'غير متطابق'}
+                        </div>
+                        <div><small class="text-muted">حالة الأرصدة</small></div>
+                    </div>
+                </div>
+            `;
+
+            $('#overallBalanceInfo').html(html);
+            $('#overallBalanceCard').fadeIn();
+        }
+
+        // ✅ Display packaging-specific balance (with Arabic numbers)
+        function displayPackagingBalance(data) {
+            var html = `
+                <div class="row text-center">
+                    <div class="col-6">
+                        <h4 class="text-primary mb-1">${formatArabicNumber(data.currentQuantity.toFixed(3))}</h4>
+                        <small class="text-muted">كجم</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-1">${formatArabicNumber(data.currentCount.toString())}</h4>
+                        <small class="text-muted">وحدة</small>
+                    </div>
+                </div>
+                <hr>
+                <small class="text-info">
+                    <i class="fas fa-info-circle me-1"></i>
+                    عدد المعاملات: ${formatArabicNumber(data.transactionCount.toString())}
+                </small>
+            `;
+
+            $('#currentBalanceDisplay').html(html);
+
+            // ✅ Auto-fill desired values with current values (in Arabic)
+            $('#DesiredQuantityBalance').val(formatArabicNumber(data.currentQuantity.toFixed(3)));
+            $('#DesiredCountBalance').val(formatArabicNumber(data.currentCount.toString()));
+
+            // Store English values
+            $('#DesiredQuantityBalance').attr('data-english-value', data.currentQuantity.toFixed(3));
+            $('#DesiredCountBalance').attr('data-english-value', data.currentCount.toString());
+
+            // Clear validation states
+            $('#DesiredQuantityBalance, #DesiredCountBalance').removeClass('is-valid is-invalid');
+            $('.invalid-feedback').remove();
+
+            updateCurrentValuesDisplay();
+        }
+
+        // ✅ Show adjustment section
+        function showAdjustmentSection() {
+            $('#initialMessage').hide();
+            $('#adjustmentSection').fadeIn();
+            $('#actionButtons').show();
+            updateAdjustmentPreview();
+        }
+
+        // ✅ Update adjustment preview (with Arabic numbers)
+        function updateAdjustmentPreview() {
+            if (!currentPackagingBalance) return;
+
+            var currentQty = currentPackagingBalance.currentQuantity;
+            var currentCount = currentPackagingBalance.currentCount;
+
+            // Get English values for calculation
+            var desiredQty = getEnglishNumericValue($('#DesiredQuantityBalance').val());
+            var desiredCount = getEnglishNumericValue($('#DesiredCountBalance').val());
+
+            var qtyDiff = desiredQty - currentQty;
+            var countDiff = desiredCount - currentCount;
+
+            // Update current values display
+            updateCurrentValuesDisplay();
+
+            // Update desired values display (in Arabic)
+            $('#desiredQty').text(formatArabicNumber(desiredQty.toFixed(3)) + ' كجم');
+            $('#desiredCount').text(formatArabicNumber(desiredCount.toString()) + ' وحدة');
+
+            // Update adjustment display (in Arabic)
+            var qtyClass = qtyDiff > 0 ? 'text-success' : qtyDiff < 0 ? 'text-danger' : 'text-muted';
+            var countClass = countDiff > 0 ? 'text-success' : countDiff < 0 ? 'text-danger' : 'text-muted';
+            var titleClass = (Math.abs(qtyDiff) > 0.001 || countDiff !== 0) ? 'text-warning' : 'text-muted';
+
+            $('#adjustmentTitle').removeClass().addClass('mb-1 ' + titleClass).text(
+                (Math.abs(qtyDiff) > 0.001 || countDiff !== 0) ? 'التعديل المطلوب' : 'لا يوجد تعديل'
+            );
+
+            $('#adjustmentQty').removeClass().addClass('fw-bold ' + qtyClass).text(
+                (qtyDiff >= 0 ? '+' : '') + formatArabicNumber(qtyDiff.toFixed(3)) + ' كجم'
+            );
+
+            $('#adjustmentCount').removeClass().addClass(countClass).text(
+                (countDiff >= 0 ? '+' : '') + formatArabicNumber(countDiff.toString()) + ' وحدة'
+            );
+
+            // Show/hide preview card
+            var hasChanges = Math.abs(qtyDiff) > 0.001 || countDiff !== 0;
+            var inputsValid = validateAllArabicInputs();
+
+            if (hasChanges && inputsValid) {
+                $('#adjustmentPreview').fadeIn();
+                updateImpactAnalysis(qtyDiff, countDiff);
+                $('#previewBtn').prop('disabled', false);
+            } else {
+                $('#adjustmentPreview').fadeOut();
+                $('#impactAnalysis').fadeOut();
+                $('#previewBtn').prop('disabled', true);
+            }
+        }
+
+        // ✅ Validate all Arabic inputs
+        function validateAllArabicInputs() {
+            var qtyValid = validateArabicField($('#DesiredQuantityBalance'), 'decimal', 999999.999);
+            var countValid = validateArabicField($('#DesiredCountBalance'), 'integer', 999999);
+            return qtyValid && countValid;
+        }
+
+        // ✅ Update current values display (Arabic)
+        function updateCurrentValuesDisplay() {
+            if (currentPackagingBalance) {
+                $('#currentQty').text(formatArabicNumber(currentPackagingBalance.currentQuantity.toFixed(3)) + ' كجم');
+                $('#currentCount').text(formatArabicNumber(currentPackagingBalance.currentCount.toString()) + ' وحدة');
+            }
+        }
+
+        // ✅ Update impact analysis (Arabic)
+        function updateImpactAnalysis(qtyDiff, countDiff) {
+            if (!currentOverallBalance) return;
+
+            var newOverallQty = currentOverallBalance.totalQuantityBalance + qtyDiff;
+            var newOverallCount = currentOverallBalance.totalCountBalance + countDiff;
+
+            var impactHtml = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>الرصيد الإجمالي الحالي:</strong><br>
+                        ${formatArabicNumber(currentOverallBalance.totalQuantityBalance.toFixed(2))} كجم |
+                        ${formatArabicNumber(currentOverallBalance.totalCountBalance.toString())} وحدة
+                    </div>
+                    <div class="col-md-6">
+                        <strong>الرصيد الإجمالي بعد التعديل:</strong><br>
+                        <span class="${newOverallQty >= 0 ? 'text-success' : 'text-danger'}">
+                            ${formatArabicNumber(newOverallQty.toFixed(2))} كجم
+                        </span> |
+                        <span class="${newOverallCount >= 0 ? 'text-success' : 'text-danger'}">
+                            ${formatArabicNumber(newOverallCount.toString())} وحدة
+                        </span>
+                    </div>
+                </div>
+            `;
+
+            $('#impactContent').html(impactHtml);
+            $('#impactAnalysis').fadeIn();
+        }
+
+        // ✅ Preview adjustment before submission
+        function previewAdjustment() {
+            if (!currentPackagingBalance) {
+                showArabicError('لم يتم تحميل بيانات الرصيد الحالي');
+                return;
+            }
+
+            if (!validateAllArabicInputs()) {
+                showArabicWarning('يرجى التأكد من صحة القيم المدخلة');
+                return;
+            }
+
+            var yarnItemName = $('#YarnItemId option:selected').text();
+            var packagingName = $('#PackagingStyleId option:selected').text();
+            var currentQty = currentPackagingBalance.currentQuantity;
+            var currentCount = currentPackagingBalance.currentCount;
+
+            var desiredQty = getEnglishNumericValue($('#DesiredQuantityBalance').val());
+            var desiredCount = getEnglishNumericValue($('#DesiredCountBalance').val());
+            var reason = $('#ReasonForReset').val() || 'تعديل إداري';
+
+            var qtyDiff = desiredQty - currentQty;
+            var countDiff = desiredCount - currentCount;
+
+            if (Math.abs(qtyDiff) < 0.001 && countDiff === 0) {
+                Swal.fire({
+                    title: 'لا يوجد تغيير',
+                    text: 'القيم المطلوبة مطابقة للرصيد الحالي',
+                    icon: 'info',
+                    confirmButtonText: 'موافق'
+                });
+                return;
+            }
+
+            var previewHtml = `
+                <div class="text-start">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <h6 class="text-primary">تفاصيل العملية:</h6>
+                            <p class="mb-1"><strong>الصنف:</strong> ${yarnItemName}</p>
+                            <p class="mb-1"><strong>نوع التعبئة:</strong> ${packagingName}</p>
+                            <p class="mb-1"><strong>السبب:</strong> ${reason}</p>
+                            <p class="mb-0"><strong>التاريخ:</strong> ${$('#ResetDate').val()}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6 class="text-success">التغييرات:</h6>
+                            <p class="mb-1">
+                                <strong>الكمية:</strong>
+                                ${formatArabicNumber(currentQty.toFixed(3))} →
+                                ${formatArabicNumber(desiredQty.toFixed(3))} كجم
+                                <span class="${qtyDiff > 0 ? 'text-success' : 'text-danger'}">
+                                    (${qtyDiff > 0 ? '+' : ''}${formatArabicNumber(qtyDiff.toFixed(3))})
+                                </span>
+                            </p>
+                            <p class="mb-0">
+                                <strong>العدد:</strong>
+                                ${formatArabicNumber(currentCount.toString())} →
+                                ${formatArabicNumber(desiredCount.toString())} وحدة
+                                <span class="${countDiff > 0 ? 'text-success' : 'text-danger'}">
+                                    (${countDiff > 0 ? '+' : ''}${formatArabicNumber(countDiff.toString())})
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>تنبيه:</strong> سيتم إنشاء معاملة تعديل لهذا النوع من التعبئة فقط
+                    </div>
+                </div>
+            `;
+
+            Swal.fire({
+                title: 'تأكيد تعديل رصيد التعبئة',
+                html: previewHtml,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-check me-1"></i>تأكيد التعديل',
+                cancelButtonText: '<i class="fas fa-times me-1"></i>إلغاء',
+                confirmButtonColor: '#28a745',
+                cancelButtonColor: '#6c757d',
+                width: '800px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitAdjustment();
+                }
+            });
+        }
+
+        // ✅ Submit the adjustment (convert Arabic to English for server)
+        function submitAdjustment() {
+            var formData = {
+                yarnItemId: parseInt($('#YarnItemId').val()),
+                packagingStyleId: parseInt($('#PackagingStyleId').val()),
+                desiredQuantityBalance: getEnglishNumericValue($('#DesiredQuantityBalance').val()),
+                desiredCountBalance: getEnglishNumericValue($('#DesiredCountBalance').val()),
+                reason: $('#ReasonForReset').val()
+            };
+
+            // Add CSRF token
+            formData.__RequestVerificationToken = $('input[name="__RequestVerificationToken"]').val();
+
+            $.ajax({
+                url: '@Url.Action("ResetPackagingBalance")',
+                type: 'POST',
+                data: formData,
+                beforeSend: function() {
+                    Swal.fire({
+                        title: 'جاري المعالجة...',
+                        html: 'يتم الآن إنشاء معاملة التعديل',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                },
+                success: function(response) {
+                    Swal.close();
+                    if (typeof response === 'string' && response.includes('<!DOCTYPE html>')) {
+                        Swal.fire({
+                            title: 'تم التعديل بنجاح',
+                            text: 'تم إنشاء معاملة التعديل بنجاح',
+                            icon: 'success',
+                            confirmButtonText: 'موافق'
+                        }).then(() => {
+                            window.location.href = '@Url.Action("Overview")';
+                        });
+                    } else if (response && response.success !== false) {
+                        Swal.fire({
+                            title: 'تم التعديل بنجاح',
+                            text: 'تم إنشاء معاملة التعديل بنجاح',
+                            icon: 'success',
+                            confirmButtonText: 'موافق'
+                        }).then(() => {
+                            window.location.reload();
+                        });
+                    } else {
+                        showArabicError('فشل في تعديل الرصيد: ' + (response.error || 'خطأ غير معروف'));
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.close();
+                    console.error('Submit error:', xhr.responseText);
+
+                    if (xhr.status === 200) {
+                        Swal.fire({
+                            title: 'تم التعديل بنجاح',
+                            text: 'تم إنشاء معاملة التعديل بنجاح',
+                            icon: 'success',
+                            confirmButtonText: 'موافق'
+                        }).then(() => {
+                            window.location.href = '@Url.Action("Overview")';
+                        });
+                    } else {
+                        showArabicError('حدث خطأ أثناء تعديل الرصيد: ' + error);
+                    }
+                }
+            });
+        }
+
+        // ✅ Enhanced utility functions with Arabic support
+        function showArabicError(message) {
+            Swal.fire({
+                title: 'خطأ',
+                text: message,
+                icon: 'error',
+                confirmButtonText: 'موافق',
+                confirmButtonColor: '#dc3545'
+            });
+        }
+
+        function showArabicWarning(message) {
+            Swal.fire({
+                title: 'تنبيه',
+                text: message,
+                icon: 'warning',
+                confirmButtonText: 'موافق',
+                confirmButtonColor: '#ffc107'
+            });
+        }
+
+        function resetForm() {
+            $('#PackagingStyleId').prop('disabled', true).val('').trigger('change');
+            resetPackagingSelection();
+        }
+
+        function resetPackagingSelection() {
+            currentPackagingBalance = null;
+            $('#currentBalanceDisplay').html('<small class="text-muted"><i class="fas fa-arrow-up me-1"></i>اختر نوع التعبئة</small>');
+            $('#adjustmentSection').hide();
+            $('#actionButtons').hide();
+            $('#initialMessage').show();
+            $('#overallBalanceCard').fadeOut();
+            $('#DesiredQuantityBalance, #DesiredCountBalance').val('').removeClass('is-valid is-invalid');
+            $('.invalid-feedback').remove();
+        }
+
+        function resetPackagingBalance() {
+            $('#currentBalanceDisplay').html('<small class="text-muted"><i class="fas fa-arrow-up me-1"></i>اختر نوع التعبئة</small>');
+            $('#adjustmentSection').hide();
+            $('#actionButtons').hide();
+            $('#initialMessage').show();
+        }
+
+        // Make functions available globally
+        window.previewAdjustment = previewAdjustment;
+    </script>
+
+    <style>
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
+
+        /* ✅ Enhanced Arabic Number Input Styling */
+        .arabic-number-input {
+            direction: rtl !important;
+            text-align: right !important;
+            font-family: 'Segoe UI', 'Tahoma', 'Arial', sans-serif;
+            font-size: 1.2rem !important;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .arabic-number-input:focus {
+            border-color: #667eea !important;
+            box-shadow: 0 0 0 0.25rem rgba(102, 126, 234, 0.25) !important;
+            background-color: #f8f9ff;
+        }
+
+        .arabic-number-input.arabic-input-focused {
+            background: linear-gradient(90deg, #f8f9ff 0%, #ffffff 100%);
+        }
+
+        .arabic-number-input::placeholder {
+            color: #6c757d;
+            opacity: 0.8;
+            font-style: italic;
+        }
+
+        .form-control.is-valid {
+            border-color: #198754;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='m2.3 6.73.8-.77-.8-.77V4.2L.8 2.27l.8-.77.8.77L4.3.5l.8.77L3.24 3.2l-.8.77V6.5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: left calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath d='m5.8 4.6 2.4 2.8m0-2.8L5.8 7.4'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: left calc(0.375em + 0.1875rem) center;
+            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+        }
+
+        .border-end {
+            border-right: 1px solid #dee2e6 !important;
+        }
+
+        .card {
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+        }
+
+        .bg-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .alert {
+            border: none;
+            border-radius: 0.5rem;
+        }
+
+        .invalid-feedback {
+            display: block;
+            font-size: 0.875rem;
+            color: #dc3545;
+            margin-top: 0.25rem;
+        }
+
+        /* ✅ Arabic Input Animation */
+        .arabic-number-input {
+            transition: all 0.3s ease;
+        }
+
+        .arabic-number-input:hover {
+            border-color: #667eea;
+        }
+
+        /* ✅ Success feedback for Arabic inputs */
+        .form-text .text-success {
+            font-weight: 500;
+            color: #198754 !important;
+        }
+
+        /* ✅ Mobile responsiveness */
+        @@media (max-width: 768px) {
+            .border-end {
+                border-right: none !important;
+                border-bottom: 1px solid #dee2e6 !important;
+                margin-bottom: 15px;
+                padding-bottom: 15px;
+            }
+            
+            .arabic-number-input {
+                font-size: 1.1rem !important;
+            }
+            
+            .input-group-lg .form-control {
+                font-size: 1.2rem !important;
+            }
+        }
+
+        /* ✅ Loading and success animations */
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.5s ease-out;
+        }
+    </style>
+}

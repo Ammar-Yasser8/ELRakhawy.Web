@@ -301,7 +301,6 @@
     </div>
 
    
-
 @section Scripts {
     <script src="/lib/jquery-validation/dist/jquery.validate.min.js"></script>
     <script src="/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
@@ -314,17 +313,14 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
 
     <script>
-        // Replace your existing JavaScript section with these fixes:
-
         $(document).ready(function () {
-            // Constants
-            const CURRENT_TIME = '2025-08-12 02:19:03';
+            // ✅ Updated Constants
+            const CURRENT_TIME = '2025-10-11 14:27:18';
             const CURRENT_USER = 'Ammar-Yasser8';
             const IS_INBOUND = @Json.Serialize(Model.IsInbound);
             const FORM_NAME = '@Html.Raw(formName)';
 
-            // Debug info
-            console.log('Initializing yarn transaction form:', {
+            console.log('🚀 Enhanced yarn transaction form initializing:', {
                 time: CURRENT_TIME,
                 user: CURRENT_USER,
                 isInbound: IS_INBOUND,
@@ -353,11 +349,11 @@
                 }
             })();
 
-            // Initialize Arabic date picker (Flatpickr)
+            // ✅ FIXED: Initialize Arabic date picker (Flatpickr)
             if (window.flatpickr) {
                 flatpickr.localize(flatpickr.l10ns.ar);
 
-                flatpickr('#Date', {
+                const datePicker = flatpickr('#Date', {
                     dateFormat: 'Y-m-d',
                     locale: 'ar',
                     allowInput: true,
@@ -365,18 +361,31 @@
                     defaultDate: $('#Date').val() || new Date(),
                     onReady: function(selectedDates, dateStr, instance) {
                         if (dateStr) {
-                            $('#Date').val(dateStr);
+                            $('#Date').val(toArabicDigits(dateStr));
                         }
                     },
                     onChange: function(selectedDates, dateStr, instance) {
                         if (dateStr) {
-                            $('#Date').val(dateStr);
+                            $('#Date').val(toArabicDigits(dateStr));
                         }
+                    },
+                    onClose: function(selectedDates, dateStr, instance) {
+                        if (dateStr) {
+                            $('#Date').val(toArabicDigits(dateStr));
+                        }
+                    }
+                });
+
+                // ✅ Convert date input to Arabic immediately on any change
+                $('#Date').on('input change', function() {
+                    let val = $(this).val();
+                    if (val) {
+                        $(this).val(toArabicDigits(val));
                     }
                 });
             }
 
-            // Helper function to display available packaging for error messages
+            // ✅ Enhanced packaging validation function
             function getAvailablePackagingDisplay() {
                 if (!window.currentPackagingBreakdown || window.currentPackagingBreakdown.length === 0) {
                     return 'لا توجد أرصدة متاحة';
@@ -384,26 +393,34 @@
 
                 return window.currentPackagingBreakdown
                     .filter(p => p.totalCount > 0)
-                    .map(p => `• ${toArabicDigits(p.totalCount.toString())} ${p.packagingType}`)
+                    .map(p => `• ${toArabicDigits(p.totalCount.toString())} ${p.packagingType} (${toArabicDigits(p.specificWeight.toFixed(2))} كجم)`)
                     .join('<br>');
             }
 
-            // Enhanced packaging change handler with balance info
+            // ✅ Enhanced packaging change handler with specific weight info
             $('#PackagingStyleId').on('change', function () {
                 var selectedText = $(this).find('option:selected').text();
                 var selectedId = $(this).val();
                 $('#PackagingStyleName').val(selectedText);
 
-                // Show available count for selected packaging type
+                // Clear validation errors when packaging changes
+                $('#Quantity, #Count').removeClass('is-invalid');
+                $('.invalid-feedback').remove();
+                $('#validationSummary').hide().removeClass('alert-danger');
+
+                // Show available count and weight for selected packaging type
                 if (selectedId && window.currentPackagingBreakdown) {
                     var availableCount = 0;
+                    var availableWeight = 0;
+
                     window.currentPackagingBreakdown.forEach(function(pkg) {
                         if (pkg.packagingId == selectedId) {
                             availableCount = pkg.totalCount;
+                            availableWeight = pkg.specificWeight;
                         }
                     });
 
-                    // Update UI to show available count for this packaging type
+                    // Update UI to show available count and weight for this packaging type
                     var $countGroup = $('#Count').closest('.input-group');
                     var existingHelp = $countGroup.next('.packaging-help');
                     existingHelp.remove();
@@ -413,6 +430,7 @@
                             <div class="form-text packaging-help text-success">
                                 <i class="fas fa-info-circle me-1"></i>
                                 متاح من ${selectedText}: ${toArabicDigits(availableCount.toString())} وحدة
+                                (${toArabicDigits(availableWeight.toFixed(2))} كجم)
                             </div>
                         `);
                     } else if (!IS_INBOUND) {
@@ -426,74 +444,144 @@
                 }
             });
 
-            // Initialize form with Arabic digits for all text fields
+            // ✅ FIXED: Initialize form with Arabic digits for all text fields
             $('#yarnTransactionForm').find("input[type='text'], textarea").each(function() {
                 var v = $(this).val();
                 if (v) {
-                    // Apply smart number detection
-                    $(this).val(smartNumberFormatting(v));
+                    $(this).val(toArabicDigits(v));
                 }
             });
 
-            // Smart input handling for all text fields (except Date)
+            // ✅ FIXED: Smart input handling - immediate Arabic conversion
             $(document).on("input", "#yarnTransactionForm input[type='text']:not(#Date), #yarnTransactionForm textarea", function() {
                 let input = this;
                 let val = input.value;
+                let cursorPos = input.selectionStart;
+
                 if (val.length > 0) {
-                    let newVal = smartNumberFormatting(val);
+                    let newVal = toArabicDigits(val);
                     if (newVal !== val) {
-                        let cursorPos = input.selectionStart;
                         input.value = newVal;
                         input.setSelectionRange(cursorPos, cursorPos);
                     }
                 }
             });
 
-            // FIX 1: Clear placeholder zeros and handle decimal formatting
+            // Clear placeholder zeros and handle decimal formatting
             $('#Quantity, #Count').on('focus', function() {
                 if (this.value === '0' || this.value === '٠') {
                     this.value = '';
                 }
             });
 
-            // FIX 2: Handle decimal point conversion and validation
-            $('#Quantity, #Count').on('input', function() {
+            // ✅ FIXED: Enhanced Quantity input handler with immediate Arabic conversion
+            $('#Quantity').on('input blur', function() {
                 let val = this.value;
                 let cursorPos = this.selectionStart;
 
                 // Convert Arabic decimal comma to dot
                 val = val.replace(/،/g, '.');
 
-                // For Count field: only allow integers
-                if (this.id === 'Count') {
-                    // Remove decimal points and everything after for count
-                    val = val.replace(/\./g, '');
-                    // Only keep digits
-                    val = val.replace(/[^\d٠-٩]/g, '');
+                // Handle decimal point
+                let parts = val.split('.');
+                if (parts.length > 2) {
+                    val = parts[0] + '.' + parts.slice(1).join('');
+                }
+                val = val.replace(/[^\d٠-٩.]/g, '');
 
-                    // Real-time packaging validation for Count field
-                    if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
-                        let selectedPackagingId = $('#PackagingStyleId').val();
-                        if (selectedPackagingId) {
-                            let countValue = parseInt(toLatinDigits(val));
-                            let availableCount = 0;
+                // ✅ Immediately convert to Arabic digits
+                let displayVal = toArabicDigits(val);
 
-                            window.currentPackagingBreakdown.forEach(function(pkg) {
-                                if (pkg.packagingId == selectedPackagingId) {
-                                    availableCount = pkg.totalCount;
+                if (this.value !== displayVal) {
+                    this.value = displayVal;
+                    this.setSelectionRange(cursorPos, cursorPos);
+                }
+
+                // Real-time weight validation for outbound transactions
+                if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
+                    let selectedPackagingId = $('#PackagingStyleId').val();
+                    if (selectedPackagingId) {
+                        let quantityValue = parseFloat(toLatinDigits(val));
+                        let selectedPackaging = window.currentPackagingBreakdown.find(pkg =>
+                            pkg.packagingId.toString() === selectedPackagingId);
+
+                        let $quantityField = $(this);
+
+                        if (selectedPackaging && !isNaN(quantityValue)) {
+                            if (quantityValue > selectedPackaging.specificWeight) {
+                                $quantityField.addClass('is-invalid');
+                                let existingError = $quantityField.next('.invalid-feedback');
+                                if (existingError.length === 0) {
+                                    $quantityField.after(`
+                                        <div class="invalid-feedback">
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            الكمية ${toArabicDigits(quantityValue.toFixed(2))} كجم تتجاوز المتاح لـ${selectedPackaging.packagingType}
+                                            (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم فقط)
+                                        </div>
+                                    `);
+                                } else {
+                                    existingError.html(`
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        الكمية ${toArabicDigits(quantityValue.toFixed(2))} كجم تتجاوز المتاح لـ${selectedPackaging.packagingType}
+                                        (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم فقط)
+                                    `);
                                 }
-                            });
+                            } else {
+                                $quantityField.removeClass('is-invalid');
+                                $quantityField.next('.invalid-feedback').remove();
+                            }
+                        }
+                    }
+                } else {
+                    $(this).removeClass('is-invalid');
+                    $(this).next('.invalid-feedback').remove();
+                }
+            });
 
-                            // Show real-time warning if exceeding available count
-                            let $countField = $(this);
-                            if (countValue > availableCount) {
+            // ✅ FIXED: Enhanced Count input handler with immediate Arabic conversion
+            $('#Count').on('input blur', function() {
+                let val = this.value;
+                let cursorPos = this.selectionStart;
+
+                // Only allow integers for count (remove decimal points)
+                val = val.replace(/\./g, '');
+                val = val.replace(/[^\d٠-٩]/g, '');
+
+                // ✅ Immediately convert to Arabic digits
+                let displayVal = toArabicDigits(val);
+
+                if (this.value !== displayVal) {
+                    this.value = displayVal;
+                    this.setSelectionRange(cursorPos, cursorPos);
+                }
+
+                // Real-time packaging validation for Count field
+                if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
+                    let selectedPackagingId = $('#PackagingStyleId').val();
+                    if (selectedPackagingId) {
+                        let countValue = parseInt(toLatinDigits(val));
+                        let selectedPackaging = window.currentPackagingBreakdown.find(pkg =>
+                            pkg.packagingId.toString() === selectedPackagingId);
+
+                        let $countField = $(this);
+
+                        if (selectedPackaging && !isNaN(countValue)) {
+                            if (countValue > selectedPackaging.totalCount) {
                                 $countField.addClass('is-invalid');
                                 let existingError = $countField.next('.invalid-feedback');
                                 if (existingError.length === 0) {
                                     $countField.after(`
                                         <div class="invalid-feedback">
-                                            العدد ${toArabicDigits(countValue.toString())} يتجاوز المتاح (${toArabicDigits(availableCount.toString())}) من هذا النوع
+                                            <i class="fas fa-exclamation-triangle me-1"></i>
+                                            العدد ${toArabicDigits(countValue.toString())} يتجاوز المتاح لـ${selectedPackaging.packagingType}
+                                            (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة فقط)
                                         </div>
+                                    `);
+                                } else {
+                                    existingError.html(`
+                                        <i class="fas fa-exclamation-triangle me-1"></i>
+                                        العدد ${toArabicDigits(countValue.toString())} يتجاوز المتاح لـ${selectedPackaging.packagingType}
+                                        (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة فقط)
                                     `);
                                 }
                             } else {
@@ -503,27 +591,13 @@
                         }
                     }
                 } else {
-                    // For Quantity: allow one decimal point
-                    let parts = val.split('.');
-                    if (parts.length > 2) {
-                        val = parts[0] + '.' + parts.slice(1).join('');
-                    }
-                    // Only keep digits and one decimal point
-                    val = val.replace(/[^\d٠-٩.]/g, '');
-                }
-
-                // Convert to display format using smart formatting
-                let displayVal = smartNumberFormatting(val);
-
-                if (this.value !== displayVal) {
-                    this.value = displayVal;
-                    this.setSelectionRange(cursorPos, cursorPos);
+                    $(this).removeClass('is-invalid');
+                    $(this).next('.invalid-feedback').remove();
                 }
             });
 
-            // FIX 3 & 4: Enhanced preview with proper validation and submission
+            // ✅ Enhanced preview with specific weight information
             $('#previewBtn').click(function () {
-                // Validate form first
                 let validation = validateForm();
                 if (!validation.isValid) {
                     showValidationErrors(validation.errors);
@@ -541,6 +615,18 @@
                     type: IS_INBOUND ? 'وارد' : 'صادر'
                 };
 
+                // ✅ Add packaging weight information to preview
+                var packagingWeight = '';
+                if (window.currentPackagingBreakdown && $('#PackagingStyleId').val()) {
+                    var selectedPackagingId = $('#PackagingStyleId').val();
+                    var selectedPackaging = window.currentPackagingBreakdown.find(p =>
+                        p.packagingId.toString() === selectedPackagingId);
+
+                    if (selectedPackaging) {
+                        packagingWeight = `<p><strong>الوزن المتاح للتعبئة:</strong> ${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم</p>`;
+                    }
+                }
+
                 var preview = `
                     <div class="row">
                         <div class="col-md-6">
@@ -556,7 +642,8 @@
                         <div class="col-md-6">
                             <p><strong>الجهة:</strong> ${data.stakeholder}</p>
                             <p><strong>التعبئة:</strong> ${data.packaging}</p>
-                            <p><strong>التاريخ:</strong> ${data.date.replace(/-/g, '-')}</p>
+                            ${packagingWeight}
+                            <p><strong>التاريخ:</strong> ${data.date}</p>
                         </div>
                         <div class="col-12">
                             <p><strong>البيان:</strong> ${data.comment}</p>
@@ -576,440 +663,12 @@
                     reverseButtons: true
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        // Submit the form directly
                         submitForm();
                     }
                 });
             });
 
-            // Enhanced form submission with comprehensive balance checking
-            function submitForm() {
-                // Convert values to Latin before submission
-                let quantityLatin = toLatinDigits($('#Quantity').val() || '0');
-                let countLatin = toLatinDigits($('#Count').val() || '0');
-
-                // Store current packaging info for validation
-                let selectedPackagingId = $('#PackagingStyleId').val();
-                let selectedPackagingName = $('#PackagingStyleId option:selected').text();
-
-                // Enhanced balance validation for outbound
-                if (!IS_INBOUND) {
-                    let quantity = parseFloat(quantityLatin);
-                    let count = parseInt(countLatin);
-
-                    // Get current balance data
-                    let currentBalanceText = $('#currentBalanceDisplay').text();
-                    let quantityBalanceMatch = toLatinDigits(currentBalanceText).match(/(\d+\.?\d*)/);
-
-                    // Check quantity balance
-                    if (quantityBalanceMatch) {
-                        let currentQuantityBalance = parseFloat(quantityBalanceMatch[1]);
-                        if (quantity > currentQuantityBalance) {
-                            Swal.fire({
-                                title: 'خطأ في رصيد الكمية',
-                                text: `الكمية المطلوبة (${toArabicDigits(quantity.toFixed(3))} كجم) أكبر من الرصيد المتاح (${toArabicDigits(currentQuantityBalance.toFixed(3))} كجم)`,
-                                icon: 'error',
-                                confirmButtonText: 'موافق',
-                                confirmButtonColor: '#dc3545'
-                            });
-
-                            // Reset values back to display format
-                            $('#Quantity').val(smartNumberFormatting(quantityLatin));
-                            $('#Count').val(smartNumberFormatting(countLatin));
-                            return false;
-                        }
-                    }
-
-                    // Check count balance by packaging type
-                    if (window.currentPackagingBreakdown && selectedPackagingId) {
-                        let availableCountForPackaging = 0;
-
-                        // Find available count for selected packaging type
-                        window.currentPackagingBreakdown.forEach(function(pkg) {
-                            if (pkg.packagingId == selectedPackagingId) {
-                                availableCountForPackaging = pkg.totalCount;
-                            }
-                        });
-
-                        if (count > availableCountForPackaging) {
-                            let errorMessage = availableCountForPackaging > 0
-                                ? `العدد المطلوب (${toArabicDigits(count.toString())} وحدة) من ${selectedPackagingName} أكبر من المتاح (${toArabicDigits(availableCountForPackaging.toString())} وحدة)`
-                                : `لا يوجد رصيد متاح من ${selectedPackagingName}. الرصيد المتاح من أنواع التعبئة الأخرى فقط.`;
-
-                            Swal.fire({
-                                title: 'خطأ في رصيد العدد',
-                                html: `${errorMessage}<br><br><strong>الأرصدة المتاحة:</strong><br>${getAvailablePackagingDisplay()}`,
-                                icon: 'error',
-                                confirmButtonText: 'موافق',
-                                confirmButtonColor: '#dc3545'
-                            });
-
-                            // Reset values back to display format
-                            $('#Quantity').val(smartNumberFormatting(quantityLatin));
-                            $('#Count').val(smartNumberFormatting(countLatin));
-                            return false;
-                        }
-                    }
-                }
-
-                // If validation passed, proceed with submission
-                $('#Quantity').val(quantityLatin);
-                $('#Count').val(countLatin);
-
-                // Show loading state
-                $('#saveBtn').prop('disabled', true)
-                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
-
-                // Submit the form
-                $('#yarnTransactionForm')[0].submit();
-                return true;
-            }
-
-            // Regular form submission handler
-            $('#yarnTransactionForm').on('submit', function(e) {
-                e.preventDefault();
-
-                let validation = validateForm();
-                if (!validation.isValid) {
-                    showValidationErrors(validation.errors);
-                    return false;
-                }
-
-                submitForm();
-            });
-
-            // Handle yarn item selection change
-            $('#YarnItemId').on('change', function () {
-                var selectedItemId = $(this).val();
-                var selectedText = $(this).find('option:selected').text();
-
-                console.log('Yarn Item Change:', {
-                    time: CURRENT_TIME,
-                    itemId: selectedItemId,
-                    selectedText: selectedText
-                });
-
-                $('#YarnItemName').val(selectedText);
-
-                if (!selectedItemId) {
-                    $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
-                    $('#balanceInfoCard').fadeOut();
-                    return;
-                }
-
-                fetchYarnItemBalance(parseInt(selectedItemId));
-            });
-
-            // Load stakeholders and packaging
-            (function() {
-                var $stakeholderSelect = $('#StakeholderId');
-                resetStakeholderDropdown($stakeholderSelect);
-                fetchStakeholdersByForm(FORM_NAME, $stakeholderSelect);
-            })();
-
-            $('#StakeholderId').on('change', function () {
-                var $opt = $(this).find('option:selected');
-                var selectedText = $opt.text();
-                $('#StakeholderName').val(selectedText);
-                var typeId = $opt.data('type-id');
-                if (typeId) {
-                    $('#StakeholderTypeId').val(typeId);
-                }
-            });
-
-            $('#PackagingStyleId').on('change', function () {
-                var selectedText = $(this).find('option:selected').text();
-                $('#PackagingStyleName').val(selectedText);
-            });
-
-            // Initialize packaging styles
-            var $packagingSelect = $('#PackagingStyleId');
-            fetchPackagingStyles(FORM_NAME, $packagingSelect);
-
-            // Load initial yarn item balance if selected
-            var initialYarnItemId = $('#YarnItemId').val();
-            if (initialYarnItemId) {
-                fetchYarnItemBalance(parseInt(initialYarnItemId));
-            }
-
-            // Auto-hide alerts
-            $('.alert').delay(5000).fadeOut(350);
-
-            console.log('Yarn transaction form initialized successfully');
-
-            // Helper Functions - Recovered stakeholders and packaging loading
-
-            function resetStakeholderDropdown($select) {
-                $select
-                    .empty()
-                    .append('<option value="">-- اختر الجهة --</option>')
-                    .prop('disabled', false)
-                    .select2('destroy')
-                    .select2({
-                        theme: 'bootstrap-5',
-                        width: '100%',
-                        language: {
-                            noResults: function () {
-                                return "لا توجد نتائج";
-                            }
-                        }
-                    });
-            }
-
-            function fetchStakeholdersByForm(formName, $select) {
-                $.ajax({
-                    url: '/YarnTransactions/GetStakeholdersByForm',
-                    type: 'GET',
-                    data: { formName: formName },
-                    dataType: 'json',
-                    beforeSend: function() {
-                        $select
-                            .empty()
-                            .append('<option value="">-- اختر الجهة --</option>')
-                            .append('<option value="" disabled>جاري التحميل...</option>')
-                            .prop('disabled', true);
-                    },
-                    success: function(response) {
-                        $select
-                            .empty()
-                            .append('<option value="">-- اختر الجهة --</option>')
-                            .prop('disabled', false);
-
-                        var stakeholders = (response && response.data) || [];
-                        if (response && response.success && stakeholders.length > 0) {
-                            stakeholders.forEach(function(item) {
-                                var opt = new Option(item.name, item.id);
-                                if (item.typeId) {
-                                    $(opt).attr('data-type-id', item.typeId);
-                                }
-                                $select.append(opt);
-                            });
-                            console.log('Stakeholders loaded successfully');
-                        } else {
-                            console.warn('No stakeholders available for form');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error fetching stakeholders:', {
-                            status: status,
-                            error: error,
-                            time: CURRENT_TIME
-                        });
-                        showError('حدث خطأ أثناء تحميل بيانات الجهات');
-                    },
-                    complete: function() {
-                        $select.select2('destroy').select2({
-                            theme: 'bootstrap-5',
-                            width: '100%',
-                            language: {
-                                noResults: function () {
-                                    return "لا توجد نتائج";
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-
-            function fetchPackagingStyles(formName, $select) {
-                $.ajax({
-                    url: '/YarnTransactions/GetPackagingStylesByForm',
-                    type: 'GET',
-                    data: { formType: formName },
-                    dataType: 'json',
-                    beforeSend: function() {
-                        $select
-                            .empty()
-                            .append('<option value="">-- اختر التعبئة --</option>')
-                            .append('<option value="" disabled>جاري التحميل...</option>')
-                            .prop('disabled', true);
-                    },
-                    success: function(response) {
-                        $select
-                            .empty()
-                            .append('<option value="">-- اختر التعبئة --</option>')
-                            .prop('disabled', false);
-
-                        var packagingStyles = response.data || response;
-                        if (Array.isArray(packagingStyles) && packagingStyles.length > 0) {
-                            packagingStyles.forEach(function(item) {
-                                var optionText = item.name || item.styleName || item.text;
-                                var optionValue = item.id || item.value;
-
-                                if (optionValue && optionText) {
-                                    $select.append(new Option(optionText, optionValue));
-                                }
-                            });
-                            console.log('Packaging styles loaded successfully');
-                        } else {
-                            console.warn('No packaging styles available');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error fetching packaging styles:', {
-                            status: status,
-                            error: error,
-                            time: CURRENT_TIME
-                        });
-                        showError('حدث خطأ أثناء تحميل أنماط التعبئة');
-                    },
-                    complete: function() {
-                        $select.select2('destroy').select2({
-                            theme: 'bootstrap-5',
-                            width: '100%',
-                            language: {
-                                noResults: function () {
-                                    return "لا توجد نتائج";
-                                }
-                            }
-                        });
-                    }
-                });
-            }
-
-            function fetchYarnItemBalance(yarnItemId) {
-                $.ajax({
-                    url: '/YarnTransactions/GetYarnItemBalance',
-                    type: 'GET',
-                    data: { yarnItemId: yarnItemId },
-                    dataType: 'json',
-                    beforeSend: function() {
-                        $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
-                    },
-                    success: function(response) {
-                        if (response && response.success) {
-                            var balance = response.quantityBalance || 0;
-                            var countBalance = response.countBalance || 0;
-
-                            var balanceAr = toArabicDigits(balance.toFixed(3).toString());
-
-                            $('#currentBalanceDisplay').html(`
-                                <div class="d-flex justify-content-between">
-                                    <span><strong>${balanceAr}</strong> كجم</span>
-                                    <span><strong>${response.packagingDisplay}</strong></span>
-                                </div>
-                            `);
-
-                            showBalanceInfo(response);
-                            $('#OriginYarnName').val(response.originYarn || '');
-
-                            console.log('Balance loaded:', {
-                                yarnItem: response.yarnItem,
-                                quantityBalance: balance,
-                                countBalance: countBalance,
-                                time: CURRENT_TIME
-                            });
-                        } else {
-                            $('#currentBalanceDisplay').html('<small class="text-danger">0</small>');
-                            showError(response.error || 'فشل في تحميل رصيد الصنف');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        console.error('Error fetching yarn balance:', {
-                            status: status,
-                            error: error,
-                            time: CURRENT_TIME
-                        });
-                        $('#currentBalanceDisplay').html('<small class="text-danger">خطأ في التحميل</small>');
-                        showError('حدث خطأ أثناء تحميل رصيد الصنف');
-                    }
-                });
-            }
-
-            function showBalanceInfo(data) {
-                // Store packaging breakdown globally for validation
-                window.currentPackagingBreakdown = data.packagingBreakdown || [];
-
-                var qBalAr = toArabicDigits(data.quantityBalance.toFixed(3).toString());
-                var tCountAr = toArabicDigits((data.transactionCount || 0).toString());
-                var lastDateAr = toArabicDigits((data.lastTransactionDate || '').toString());
-
-                var packagingDisplayHtml = data.shortPackagingDisplay || 'لا توجد وحدات';
-                var fullPackagingDisplay = data.packagingDisplay || 'لا توجد وحدات';
-
-                var infoHtml = `
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center border-end">
-                                <h5 class="text-primary mb-0">${qBalAr}</h5>
-                                <small class="text-muted">رصيد الكمية (كجم)</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center border-end">
-                                <div class="text-success mb-0" title="${fullPackagingDisplay}">
-                                    ${packagingDisplayHtml}
-                                </div>
-                                <small class="text-muted">رصيد العدد بالتعبئة</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center border-end">
-                                <h5 class="text-info mb-0">${tCountAr}</h5>
-                                <small class="text-muted">عدد المعاملات</small>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center">
-                                <h5 class="text-warning mb-0">${lastDateAr}</h5>
-                                <small class="text-muted">آخر معاملة</small>
-                            </div>
-                        </div>
-                    </div>
-                    <hr>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong>الصنف:</strong> ${data.yarnItem}</p>
-                            <p class="mb-0"><strong>الغزل المكون:</strong> ${data.originYarn}</p>
-                        </div>
-                        <div class="col-md-6">
-                            <p class="mb-0"><strong>الشركة المصنعة:</strong> ${data.manufacturer}</p>
-                        </div>
-                    </div>
-
-                    ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
-                    <hr>
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="fw-bold text-dark mb-0">تفاصيل التعبئة:</h6>
-                                ${data.hasMultiplePackaging ? '<small class="text-muted">أنواع متعددة</small>' : ''}
-                            </div>
-                            <div class="row g-2">
-                                ${data.packagingBreakdown.map(p => `
-                                    <div class="col-auto">
-                                        <span class="badge ${p.totalCount > 50 ? 'bg-success' : 'bg-light text-dark border'} fs-6 py-2 px-3"
-                                              data-packaging-id="${p.packagingId}" data-packaging-count="${p.totalCount}">
-                                            <i class="fas fa-box me-1"></i>
-                                            ${toArabicDigits(p.totalCount.toString())} ${p.packagingType}
-                                        </span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                            ${data.packagingBreakdown.length > 1 ? `
-                            <div class="mt-2">
-                                <small class="text-info">
-                                    <i class="fas fa-info-circle me-1"></i>
-                                    المجموع: ${toArabicDigits(data.countBalance.toString())} وحدة موزعة على ${toArabicDigits(data.packagingBreakdown.length.toString())} نوع تعبئة
-                                </small>
-                            </div>
-                            <div class="mt-2">
-                                <small class="text-warning">
-                                    <i class="fas fa-exclamation-triangle me-1"></i>
-                                    تنبيه: عند الصادر، يجب اختيار نوع التعبئة المطابق للرصيد المتاح
-                                </small>
-                            </div>
-                            ` : ''}
-                        </div>
-                    </div>
-                    ` : ''}
-                `;
-
-                $('#balanceInfo').html(infoHtml);
-                $('#balanceInfoCard').fadeIn();
-            }
-
-            // FIX 6: Enhanced validation with detailed error reporting
+            // ✅ Enhanced form validation function with strict packaging checks
             function validateForm() {
                 var isValid = true;
                 var errors = [];
@@ -1072,25 +731,620 @@
                     $('#Date').removeClass('is-invalid');
                 }
 
+                // ✅ STRICT PACKAGING VALIDATION
+                if (!IS_INBOUND && quantity > 0 && count > 0 && window.currentPackagingBreakdown) {
+                    let selectedPackagingId = $('#PackagingStyleId').val();
+                    if (selectedPackagingId) {
+                        let selectedPackaging = window.currentPackagingBreakdown.find(pkg =>
+                            pkg.packagingId.toString() === selectedPackagingId);
+
+                        if (selectedPackaging) {
+                            // Check weight limit
+                            if (quantity > selectedPackaging.specificWeight) {
+                                errors.push(`الكمية المطلوبة (${toArabicDigits(quantity.toFixed(2))} كجم) تتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم)`);
+                                $('#Quantity').addClass('is-invalid');
+                                isValid = false;
+                            }
+
+                            // Check count limit
+                            if (count > selectedPackaging.totalCount) {
+                                errors.push(`العدد المطلوب (${toArabicDigits(count.toString())} وحدة) يتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة)`);
+                                $('#Count').addClass('is-invalid');
+                                isValid = false;
+                            }
+
+                            // Additional check: verify count matches estimated weight
+                            let estimatedTotalWeight = count * selectedPackaging.averageWeightPerUnit;
+                            if (Math.abs(quantity - estimatedTotalWeight) > (estimatedTotalWeight * 0.2)) {
+                                errors.push(`تحذير: الكمية المدخلة (${toArabicDigits(quantity.toFixed(2))} كجم) لا تتطابق مع العدد المطلوب. الوزن المتوقع: ${toArabicDigits(estimatedTotalWeight.toFixed(2))} كجم`);
+                                $('#Quantity').addClass('is-invalid');
+                                isValid = false;
+                            }
+                        }
+                    }
+                }
+
                 return { isValid: isValid, errors: errors };
             }
 
+            // ✅ Enhanced error display function
             function showValidationErrors(errors) {
                 if (errors && errors.length > 0) {
-                    var errorHtml = errors.map(error => `<li>${error}</li>`).join('');
+                    var errorHtml = errors.map(error => `<li class="mb-1">${error}</li>`).join('');
                     $('#validationList').html(errorHtml);
-                    $('#validationSummary').show();
-                    $('html, body').animate({ scrollTop: 0 }, 500);
+                    $('#validationSummary').show().addClass('alert-danger');
 
-                    // Also show as toast
-                    Swal.fire({
-                        title: 'يرجى تصحيح الأخطاء التالية',
-                        html: `<ul class="text-start">${errorHtml}</ul>`,
-                        icon: 'error',
-                        confirmButtonText: 'موافق',
-                        confirmButtonColor: '#dc3545'
+                    $('html, body').animate({
+                        scrollTop: $('#validationSummary').offset().top - 100
+                    }, 500);
+
+                    $('.is-invalid').each(function() {
+                        $(this).effect('shake', { times: 2 }, 300);
                     });
+
+                    console.log('❌ Validation errors displayed:', errors);
                 }
+            }
+
+            // ✅ FIXED: Enhanced form submission with Arabic to Latin conversion
+            $('#yarnTransactionForm').on('submit', function(e) {
+                e.preventDefault();
+
+                console.log('🔍 Form submission attempt started at:', new Date().toISOString());
+
+                let validation = validateForm();
+
+                if (!validation.isValid) {
+                    console.log('❌ Form submission BLOCKED due to validation errors:', validation.errors);
+                    showValidationErrors(validation.errors);
+
+                    Swal.fire({
+                        title: 'لا يمكن إتمام العملية',
+                        html: `
+                            <div class="text-danger">
+                                <i class="fas fa-ban fa-2x mb-3"></i>
+                                <h6>يوجد أخطاء تمنع حفظ المعاملة:</h6>
+                            </div>
+                            <ul class="text-start text-danger">
+                                ${validation.errors.map(error => `<li>${error}</li>`).join('')}
+                            </ul>
+                            <div class="alert alert-info mt-3">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                يرجى تصحيح الأخطاء أعلاه قبل المحاولة مرة أخرى
+                            </div>
+                        `,
+                        icon: 'error',
+                        confirmButtonText: 'فهمت، سأقوم بالتصحيح',
+                        confirmButtonColor: '#dc3545',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false
+                    });
+
+                    return false;
+                }
+
+                console.log('✅ Form validation passed, proceeding with submission');
+                submitForm();
+            });
+
+            // ✅ Enhanced submitForm function with final validation check
+            function submitForm() {
+                let finalValidation = validateForm();
+                if (!finalValidation.isValid) {
+                    console.log('❌ Final validation failed, blocking submission');
+                    showValidationErrors(finalValidation.errors);
+                    return false;
+                }
+
+                // ✅ Convert Arabic digits back to Latin for server
+                let quantityLatin = toLatinDigits($('#Quantity').val() || '0');
+                let countLatin = toLatinDigits($('#Count').val() || '0');
+                let dateLatin = toLatinDigits($('#Date').val() || '');
+
+                let selectedPackagingId = $('#PackagingStyleId').val();
+                let selectedPackagingName = $('#PackagingStyleId option:selected').text();
+
+                // ✅ DOUBLE CHECK for outbound transactions
+                if (!IS_INBOUND) {
+                    let quantity = parseFloat(quantityLatin);
+                    let count = parseInt(countLatin);
+
+                    if (window.currentPackagingBreakdown && selectedPackagingId) {
+                        let selectedPackaging = window.currentPackagingBreakdown.find(pkg =>
+                            pkg.packagingId.toString() === selectedPackagingId);
+
+                        if (selectedPackaging) {
+                            // FINAL weight check
+                            if (quantity > selectedPackaging.specificWeight) {
+                                Swal.fire({
+                                    title: '🚫 تم منع الحفظ',
+                                    html: `
+                                        <div class="text-danger">
+                                            <h6>الكمية المطلوبة تتجاوز المتاح للتعبئة المحددة</h6>
+                                            <p><strong>المطلوب:</strong> ${toArabicDigits(quantity.toFixed(2))} كجم</p>
+                                            <p><strong>المتاح لـ${selectedPackaging.packagingType}:</strong> ${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم</p>
+                                        </div>
+                                        <div class="alert alert-warning">
+                                            <strong>الحد الأقصى المسموح:</strong> ${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم
+                                        </div>
+                                    `,
+                                    icon: 'error',
+                                    confirmButtonText: 'موافق',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                                return false;
+                            }
+
+                            // FINAL count check
+                            if (count > selectedPackaging.totalCount) {
+                                Swal.fire({
+                                    title: '🚫 تم منع الحفظ',
+                                    html: `
+                                        <div class="text-danger">
+                                            <h6>العدد المطلوب يتجاوز المتاح للتعبئة المحددة</h6>
+                                            <p><strong>المطلوب:</strong> ${toArabicDigits(count.toString())} وحدة</p>
+                                            <p><strong>المتاح لـ${selectedPackaging.packagingType}:</strong> ${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة</p>
+                                        </div>
+                                        <div class="alert alert-warning">
+                                            <strong>الحد الأقصى المسموح:</strong> ${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة
+                                        </div>
+                                    `,
+                                    icon: 'error',
+                                    confirmButtonText: 'موافق',
+                                    confirmButtonColor: '#dc3545'
+                                });
+                                return false;
+                            }
+                        }
+                    }
+                }
+
+                // If all validations pass, proceed with actual submission
+                return proceedWithSubmission(quantityLatin, countLatin, dateLatin);
+            }
+
+            // ✅ Separate function for actual form submission
+            function proceedWithSubmission(quantityLatin, countLatin, dateLatin) {
+                $('#Quantity').val(quantityLatin);
+                $('#Count').val(countLatin);
+                $('#Date').val(dateLatin);
+
+                $('#saveBtn').prop('disabled', true)
+                    .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+
+                $('#yarnTransactionForm')[0].submit();
+                return true;
+            }
+
+            // Handle yarn item selection change
+            $('#YarnItemId').on('change', function () {
+                var selectedItemId = $(this).val();
+                var selectedText = $(this).find('option:selected').text();
+
+                console.log('🔄 Yarn Item Change:', {
+                    time: CURRENT_TIME,
+                    itemId: selectedItemId,
+                    selectedText: selectedText
+                });
+
+                $('#YarnItemName').val(selectedText);
+
+                if (!selectedItemId) {
+                    $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
+                    $('#balanceInfoCard').fadeOut();
+                    return;
+                }
+
+                fetchYarnItemBalance(parseInt(selectedItemId));
+            });
+
+            // Load stakeholders and packaging
+            (function() {
+                var $stakeholderSelect = $('#StakeholderId');
+                resetStakeholderDropdown($stakeholderSelect);
+                fetchStakeholdersByForm(FORM_NAME, $stakeholderSelect);
+            })();
+
+            $('#StakeholderId').on('change', function () {
+                var $opt = $(this).find('option:selected');
+                var selectedText = $opt.text();
+                $('#StakeholderName').val(selectedText);
+                var typeId = $opt.data('type-id');
+                if (typeId) {
+                    $('#StakeholderTypeId').val(typeId);
+                }
+            });
+
+            var $packagingSelect = $('#PackagingStyleId');
+            fetchPackagingStyles(FORM_NAME, $packagingSelect);
+
+            var initialYarnItemId = $('#YarnItemId').val();
+            if (initialYarnItemId) {
+                fetchYarnItemBalance(parseInt(initialYarnItemId));
+            }
+
+            $('.alert').delay(5000).fadeOut(350);
+
+            console.log('✅ Enhanced yarn transaction form initialized successfully');
+
+            // ✅ Helper Functions
+
+            function resetStakeholderDropdown($select) {
+                $select
+                    .empty()
+                    .append('<option value="">-- اختر الجهة --</option>')
+                    .prop('disabled', false)
+                    .select2('destroy')
+                    .select2({
+                        theme: 'bootstrap-5',
+                        width: '100%',
+                        language: {
+                            noResults: function () {
+                                return "لا توجد نتائج";
+                            }
+                        }
+                    });
+            }
+
+            function fetchStakeholdersByForm(formName, $select) {
+                $.ajax({
+                    url: '/YarnTransactions/GetStakeholdersByForm',
+                    type: 'GET',
+                    data: { formName: formName },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .append('<option value="" disabled>جاري التحميل...</option>')
+                            .prop('disabled', true);
+                    },
+                    success: function(response) {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر الجهة --</option>')
+                            .prop('disabled', false);
+
+                        var stakeholders = (response && response.data) || [];
+                        if (response && response.success && stakeholders.length > 0) {
+                            stakeholders.forEach(function(item) {
+                                var opt = new Option(item.name, item.id);
+                                if (item.typeId) {
+                                    $(opt).attr('data-type-id', item.typeId);
+                                }
+                                $select.append(opt);
+                            });
+                            console.log('✅ Stakeholders loaded successfully');
+                        } else {
+                            console.warn('⚠️ No stakeholders available for form');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('❌ Error fetching stakeholders:', {
+                            status: status,
+                            error: error,
+                            time: CURRENT_TIME
+                        });
+                        showError('حدث خطأ أثناء تحميل بيانات الجهات');
+                    },
+                    complete: function() {
+                        $select.select2('destroy').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            language: {
+                                noResults: function () {
+                                    return "لا توجد نتائج";
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            function fetchPackagingStyles(formName, $select) {
+                $.ajax({
+                    url: '/YarnTransactions/GetPackagingStylesByForm',
+                    type: 'GET',
+                    data: { formType: formName },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر التعبئة --</option>')
+                            .append('<option value="" disabled>جاري التحميل...</option>')
+                            .prop('disabled', true);
+                    },
+                    success: function(response) {
+                        $select
+                            .empty()
+                            .append('<option value="">-- اختر التعبئة --</option>')
+                            .prop('disabled', false);
+
+                        var packagingStyles = response.data || response;
+                        if (Array.isArray(packagingStyles) && packagingStyles.length > 0) {
+                            packagingStyles.forEach(function(item) {
+                                var optionText = item.name || item.styleName || item.text;
+                                var optionValue = item.id || item.value;
+
+                                if (optionValue && optionText) {
+                                    $select.append(new Option(optionText, optionValue));
+                                }
+                            });
+                            console.log('✅ Packaging styles loaded successfully');
+                        } else {
+                            console.warn('⚠️ No packaging styles available');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('❌ Error fetching packaging styles:', {
+                            status: status,
+                            error: error,
+                            time: CURRENT_TIME
+                        });
+                        showError('حدث خطأ أثناء تحميل أنماط التعبئة');
+                    },
+                    complete: function() {
+                        $select.select2('destroy').select2({
+                            theme: 'bootstrap-5',
+                            width: '100%',
+                            language: {
+                                noResults: function () {
+                                    return "لا توجد نتائج";
+                                }
+                            }
+                        });
+                    }
+                });
+            }
+
+            // ✅ Updated fetchYarnItemBalance function to work with enhanced balance API
+            function fetchYarnItemBalance(yarnItemId) {
+                $.ajax({
+                    url: '/YarnTransactions/GetYarnItemBalance',
+                    type: 'GET',
+                    data: { yarnItemId: yarnItemId },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
+                    },
+                    success: function(response) {
+                        if (response && response.success) {
+                            var totalBalance = response.totalQuantityBalance || 0;
+                            var totalCount = response.totalCountBalance || 0;
+
+                            var balanceAr = toArabicDigits(totalBalance.toFixed(3).toString());
+
+                            $('#currentBalanceDisplay').html(`
+                                <div class="balance-summary">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div class="total-balance">
+                                            <strong class="text-primary fs-5">${balanceAr}</strong>
+                                            <small class="text-muted ms-1">كجم إجمالي</small>
+                                        </div>
+                                        <div class="packaging-count">
+                                            <span class="badge bg-info">
+                                                ${toArabicDigits((response.packagingTypesCount || 0).toString())} نوع تعبئة
+                                            </span>
+                                        </div>
+                                    </div>
+                                    ${createPackagingBreakdownDisplay(response.packagingBreakdown)}
+                                </div>
+                            `);
+
+                            showEnhancedBalanceInfo(response);
+                            $('#OriginYarnName').val(response.originYarn || '');
+
+                            console.log('✅ Enhanced balance loaded:', {
+                                yarnItem: response.yarnItem,
+                                totalQuantityBalance: totalBalance,
+                                totalCountBalance: totalCount,
+                                packagingTypes: response.packagingTypesCount,
+                                balanceMatches: response.balanceMatches,
+                                time: CURRENT_TIME
+                            });
+                        } else {
+                            $('#currentBalanceDisplay').html('<small class="text-danger">0</small>');
+                            showError(response.error || 'فشل في تحميل رصيد الصنف');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('❌ Error fetching yarn balance:', {
+                            status: status,
+                            error: error,
+                            time: CURRENT_TIME
+                        });
+                        $('#currentBalanceDisplay').html('<small class="text-danger">خطأ في التحميل</small>');
+                        showError('حدث خطأ أثناء تحميل رصيد الصنف');
+                    }
+                });
+            }
+
+            // ✅ New function to create packaging breakdown display
+            function createPackagingBreakdownDisplay(packagingBreakdown) {
+                if (!packagingBreakdown || packagingBreakdown.length === 0) {
+                    return '<div class="text-muted small"><i class="fas fa-inbox me-1"></i>لا توجد وحدات</div>';
+                }
+
+                return `
+                    <div class="packaging-breakdown">
+                        ${packagingBreakdown.map((pkg, index) => `
+                            <div class="packaging-item d-flex justify-content-between align-items-center py-1 ${index < packagingBreakdown.length - 1 ? 'border-bottom' : ''}">
+                                <div class="packaging-info">
+                                    <span class="packaging-name fw-semibold text-info">
+                                        <i class="fas fa-cube me-1"></i>${pkg.packagingType}
+                                    </span>
+                                </div>
+                                <div class="packaging-values text-end">
+                                    <div class="specific-weight text-success fw-bold">
+                                        ${toArabicDigits(pkg.specificWeight.toFixed(2))} كجم
+                                    </div>
+                                    <small class="text-muted">
+                                        ${toArabicDigits(pkg.totalCount.toString())} وحدة
+                                        (${toArabicDigits(pkg.averageWeightPerUnit.toFixed(3))} كجم/وحدة)
+                                    </small>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            // ✅ Enhanced balance info display function
+            function showEnhancedBalanceInfo(data) {
+                window.currentPackagingBreakdown = data.packagingBreakdown || [];
+                window.currentYarnItemData = data;
+
+                var totalBalanceAr = toArabicDigits(data.totalQuantityBalance.toFixed(3).toString());
+                var totalCountAr = toArabicDigits(data.totalCountBalance.toString());
+                var calculatedWeightAr = toArabicDigits(data.calculatedTotalWeight.toFixed(3).toString());
+                var calculatedCountAr = toArabicDigits(data.calculatedTotalCount.toString());
+                var transactionCountAr = toArabicDigits((data.transactionCount || 0).toString());
+                var lastDateAr = toArabicDigits((data.lastTransactionDate || '').toString());
+
+                var infoHtml = `
+                    <div class="enhanced-balance-info">
+                        <div class="row mb-3">
+                            <div class="col-md-3">
+                                <div class="text-center border-end">
+                                    <h5 class="text-primary mb-0">${totalBalanceAr}</h5>
+                                    <small class="text-muted">الرصيد الإجمالي (كجم)</small>
+                                    ${data.balanceMatches ? '' : '<i class="fas fa-exclamation-triangle text-warning" title="عدم تطابق في الحسابات"></i>'}
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center border-end">
+                                    <h5 class="text-success mb-0">${totalCountAr}</h5>
+                                    <small class="text-muted">إجمالي الوحدات</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center border-end">
+                                    <h5 class="text-info mb-0">${transactionCountAr}</h5>
+                                    <small class="text-muted">عدد المعاملات</small>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="text-center">
+                                    <h5 class="text-warning mb-0">${lastDateAr}</h5>
+                                    <small class="text-muted">آخر معاملة</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <p class="mb-1"><strong>الصنف:</strong> ${data.yarnItem}</p>
+                                <p class="mb-0"><strong>الغزل المكون:</strong> ${data.originYarn}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <p class="mb-0"><strong>الشركة المصنعة:</strong> ${data.manufacturer}</p>
+                            </div>
+                        </div>
+
+                        ${data.packagingBreakdown && data.packagingBreakdown.length > 0 ? `
+                        <div class="packaging-section">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="fw-bold text-dark mb-0">
+                                    <i class="fas fa-boxes me-2"></i>تفاصيل التعبئة والأوزان
+                                </h6>
+                                <div class="packaging-stats">
+                                    <span class="badge bg-primary">${toArabicDigits(data.packagingTypesCount.toString())} نوع</span>
+                                    ${data.hasMultiplePackaging ? '<span class="badge bg-info ms-1">متعدد الأنواع</span>' : ''}
+                                </div>
+                            </div>
+
+                            <div class="packaging-details">
+                                ${data.packagingBreakdown.map((pkg, index) => `
+                                    <div class="packaging-card mb-2 p-3 border rounded ${index % 2 === 0 ? 'bg-light' : 'bg-white'}">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-4">
+                                                <div class="packaging-name">
+                                                    <i class="fas fa-cube text-info me-2"></i>
+                                                    <strong>${pkg.packagingType}</strong>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-8">
+                                                <div class="row text-center">
+                                                    <div class="col-4">
+                                                        <div class="fw-bold text-success fs-5">
+                                                            ${toArabicDigits(pkg.specificWeight.toFixed(2))}
+                                                        </div>
+                                                        <small class="text-muted">كجم</small>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="fw-bold text-primary fs-5">
+                                                            ${toArabicDigits(pkg.totalCount.toString())}
+                                                        </div>
+                                                        <small class="text-muted">وحدة</small>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <div class="fw-bold text-info">
+                                                            ${toArabicDigits(pkg.averageWeightPerUnit.toFixed(3))}
+                                                        </div>
+                                                        <small class="text-muted">كجم/وحدة</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+
+                            <div class="packaging-summary mt-3 p-2 bg-info bg-opacity-10 rounded">
+                                <div class="row text-center">
+                                    <div class="col-md-6">
+                                        <small class="text-info fw-semibold">
+                                            <i class="fas fa-calculator me-1"></i>
+                                            المجموع المحسوب: ${calculatedWeightAr} كجم | ${calculatedCountAr} وحدة
+                                        </small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <small class="${data.balanceMatches ? 'text-success' : 'text-warning'} fw-semibold">
+                                            <i class="fas fa-${data.balanceMatches ? 'check-circle' : 'exclamation-triangle'} me-1"></i>
+                                            ${data.balanceMatches ? 'الحسابات متطابقة' : 'يوجد اختلاف في الحسابات'}
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            ${!data.balanceMatches && data.balanceDiscrepancy ? `
+                            <div class="alert alert-warning mt-2 py-2">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>تحذير:</strong> يوجد فرق في الأوزان:
+                                ${toArabicDigits(Math.abs(data.balanceDiscrepancy.weightDifference).toFixed(3))} كجم
+                                ${data.balanceDiscrepancy.countDifference !== 0 ?
+                                    ` | فرق في العدد: ${toArabicDigits(Math.abs(data.balanceDiscrepancy.countDifference).toString())} وحدة` : ''}
+                            </div>
+                            ` : ''}
+
+                            ${data.hasMultiplePackaging ? `
+                            <div class="alert alert-info mt-2 py-2">
+                                <i class="fas fa-lightbulb me-2"></i>
+                                <strong>تنبيه:</strong> عند إدخال معاملة صادر، يجب اختيار نوع التعبئة المطابق للرصيد المتاح
+                            </div>
+                            ` : ''}
+                        </div>
+                        ` : `
+                        <div class="alert alert-light text-center">
+                            <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
+                            <div>لا توجد وحدات في المخزون</div>
+                        </div>
+                        `}
+                    </div>
+                `;
+
+                $('#balanceInfo').html(infoHtml);
+                $('#balanceInfoCard').fadeIn();
+
+                console.log('✅ Enhanced balance info displayed:', {
+                    yarnItemId: data.yarnItemId,
+                    totalWeight: data.totalQuantityBalance,
+                    packagingTypes: data.packagingTypesCount,
+                    balanceMatches: data.balanceMatches,
+                    calculatedWeight: data.calculatedTotalWeight,
+                    user: CURRENT_USER,
+                    time: CURRENT_TIME
+                });
             }
 
             function showError(message) {
@@ -1102,80 +1356,68 @@
                     confirmButtonColor: '#dc3545'
                 });
             }
-
-            // Keep all other helper functions (fetchStakeholdersByForm, resetStakeholderDropdown, etc.)
-            // [Include all your existing helper functions here - they remain unchanged]
         });
 
-        // Utility functions
+        // ✅ Utility functions (defined globally)
         function toArabicDigits(str) {
             if (!str) return str;
-            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
         }
 
         function toLatinDigits(str) {
             if (!str) return str;
-            return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-        }
-
-        // Smart number formatting based on context
-        function smartNumberFormatting(str) {
-            if (!str || str.length === 0) return str;
-
-            // If string has only 1 character or contains any English letters, use English digits
-            if (str.length === 1 || hasEnglishLetters(str)) {
-                return toLatinDigits(str);
-            }
-
-            // Otherwise, use Arabic digits for display
-            return toArabicDigits(str);
-        }
-
-        function hasEnglishLetters(str) {
-            return /[a-zA-Z]/.test(str);
-        }
-
-        function isArabicChar(c) {
-            return /[\u0600-\u06FF]/.test(c);
-        }
-
-        function isEnglishChar(c) {
-            return /[a-zA-Z]/.test(c);
-        }
-
-        function getLastLetter(str) {
-            for (let i = str.length - 1; i >= 0; i--) {
-                let char = str[i];
-                if (isArabicChar(char)) {
-                    return 'arabic';
-                } else if (isEnglishChar(char)) {
-                    return 'english';
-                }
-            }
-            return 'arabic'; // default is Arabic
+            return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
         }
     </script>
 
     <style>
         /* Layout width */
-        .yarn-form-container { max-width: 1100px; }
+        .yarn-form-container {
+            max-width: 1100px;
+        }
 
         /* Label and input sizing */
-        .form-label { font-weight: 600; font-size: 0.95rem; }
-        .form-control, .form-select, .select2-selection--single { min-height: 42px; }
-        .input-group-text { min-height: 42px; display: flex; align-items: center; }
+        .form-label {
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+
+        .form-control, .form-select, .select2-selection--single {
+            min-height: 42px;
+        }
+
+        .input-group-text {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+        }
 
         /* Select2 height alignment */
-        .select2-container .select2-selection--single { height: 42px; }
-        .select2-container--bootstrap-5 .select2-selection__rendered { line-height: 42px; }
-        .select2-container--bootstrap-5 .select2-selection__arrow { height: 42px; }
+        .select2-container .select2-selection--single {
+            height: 42px;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection__rendered {
+            line-height: 42px;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection__arrow {
+            height: 42px;
+        }
 
         /* Flatpickr alignment */
-        .flatpickr-input { min-height: 42px; }
+        .flatpickr-input {
+            min-height: 42px;
+        }
 
         /* Spacing consistency */
-        .mb-3 { margin-bottom: 1rem !important; }
-        .card-header h5 { font-size: 1.05rem; }
+        .mb-3 {
+            margin-bottom: 1rem !important;
+        }
+
+        .card-header h5 {
+            font-size: 1.05rem;
+        }
 
         .required::after {
             content: " *";
@@ -1195,13 +1437,53 @@
             min-height: calc(2.25rem + 2px);
         }
 
-        @@media (max-width: 768px) {
-            .border-end {
-                border-right: none !important;
-                border-bottom: 1px solid #dee2e6 !important;
-                padding-bottom: 15px;
-                margin-bottom: 15px;
+        /* ✅ Enhanced packaging breakdown styles */
+        .packaging-breakdown {
+            background: #f8f9fa;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            margin-top: 0.5rem;
+        }
+
+        .packaging-item {
+            padding: 0.5rem 0;
+        }
+
+        .packaging-card {
+            transition: all 0.2s ease;
+        }
+
+            .packaging-card:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 0.25rem 0.5rem rgba(0,0,0,0.1);
             }
+
+        .balance-summary {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            background: linear-gradient(145deg, #f8f9fa 0%, #ffffff 100%);
+        }
+
+        .packaging-help {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        @@media (max-width: 768px) {
+            .border-end
+
+        {
+            border-right: none !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+
+        .packaging-card .row .col-4 {
+            margin-bottom: 0.5rem;
+        }
+
         }
 
         .card-header {
@@ -1209,14 +1491,14 @@
             overflow: hidden;
         }
 
-        .card-header::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
-        }
+            .card-header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            }
     </style>
 }
