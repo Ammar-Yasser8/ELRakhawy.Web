@@ -750,10 +750,9 @@
         }
 
         // ✅ Print table - respects hidden rows/columns and RTL layout
-        function printTable() {
+               function printTable() {
             try {
                 const printContent = document.createElement('div');
-                printContent.id = 'printSection';
                 printContent.style.direction = 'rtl';
 
                 // --- Title and Date ---
@@ -769,7 +768,7 @@
 
                 // --- Build print table ---
                 const printTable = document.createElement('table');
-                printTable.className = 'print-table';
+                printTable.className = 'table table-bordered'; // ✅ use Bootstrap so layout doesn't break
 
                 // --- Visible headers ---
                 const thead = document.createElement('thead');
@@ -778,8 +777,9 @@
                 const visibleHeaders = [];
 
                 headerCells.forEach((th, index) => {
+                    // Skip last column & column index 4 (your logic)
                     if (index === headerCells.length - 1 || index === 4) return;
-                    if (th.style.display === 'none') return;
+                    if (th.style.display === 'none') return; // Skip hidden headers
 
                     const thEl = document.createElement('th');
                     thEl.textContent = th.textContent.trim().replace(/\s+/g, ' ');
@@ -844,10 +844,11 @@
                 summary.textContent = `عدد الأنواع: ${visibleRows.length}`;
                 printContent.appendChild(summary);
 
-                // --- Print ---
-                document.body.appendChild(printContent);
+                // ✅ ✅ ✅ REPLACE BODY FOR PRINT
+                const originalContent = document.body.innerHTML;
+                document.body.innerHTML = printContent.outerHTML;
                 window.print();
-                document.body.removeChild(printContent);
+                document.body.innerHTML = originalContent;
 
             } catch (error) {
                 console.error('Error printing table:', error);
@@ -855,7 +856,10 @@
                     showNotification('حدث خطأ أثناء الطباعة', 'error');
                 }
             }
+                // Re-render scripts/components if needed
+        location.reload(); // remove this if not needed
         }
+
     </script>
 
 

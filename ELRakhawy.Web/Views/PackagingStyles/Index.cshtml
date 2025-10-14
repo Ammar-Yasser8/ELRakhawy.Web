@@ -472,27 +472,16 @@
             XLSX.writeFile(wb, `packaging_styles_${currentDate.replace(/\//g, '-')}.xlsx`);
         }
 
-        // Updated Print function - respects hidden rows and columns
+                   // Updated Print function - displays only the table in a clean design
         function printTable() {
             try {
                 const printContent = document.createElement('div');
                 printContent.id = 'printSection';
                 printContent.style.direction = 'rtl';
 
-                // Add title and date
-                const title = document.createElement('h4');
-                title.textContent = 'قائمة أنماط التعبئة';
-                title.className = 'text-center mb-3';
-                printContent.appendChild(title);
-
-                const date = document.createElement('p');
-                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
-                date.className = 'text-center mb-4 text-muted';
-                printContent.appendChild(date);
-
                 // Create print table
                 const printTable = document.createElement('table');
-                printTable.className = 'print-table';
+                printTable.className = 'print-table table table-bordered table-striped';
 
                 // Create table header with visible columns only
                 const thead = document.createElement('thead');
@@ -507,7 +496,7 @@
 
                     const headerTh = document.createElement('th');
                     headerTh.textContent = th.textContent.trim().replace(/\s+/g, ' ');
-                    headerTh.className = 'bg-light';
+                    headerTh.className = 'bg-light text-center';
                     headerRow.appendChild(headerTh);
                     visibleHeaders.push(index);
                 });
@@ -540,6 +529,7 @@
                             let text = cell.textContent.trim().replace(/\s+/g, ' ');
                             if (text === 'لا يوجد وصف') text = '';
                             td.textContent = text;
+                            td.className = 'text-center';
                             dataRow.appendChild(td);
                         });
 
@@ -549,12 +539,6 @@
 
                 printTable.appendChild(tbody);
                 printContent.appendChild(printTable);
-
-                // Add summary
-                const summary = document.createElement('p');
-                summary.className = 'mt-3 text-muted text-center';
-                summary.textContent = `عدد أنماط التعبئة: ${toArabicDigits(visibleRows.length.toString())}`;
-                printContent.appendChild(summary);
 
                 // Add to document and print
                 document.body.appendChild(printContent);
@@ -1359,10 +1343,10 @@
             transition: all 0.2s ease;
         }
 
-        .packaging-style-row:hover {
-            background-color: rgba(25,135,84,0.05);
-            transform: scale(1.005);
-        }
+            .packaging-style-row:hover {
+                background-color: rgba(25,135,84,0.05);
+                transform: scale(1.005);
+            }
 
         .search-row th {
             background-color: #ffffff;
@@ -1374,13 +1358,13 @@
             transition: all 0.2s ease;
         }
 
-        .search-container .input-group:hover {
-            transform: translateY(-1px);
-        }
+            .search-container .input-group:hover {
+                transform: translateY(-1px);
+            }
 
-        .search-container .input-group.shadow-sm {
-            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        }
+            .search-container .input-group.shadow-sm {
+                box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            }
 
         .search-container .input-group-text {
             background-color: #f8f9fa;
@@ -1394,15 +1378,15 @@
             padding: 6px 12px;
         }
 
-        .search-container .form-control:focus {
-            border-color: #86b7fe;
-            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
-        }
+            .search-container .form-control:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            }
 
-        .search-container .form-control.border-primary {
-            border-color: #0d6efd;
-            box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
-        }
+            .search-container .form-control.border-primary {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+            }
 
         .packaging-icon {
             width: 30px;
@@ -1450,6 +1434,7 @@
                 opacity: 0;
                 transform: translateY(20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -1470,23 +1455,23 @@
             position: relative;
         }
 
-        .search-container .input-group::before {
-            content: '';
-            position: absolute;
-            top: -2px;
-            left: -2px;
-            right: -2px;
-            bottom: -2px;
-            background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
-            border-radius: 6px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            z-index: -1;
-        }
+            .search-container .input-group::before {
+                content: '';
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                right: -2px;
+                bottom: -2px;
+                background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
+                border-radius: 6px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: -1;
+            }
 
-        .search-container .input-group:focus-within::before {
-            opacity: 1;
-        }
+            .search-container .input-group:focus-within::before {
+                opacity: 1;
+            }
 
         /* Mobile responsiveness */
         @@media (max-width: 768px) {
@@ -1501,10 +1486,10 @@
                 width: 100%;
             }
 
-            .btn-group .btn {
-                margin: 1px 0;
-                border-radius: 4px;
-            }
+                .btn-group .btn {
+                    margin: 1px 0;
+                    border-radius: 4px;
+                }
 
             .details-modal .icon-circle {
                 width: 60px;
@@ -1521,5 +1506,6 @@
                 padding: 4px 8px;
             }
         }
+ 
     </style>
 }

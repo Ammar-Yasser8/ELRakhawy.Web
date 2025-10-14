@@ -366,32 +366,6 @@
             overflow-y: auto;
         }
 
-        @@media print {
-            .print-table
-
-        {
-            width: 100%;
-            border-collapse: collapse;
-            direction: rtl;
-        }
-
-        .print-table th,
-        .print-table td {
-            border: 1px solid #dee2e6;
-            padding: 8px;
-            text-align: right;
-        }
-
-        .print-table th {
-            background-color: #f8f9fa !important;
-            font-weight: bold;
-        }
-
-        .print-table tbody tr:nth-child(even) {
-            background-color: #f8f9fa;
-        }
-
-        }
     </style>
 
     <script>
@@ -557,103 +531,142 @@
             XLSX.writeFile(wb, `manufacturers_${currentDate.replace(/\//g, '-')}.xlsx`);
         }
 
-        // Updated Print function - respects hidden rows and columns
-        function printTable() {
+          function printTable() {
             try {
-                const printContent = document.createElement('div');
-                printContent.id = 'printSection';
-                printContent.style.direction = 'rtl';
+                    const printContent = document.createElement('div');
+                    printContent.id = 'printSection';
+                    printContent.style.direction = 'rtl';
+                    printContent.style.padding = '20px';
 
-                // Add title and date
-                const title = document.createElement('h4');
-                title.textContent = 'قائمة المصنعين';
-                title.className = 'text-center mb-3';
-                printContent.appendChild(title);
+                    const title = document.createElement('h2');
+                    title.textContent = 'قائمة المصنعين';
+                    title.style.textAlign = 'center';
+                    title.style.marginBottom = '10px';
+                    title.style.color = '#333';
+                    title.style.fontFamily = 'Arial, sans-serif';
+                    printContent.appendChild(title);
 
-                const date = document.createElement('p');
-                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
-                date.className = 'text-center mb-4 text-muted';
-                printContent.appendChild(date);
+                    const dateP = document.createElement('p');
+                    dateP.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                    dateP.style.textAlign = 'center';
+                    dateP.style.marginBottom = '20px';
+                    dateP.style.color = '#666';
+                    dateP.style.fontSize = '14px';
+                    printContent.appendChild(dateP);
 
-                // Create print table
-                const printTable = document.createElement('table');
-                printTable.className = 'print-table';
+                    const headerCells = document.querySelectorAll('#manufacturersTable thead tr:first-child th');
+                    const visibleHeaders = [];
+                    const visibleIndices = [];
 
-                // Create table header with visible columns only
-                const thead = document.createElement('thead');
-                const headerRow = document.createElement('tr');
-
-                const headerCells = document.querySelectorAll('#manufacturersTable thead tr:first-child th');
-                const visibleHeaders = [];
-
-                headerCells.forEach((th, index) => {
-                    if (index === headerCells.length - 1) return; // skip actions
-                    if (th.style.display === "none") return; // skip hidden
-
-                    const headerTh = document.createElement('th');
-                    headerTh.textContent = th.textContent.trim().replace(/\s+/g, ' ');
-                    headerTh.className = 'bg-light';
-                    headerRow.appendChild(headerTh);
-                    visibleHeaders.push(index);
-                });
-
-                thead.appendChild(headerRow);
-                printTable.appendChild(thead);
-
-                // Create table body with visible rows and columns
-                const tbody = document.createElement('tbody');
-                const visibleRows = document.querySelectorAll('.manufacturer-row:not([style*="display: none"])');
-
-                if (visibleRows.length === 0) {
-                    const row = document.createElement('tr');
-                    const cell = document.createElement('td');
-                    cell.textContent = 'لا توجد بيانات للعرض';
-                    cell.colSpan = visibleHeaders.length;
-                    cell.className = 'text-center py-4 text-muted';
-                    row.appendChild(cell);
-                    tbody.appendChild(row);
-                } else {
-                    visibleRows.forEach(row => {
-                        const dataRow = document.createElement('tr');
-                        const cells = row.querySelectorAll('td');
-
-                        visibleHeaders.forEach(index => {
-                            const cell = cells[index];
-                            if (!cell) return;
-
-                            const td = document.createElement('td');
-                            let text = cell.textContent.trim().replace(/\s+/g, ' ');
-                            if (text === 'لا يوجد وصف') text = '';
-                            td.textContent = text;
-                            dataRow.appendChild(td);
-                        });
-
-                        tbody.appendChild(dataRow);
+                    headerCells.forEach((th, index) => {
+                        if (index === headerCells.length - 1) return;
+                        if (th.style.display === "none") return;
+                        visibleHeaders.push(th.textContent.trim().replace(/\s+/g, ' '));
+                        visibleIndices.push(index);
                     });
+
+                    const allRows = document.querySelectorAll('.manufacturer-row');
+                    const visibleRows = Array.from(allRows).filter(row => {
+                        const computedStyle = window.getComputedStyle(row);
+                        return row.style.display !== 'none' &&
+                               computedStyle.display !== 'none' &&
+                               computedStyle.visibility !== 'hidden';
+                    });
+
+                    const table = document.createElement('table');
+                    table.className = 'print-table';
+                    table.style.width = '100%';
+                    table.style.borderCollapse = 'collapse';
+                    table.style.direction = 'rtl';
+                    table.style.fontFamily = 'Arial, sans-serif';
+                    table.style.fontSize = '12px';
+
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+
+                    visibleHeaders.forEach(headerText => {
+                        const th = document.createElement('th');
+                        th.textContent = headerText;
+                        th.style.border = '1px solid #000';
+                        th.style.padding = '10px';
+                        th.style.backgroundColor = '#f0f0f0';
+                        th.style.fontWeight = 'bold';
+                        th.style.textAlign = 'right';
+                        headerRow.appendChild(th);
+                    });
+
+                    thead.appendChild(headerRow);
+                    table.appendChild(thead);
+
+                    const tbody = document.createElement('tbody');
+
+                    if (visibleRows.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.textContent = 'لا توجد بيانات للعرض';
+                        cell.colSpan = visibleHeaders.length || 1;
+                        cell.style.textAlign = 'center';
+                        cell.style.padding = '20px';
+                        cell.style.border = '1px solid #000';
+                        row.appendChild(cell);
+                        tbody.appendChild(row);
+                    } else {
+                        visibleRows.forEach((row, rowIndex) => {
+                            const dataRow = document.createElement('tr');
+                            const cells = row.querySelectorAll('td');
+
+                            visibleIndices.forEach(index => {
+                                const cell = cells[index];
+                                if (!cell) return;
+
+                                const td = document.createElement('td');
+                                let text = cell.textContent.trim().replace(/\s+/g, ' ');
+                                if (text === 'لا يوجد وصف') text = '';
+                                td.textContent = text;
+                                td.style.border = '1px solid #000';
+                                td.style.padding = '8px';
+                                td.style.textAlign = 'right';
+
+                                if (rowIndex % 2 === 1) {
+                                    td.style.backgroundColor = '#f9f9f9';
+                                }
+
+                                dataRow.appendChild(td);
+                            });
+
+                            tbody.appendChild(dataRow);
+                        });
                 }
 
-                printTable.appendChild(tbody);
-                printContent.appendChild(printTable);
+                table.appendChild(tbody);
+                printContent.appendChild(table);
 
-                // Add summary
                 const summary = document.createElement('p');
-                summary.className = 'mt-3 text-muted text-center';
-                summary.textContent = `عدد المصنعين: ${toArabicDigits(visibleRows.length.toString())}`;
+                summary.style.marginTop = '20px';
+                summary.style.textAlign = 'center';
+                summary.style.color = '#666';
+                summary.style.fontSize = '14px';
+                const count = visibleRows.length;
+                summary.textContent = `عدد المصنعين: ${typeof toArabicDigits === 'function' ? toArabicDigits(count.toString()) : count}`;
                 printContent.appendChild(summary);
 
-                // Add to document and print
                 document.body.appendChild(printContent);
-                window.print();
 
-                // Clean up
-                document.body.removeChild(printContent);
-
-            } catch (error) {
-                console.error('Error printing table:', error);
-                if (typeof showNotification === 'function') {
-                    showNotification('حدث خطأ أثناء الطباعة', 'error');
+                setTimeout(() => {
+                    window.print();
+                    setTimeout(() => {
+                        if (document.body.contains(printContent)) {
+                            document.body.removeChild(printContent);
+                        }
+                    }, 100);
+                }, 100);
                 }
-            }
+                catch (error) {
+                    console.error('خطأ أثناء الطباعة:', error);
+                    alert('حدث خطأ أثناء محاولة الطباعة. يرجى المحاولة مرة أخرى.');
+                }
+
+
         }
     </script>
 
@@ -1193,6 +1206,69 @@
 
     <!-- Enhanced Styles -->
     <style>
+        /* PRINT STYLES */
+        @@media print {
+            body * {
+                visibility: hidden;
+            }
+
+            #printSection,
+            #printSection * {
+                visibility: visible;
+            }
+
+            #printSection {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                padding: 20px;
+            }
+
+            .print-table {
+                width: 100%;
+                border-collapse: collapse;
+                direction: rtl;
+            }
+
+                .print-table th,
+                .print-table td {
+                    border: 1px solid #000;
+                    padding: 8px;
+                    text-align: right;
+                }
+
+                .print-table th {
+                    background-color: #f0f0f0 !important;
+                    font-weight: bold;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
+                .print-table tbody tr:nth-child(even) {
+                    background-color: #f9f9f9 !important;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+
+            .print-table {
+                page-break-inside: auto;
+            }
+
+                .print-table tr {
+                    page-break-inside: avoid;
+                    page-break-after: auto;
+                }
+
+                .print-table thead {
+                    display: table-header-group;
+                }
+
+            * {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
         /* Enhanced Styles for Inline Search */
         .icon-circle {
             width: 60px;
@@ -1305,49 +1381,43 @@
         }
 
         @@keyframes fadeInUp {
-            from
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
 
-        {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         /* Mobile responsiveness */
         @@media (max-width: 768px) {
-            .icon-circle
-
-        {
-            width: 45px;
-            height: 45px;
-            font-size: 1.2rem;
-        }
-
-        .btn-group {
-            flex-direction: column;
-            width: 100%;
-        }
-
-            .btn-group .btn {
-                margin: 1px 0;
-                border-radius: 4px;
+            .icon-circle {
+                width: 45px;
+                height: 45px;
+                font-size: 1.2rem;
             }
 
-        .search-row th {
-            padding: 6px 8px;
-        }
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
 
-        .search-container .form-control {
-            font-size: 0.8rem;
-            padding: 4px 8px;
-        }
+                .btn-group .btn {
+                    margin: 1px 0;
+                    border-radius: 4px;
+                }
 
+            .search-row th {
+                padding: 6px 8px;
+            }
+
+            .search-container .form-control {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
         }
 
         /* Table header styling */
@@ -1361,42 +1431,5 @@
             border-bottom: 2px solid #dee2e6;
         }
 
-        /* Print styles */
-        @@media print {
-            body *
-
-        {
-            visibility: hidden;
-        }
-
-        #printSection, #printSection * {
-            visibility: visible;
-        }
-
-        #printSection {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            direction: rtl;
-        }
-
-        .print-table {
-            width: 100%;
-            border-collapse: collapse;
-            direction: rtl;
-        }
-
-            .print-table th, .print-table td {
-                border: 1px solid #ccc;
-                padding: 8px;
-                text-align: right;
-            }
-
-            .print-table th {
-                background-color: #f8f9fa;
-            }
-
-        }
     </style>
 }
