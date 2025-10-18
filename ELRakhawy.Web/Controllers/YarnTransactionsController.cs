@@ -1741,7 +1741,7 @@ namespace ELRakhawy.Web.Controllers
                         return Json(new { success = false, error = "الصنف غير موجود" });
                     }
                     TempData["Error"] = "الصنف غير موجود";
-                    return RedirectToAction("Overview");
+                    return RedirectToAction("Overview", "YarnItems");
                 }
 
                 // Get the packaging style
@@ -1840,7 +1840,7 @@ namespace ELRakhawy.Web.Controllers
                     PackagingStyleId = packagingStyleId,
                     StakeholderId = adjustmentStakeholder.Id,
                     Date = DateTime.Now,
-                    Comment = $"تعديل رصيد تعبئة محددة (مع تطبيق الفرق على الرصيد الإجمالي) - الصنف: {yarnItem?.Item}. نوع التعبئة: {packagingStyle?.StyleName}. السبب: {(string.IsNullOrEmpty(reason) ? "تسوية إدارية" : reason)}. الرصيد السابق للتعبئة: {currentPackagingQuantity:N3} كمية، {currentPackagingCount} عدد. الرصيد المطلوب للتعبئة: {desiredQuantityBalance:N3} كمية، {desiredCountBalance} عدد. تم بواسطة: {currentUser} في {currentTime}"
+                    Comment = $"تعديل رصيد "
                 };
 
                 // Set inbound/outbound based on quantity difference
@@ -1897,12 +1897,12 @@ namespace ELRakhawy.Web.Controllers
                         success = true,
                         transactionId = adjustmentTransaction.TransactionId,
                         message = $"تم تعديل رصيد التعبئة بنجاح - رقم معاملة التسوية: {adjustmentTransaction.TransactionId}",
-                        detailsUrl = Url.Action("Overview")
+                        detailsUrl = Url.Action("Overview", "YarnItems")
                     });
                 }
 
                 TempData["Success"] = $"تم تعديل رصيد التعبئة بنجاح (تم تطبيق الفرق على الرصيد الإجمالي) - رقم معاملة التسوية: {adjustmentTransaction.TransactionId}";
-                return RedirectToAction("Overview");
+                return RedirectToAction("Overview", "YarnItems");
             }
             catch (Exception ex)
             {

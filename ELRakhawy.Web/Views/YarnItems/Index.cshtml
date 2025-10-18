@@ -127,146 +127,181 @@
        
         </div>
 
-        <!-- Desktop Table -->
-        <div class="d-none d-lg-block">
-            <div class="table-responsive">
-                <table id="itemsTable" class="table table-hover table-sm mb-0">
+       <!-- Desktop Table -->
+<div class="d-none d-lg-block">
+    <div class="table-responsive">
+        <table id="itemsTable" class="table table-hover table-sm mb-0">
 
-                    <thead class="table-light">
-                        <!-- Headers -->
-                        <tr>
-                            <th class="sortable" style="width: 25%; cursor: pointer;" data-column="0">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span>الصنف</span>
-                                    <i class="fas fa-sort sort-icon text-muted"></i>
-                                </div>
-                            </th>
-                            <th class="sortable" style="width: 25%; cursor: pointer;" data-column="1">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span>الشركة المصنعة</span>
-                                    <i class="fas fa-sort sort-icon text-muted"></i>
-                                </div>
-                            </th>
-                            <th class="sortable" style="width: 20%; cursor: pointer;" data-column="2">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span>الغزل المكون</span>
-                                    <i class="fas fa-sort sort-icon text-muted"></i>
-                                </div>
-                            </th>
-                            <th class="sortable" style="width: 15%; cursor: pointer;" data-column="3">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <span>الحالة</span>
-                                    <i class="fas fa-sort sort-icon text-muted"></i>
-                                </div>
-                            </th>
-                            <th style="width: 15%;">الإجراءات</th>
-                        </tr>
-                        <!-- Instant Search Row -->
-                        <tr class="search-row">
-                            <th>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="text" class="form-control form-control-sm instant-search flex-grow-1" 
-                                           placeholder="بحث الأصناف..." data-column="0">
-                                    <div class="sort-indicator" id="sortIndicator0" style="display: none;">
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-sort-amount-down"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                            </th>
-                            <th>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="text" class="form-control form-control-sm instant-search flex-grow-1" 
-                                           placeholder="بحث الشركات..." data-column="1">
-                                    <div class="sort-indicator" id="sortIndicator1" style="display: none;">
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-sort-amount-down"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                            </th>
-                            <th>
-                                <div class="d-flex align-items-center gap-2">
-                                    <input type="text" class="form-control form-control-sm instant-search flex-grow-1" 
-                                           placeholder="بحث الغزل..." data-column="2">
-                                    <div class="sort-indicator" id="sortIndicator2" style="display: none;">
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-sort-amount-down"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                            </th>
-                            <th>
-                                <div class="d-flex align-items-center gap-2">
-                                    <select class="form-select form-select-sm instant-search flex-grow-1" data-column="3">
-                                        <option value="">الكل</option>
-                                        <option value="نشط">نشط</option>
-                                        <option value="غير نشط">غير نشط</option>
-                                    </select>
-                                    <div class="sort-indicator" id="sortIndicator3" style="display: none;">
-                                        <span class="badge bg-primary">
-                                            <i class="fas fa-sort-amount-down"></i>
-                                        </span>
-                                    </div>
-                                </div>
-                            </th>
-                            <th class="text-center">
-                                <small class="text-muted">
-                                    <i class="fas fa-filter me-1"></i>البحث
-                                </small>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var item in Model)
-                        {
-                            <tr data-status="@(item.Status ? "active" : "inactive")"
-                                data-balance="@item.CurrentBalance"
-                                data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
-                                class="table-row item-row">
-                                <td>
-                                    <div class="fw-semibold">@item.Item</div>
-                                    @if (!string.IsNullOrEmpty(item.Comment))
-                                    {
-                                        <small class="text-muted d-block text-truncate" style="max-width: 200px;">@item.Comment</small>
-                                    }
-                                </td>
-                                <td>
-                                    <span class="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "text-success" : "text-muted")">
-                                        @(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? string.Join(", ", item.ManufacturerNames) : "غير محدد")
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "text-info" : "text-muted")">
-                                        @(item.OriginYarnName ?? "غير محدد")
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-@(item.Status ? "success" : "secondary") text-white">
-                                        @(item.Status ? "نشط" : "غير نشط")
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-info btn-sm view-details" data-id="@item.Id" title="عرض التفاصيل">
-                                            <i class="fas fa-info-circle"></i>
-                                        </button>
-                                        <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-outline-primary btn-sm" title="تعديل">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <button class="btn btn-outline-danger btn-sm delete-item" 
-                                                data-id="@item.Id" data-name="@item.Item" title="حذف">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        </div>
+            <thead class="table-light">
+                <!-- Headers -->
+                <tr>
+                    <th class="sortable" style="width: 20%; cursor: pointer;" data-column="0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>الصنف</span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <th class="sortable" style="width: 20%; cursor: pointer;" data-column="1">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>الشركة المصنعة</span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <th class="sortable" style="width: 20%; cursor: pointer;" data-column="2">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>الغزل المكون</span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <th class="sortable" style="width: 15%; cursor: pointer;" data-column="3">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>الحالة</span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <!-- ✅ New Comment Column -->
+                    <th class="sortable" style="width: 15%; cursor: pointer;" data-column="4">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <span>التعليق</span>
+                            <i class="fas fa-sort sort-icon text-muted"></i>
+                        </div>
+                    </th>
+                    <th style="width: 15%;">الإجراءات</th>
+                </tr>
+
+                <!-- Instant Search Row -->
+                <tr class="search-row">
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" class="form-control form-control-sm instant-search flex-grow-1"
+                                   placeholder="بحث الأصناف..." data-column="0">
+                            <div class="sort-indicator" id="sortIndicator0" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" class="form-control form-control-sm instant-search flex-grow-1"
+                                   placeholder="بحث الشركات..." data-column="1">
+                            <div class="sort-indicator" id="sortIndicator1" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" class="form-control form-control-sm instant-search flex-grow-1"
+                                   placeholder="بحث الغزل..." data-column="2">
+                            <div class="sort-indicator" id="sortIndicator2" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <select class="form-select form-select-sm instant-search flex-grow-1" data-column="3">
+                                <option value="">الكل</option>
+                                <option value="نشط">نشط</option>
+                                <option value="غير نشط">غير نشط</option>
+                            </select>
+                            <div class="sort-indicator" id="sortIndicator3" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <!-- ✅ Comment Search Input -->
+                    <th>
+                        <div class="d-flex align-items-center gap-2">
+                            <input type="text" class="form-control form-control-sm instant-search flex-grow-1"
+                                   placeholder="بحث التعليق..." data-column="4">
+                            <div class="sort-indicator" id="sortIndicator4" style="display: none;">
+                                <span class="badge bg-primary">
+                                    <i class="fas fa-sort-amount-down"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </th>
+                    <th class="text-center">
+                        <small class="text-muted">
+                            <i class="fas fa-filter me-1"></i>البحث
+                        </small>
+                    </th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr data-status="@(item.Status ? "active" : "inactive")"
+                        data-balance="@item.CurrentBalance"
+                        data-search-content="@item.Item @(item.ManufacturerNames != null ? string.Join(", ", item.ManufacturerNames) : "") @(item.OriginYarnName ?? "") @(item.Comment ?? "")"
+                        class="table-row item-row">
+
+                        <td>
+                            <div class="fw-semibold">@item.Item</div>
+                        </td>
+
+                        <td>
+                            <span class="@(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? "text-success" : "text-muted")">
+                                @(item.ManufacturerNames != null && item.ManufacturerNames.Any() ? string.Join(", ", item.ManufacturerNames) : "غير محدد")
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="@(!string.IsNullOrEmpty(item.OriginYarnName) ? "text-info" : "text-muted")">
+                                @(item.OriginYarnName ?? "غير محدد")
+                            </span>
+                        </td>
+
+                        <td>
+                            <span class="badge bg-@(item.Status ? "success" : "secondary") text-white">
+                                @(item.Status ? "نشط" : "غير نشط")
+                            </span>
+                        </td>
+
+                        <!-- ✅ Comment Column -->
+                        <td>
+                            @if (!string.IsNullOrEmpty(item.Comment))
+                            {
+                                <small class="text-muted d-block text-truncate" style="max-width: 200px;">@item.Comment</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-outline-info btn-sm view-details" data-id="@item.Id" title="عرض التفاصيل">
+                                    <i class="fas fa-info-circle"></i>
+                                </button>
+                                <a href="@Url.Action("Edit", new { id = item.Id })" class="btn btn-outline-primary btn-sm" title="تعديل">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button class="btn btn-outline-danger btn-sm delete-item"
+                                        data-id="@item.Id" data-name="@item.Item" title="حذف">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+
+        </table>
     </div>
+</div>
+
 
     <!-- Compact Footer -->
     <div class="card-footer bg-light py-2">
@@ -914,780 +949,892 @@ function printTable() {
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
    
+<script>
+$(document).ready(function() {
+    const yarnItemModal = new bootstrap.Modal(document.getElementById('yarnItemModal'));
+    const detailsModal = new bootstrap.Modal(document.getElementById('yarnDetailsModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
+    
+    let isEditMode = false;
+    let availableManufacturers = [];
+    let availableOriginYarns = [];
+    let currentItemId = null;
+    let selectedManufacturerIds = [];
+    let selectedOriginYarnId = null;
 
-    <!-- Main JavaScript -->
-    <script>
-        $(document).ready(function() {
-            // Replace existing "Add New" button with popup trigger (like original)
-            $('a[href*="Create"]').replaceWith(`
-                <button class="btn btn-success btn-sm" id="openCreateModal">
-                    <i class="fas fa-plus me-1"></i>إضافة جديد
-                </button>
-            `);
+    // ================================
+    // NUMBER CONVERSION FUNCTIONS
+    // ================================
+    function toArabicDigits(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    }
 
-            const yarnItemModal = new bootstrap.Modal(document.getElementById('yarnItemModal'));
-            const detailsModal = new bootstrap.Modal(document.getElementById('yarnDetailsModal'));
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteConfirmModal'));
-            
-            let isEditMode = false;
-            let availableManufacturers = [];
-            let availableOriginYarns = [];
-            let currentItemId = null;
+    function toLatinDigits(str) {
+        if (typeof str !== 'string') return str;
+        return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+    }
 
-            // Number conversion functions (restored from original)
-            function toArabicDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+    function containsArabic(str) {
+        return /[\u0600-\u06FF]/.test(str);
+    }
+
+    function shouldUseArabicNumbers(str) {
+        if (!str || str.trim().length === 0) return true;
+        if (containsArabic(str)) return true;
+        if (/^[0-9٠-٩]+$/.test(str)) return true;
+        return false;
+    }
+
+    function applySmartNumberConversion($input) {
+        let val = $input.val();
+        let useArabicNumbers = shouldUseArabicNumbers(val || "");
+        let newVal = useArabicNumbers ? toArabicDigits(val || "") : toLatinDigits(val || "");
+
+        if (newVal !== val) {
+            let cursorPos = $input[0].selectionStart || 0;
+            $input.val(newVal);
+            try {
+                $input[0].setSelectionRange(cursorPos, cursorPos);
+            } catch (ex) {
+                $input.focus();
             }
+        }
+    }
 
-            function toLatinDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-            }
+    $(document).on("input keyup paste", "input[type='text'], textarea", function() {
+        applySmartNumberConversion($(this));
+    });
 
-            function containsArabic(str) {
-                return /[\u0600-\u06FF]/.test(str);
-            }
+    // ================================
+    // INSTANT SEARCH
+    // ================================
+    $('.instant-search, #mobileGlobalSearch').on('input keyup', function() {
+        performInstantSearch();
+    });
 
-            function shouldUseArabicNumbers(str) {
-                if (!str || str.trim().length === 0) {
-                    return true; // Default Arabic when empty
-                }
-                if (containsArabic(str)) {
-                    return true;
-                }
-                if (/^[0-9٠-٩]+$/.test(str)) {
-                    return true;
-                }
-                return false;
-            }
+    function performInstantSearch() {
+        const searchValues = {};
+        
+        $('.instant-search').each(function() {
+            const column = $(this).data('column');
+            const value = $(this).val().toLowerCase().trim();
+            if (value) searchValues[column] = value;
+        });
 
-            function applySmartNumberConversion($input) {
-                let val = $input.val();
-                let useArabicNumbers = shouldUseArabicNumbers(val || "");
-                let newVal = useArabicNumbers ? toArabicDigits(val || "") : toLatinDigits(val || "");
+        const mobileSearch = $('#mobileGlobalSearch').val().toLowerCase().trim();
+        let visibleCount = 0;
 
-                if (newVal !== val) {
-                    let cursorPos = $input[0].selectionStart || 0;
-                    $input.val(newVal);
-                    try {
-                        $input[0].setSelectionRange(cursorPos, cursorPos);
-                    } catch (ex) {
-                        $input.focus();
-                    }
-                }
-            }
+        $('#itemsTable tbody tr').each(function() {
+            const $row = $(this);
+            let showRow = true;
 
-            // Apply number conversion on inputs
-            $(document).on("input keyup paste", "input[type='text'], textarea, .smart-number", function () {
-                applySmartNumberConversion($(this));
-            });
-
-            // Instant Search Implementation
-            $('.instant-search, #mobileGlobalSearch').on('input keyup', function() {
-                performInstantSearch();
-            });
-
-            function performInstantSearch() {
-                const searchValues = {};
+            Object.keys(searchValues).forEach(column => {
+                const searchValue = searchValues[column];
+                const cellText = $row.find(`td:eq(${column})`).text().toLowerCase();
                 
-                // Get desktop search values
-                $('.instant-search').each(function() {
-                    const column = $(this).data('column');
-                    const value = $(this).val().toLowerCase().trim();
-                    if (value) searchValues[column] = value;
-                });
+                if (!cellText.includes(searchValue)) showRow = false;
+            });
 
-                // Get mobile search value
-                const mobileSearch = $('#mobileGlobalSearch').val().toLowerCase().trim();
+            $row.toggle(showRow);
+            if (showRow) visibleCount++;
+        });
+
+        $('.mobile-item-card').each(function() {
+            const $card = $(this);
+            const searchContent = $card.data('search-content').toLowerCase();
+            const showCard = !mobileSearch || searchContent.includes(mobileSearch);
+            $card.toggle(showCard);
+        });
+
+        $('#visibleCount').text(visibleCount);
+    }
+
+    $('#clearAllFilters, #clearAllSearches').click(function() {
+        $('.instant-search, #mobileGlobalSearch').val('');
+        $('#itemsTable tbody tr, .mobile-item-card').show();
+        $('#visibleCount').text($('#itemsTable tbody tr').length);
+    });
+
+    // ================================
+    // MODAL HANDLERS
+    // ================================
+    $('#openCreateModal').click(function() {
+        openCreateModal();
+    });
+
+    $(document).on('click', '.edit-btn, a[href*="Edit"]', function(e) {
+        e.preventDefault();
+        let itemId;
+        
+        if ($(this).hasClass('edit-btn')) {
+            itemId = $(this).data('id');
+        } else {
+            const href = $(this).attr('href');
+            itemId = parseInt(href.split('/').pop());
+        }
+        
+        openEditModal(itemId);
+    });
+
+    $(document).on('click', '.view-details', function(e) {
+        e.preventDefault();
+        const id = $(this).data('id');
+        if (id) openDetailsModal(id);
+    });
+
+    $(document).on('click', '.delete-item', function() {
+        const itemId = $(this).data('id');
+        const itemName = $(this).data('name');
+        showDeleteConfirm(itemId, itemName);
+    });
+
+    // ================================
+    // OPEN CREATE MODAL
+    // ================================
+    function openCreateModal() {
+        isEditMode = false;
+        currentItemId = null;
+        selectedManufacturerIds = [];
+        selectedOriginYarnId = null;
+        resetForm();
+        updateModalTitle('إضافة صنف غزل جديد', 'fa-plus-circle', 'bg-success');
+        loadDataAndShowModal();
+    }
+
+    // ================================
+    // OPEN EDIT MODAL - FIXED
+    // ================================
+    function openEditModal(itemId) {
+        console.log('🔧 Opening edit modal for item:', itemId);
+        
+        isEditMode = true;
+        currentItemId = itemId;
+        resetForm();
+        updateModalTitle('تعديل صنف الغزل', 'fa-edit', 'bg-primary');
+        
+        // Show loading overlay
+        showFormLoading();
+        
+        // Load item data first to get selected IDs
+        loadItemDataFromDOM(itemId)
+            .then(() => {
+                console.log('✅ Item data loaded, selected manufacturers:', selectedManufacturerIds);
+                console.log('✅ Selected origin yarn:', selectedOriginYarnId);
                 
-                let visibleCount = 0;
-
-                // Filter table rows (desktop)
-                $('#itemsTable tbody tr').each(function() {
-                    const $row = $(this);
-                    let showRow = true;
-
-                    // Check each column search
-                    Object.keys(searchValues).forEach(column => {
-                        const searchValue = searchValues[column];
-                        const cellText = $row.find(`td:eq(${column})`).text().toLowerCase();
-                        
-                        if (column == '4') { // Balance column
-                            const balance = parseFloat($row.data('balance') || 0);
-                            if (searchValue === 'zero' && balance > 0) showRow = false;
-                            else if (searchValue === 'low' && (balance <= 0 || balance > 10)) showRow = false;
-                            else if (searchValue === 'high' && balance <= 100) showRow = false;
-                        } else {
-                            if (!cellText.includes(searchValue)) showRow = false;
-                        }
-                    });
-
-                    $row.toggle(showRow);
-                    if (showRow) visibleCount++;
-                });
-
-                // Filter mobile cards
-                $('.mobile-item-card').each(function() {
-                    const $card = $(this);
-                    const searchContent = $card.data('search-content').toLowerCase();
-                    const showCard = !mobileSearch || searchContent.includes(mobileSearch);
-                    $card.toggle(showCard);
-                });
-
-                $('#visibleCount').text(visibleCount);
-            }
-
-            // Clear all filters
-            $('#clearAllFilters, #clearAllSearches').click(function() {
-                $('.instant-search, #mobileGlobalSearch').val('');
-                $('#itemsTable tbody tr, .mobile-item-card').show();
-                $('#visibleCount').text(@totalItems);
-            });
-
-            // Replace edit links with popup triggers (restored from original)
-            $(document).on('click', 'a[href*="Edit"]', function(e) {
-                e.preventDefault();
-                const href = $(this).attr('href');
-                const id = href.split('/').pop();
-                openEditModal(parseInt(id));
-            });
-
-            // Add detail view triggers (restored from original)
-            $(document).on('click', '.view-details', function(e) {
-                e.preventDefault();
-                const id = $(this).data('id');
-                if (id) {
-                    openDetailsModal(id);
-                }
-            });
-
-            // Modal handlers
-            $('#openCreateModal').click(function() {
-                openCreateModal();
-            });
-
-            $(document).on('click', '.edit-btn', function() {
-                const itemId = $(this).data('id');
-                openEditModal(itemId);
-            });
-
-            $(document).on('click', '.delete-item', function() {
-                const itemId = $(this).data('id');
-                const itemName = $(this).data('name');
-                showDeleteConfirm(itemId, itemName);
-            });
-
-            // Open create modal function (restored from original)
-            function openCreateModal() {
-                isEditMode = false;
-                currentItemId = null;
-                resetForm();
-                updateModalTitle('إضافة صنف غزل جديد', 'fa-plus-circle', 'bg-success');
-                loadDataAndShowModal();
-            }
-
-            // Open edit modal function (restored from original)
-            function openEditModal(itemId) {
-                isEditMode = true;
-                currentItemId = itemId;
-                resetForm();
-                updateModalTitle('تعديل صنف الغزل', 'fa-edit', 'bg-primary');
-                loadItemForEdit(itemId);
-            }
-
-            // Open details modal (restored from original)
-            function openDetailsModal(itemId) {
-                currentItemId = itemId;
-                loadItemDetails(itemId);
-            }
-
-            // Update modal title and styling (restored from original)
-            function updateModalTitle(title, iconClass, bgClass) {
-                $('#modalTitle').text(title);
-                $('#modalIcon').removeClass().addClass(`fas ${iconClass} me-2`);
-                $('.modal-header').removeClass('bg-success bg-primary bg-warning').addClass(bgClass);
-                $('#saveButton').html(`<i class="fas fa-save me-1"></i>${isEditMode ? 'تحديث الصنف' : 'حفظ الصنف'}`);
-            }
-
-            // Load item details (restored from original)
-            function loadItemDetails(itemId) {
-                $('#detailsContent').html(`
-                    <div class="text-center py-4">
-                        <div class="spinner-border text-primary mb-3" role="status"></div>
-                        <div class="text-muted">جاري تحميل التفاصيل...</div>
-                    </div>
-                `);
-                detailsModal.show();
-
-                // Extract details from existing table row
-                const row = $(`tr:has([data-id="${itemId}"])`);
-                if (row.length) {
-                    const itemName = row.find('.fw-semibold, .fw-bold').first().text().trim();
-                    const status = row.data('status') === 'active';
-                    const manufacturer = row.find('td:eq(1)').text().trim() || 'غير محدد';
-                    const originYarn = row.find('td:eq(2)').text().trim() || 'غير محدد';
-                    const balance = row.find('td:eq(4) .fw-bold').text().trim() + ' كجم';
-                    const countBalance = row.find('td:eq(5) .fw-bold').text().trim();
-                    const comment = row.find('small').text().trim() || 'لا يوجد بيان';
-
-                    const detailsHtml = `
-                        <div class="p-4">
-                            <!-- Header -->
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <div class="d-flex align-items-center p-3 bg-light rounded">
-                                        <div class="icon-circle bg-primary text-white me-3">
-                                            <i class="fas fa-box fa-2x"></i>
-                                        </div>
-                                        <div>
-                                            <h4 class="mb-1 fw-bold text-dark">${itemName}</h4>
-                                            <span class="badge bg-${status ? 'success' : 'secondary'} px-3 py-2">
-                                                <i class="fas fa-${status ? 'check' : 'times'} me-1"></i>
-                                                ${status ? 'نشط' : 'غير نشط'}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Details Grid -->
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title text-success">
-                                                <i class="fas fa-industry me-2"></i>الشركة المصنعة
-                                            </h6>
-                                            <p class="card-text">${manufacturer}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title text-info">
-                                                <i class="fas fa-link me-2"></i>الغزل المكون
-                                            </h6>
-                                            <p class="card-text">${originYarn}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title text-warning">
-                                                <i class="fas fa-calculator me-2"></i>الرصيد الحالي
-                                            </h6>
-                                            <p class="card-text fs-5 fw-bold">${balance}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card h-100">
-                                        <div class="card-body">
-                                            <h6 class="card-title text-primary">
-                                                <i class="fas fa-hashtag me-2"></i>رصيد العدد
-                                            </h6>
-                                            <p class="card-text fs-5 fw-bold">${countBalance} وحدة</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="card">
-                                        <div class="card-body">
-                                            <h6 class="card-title text-secondary">
-                                                <i class="fas fa-comment-alt me-2"></i>البيان والملاحظات
-                                            </h6>
-                                            <p class="card-text">${comment}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    `;
-
-                    $('#detailsContent').html(detailsHtml);
-                }
-            }
-
-            // Edit from details (restored from original)
-            $('#editFromDetails').click(function() {
-                detailsModal.hide();
-                if (currentItemId) {
-                    setTimeout(() => openEditModal(currentItemId), 300);
-                }
-            });
-
-            // Delete from details (restored from original)
-            $('#deleteFromDetails').click(function() {
-                detailsModal.hide();
-                if (currentItemId) {
-                    setTimeout(() => showDeleteConfirm(currentItemId), 300);
-                }
-            });
-
-            // Reset form
-            function resetForm() {
-                $('#yarnItemForm')[0].reset();
-                $('#yarnItemId').val('0');
-                $('#yarnItemStatus').prop('checked', true);
-                $('#manufacturersContainer').empty();
-                $('#originYarnSelect').empty().append('<option value="">-- اختياري --</option>');
-            }
-
-            // Load data and show modal
-            function loadDataAndShowModal() {
-                Promise.all([loadManufacturers(), loadOriginYarns()])
-                .then(() => yarnItemModal.show())
-                .catch(() => showNotification('حدث خطأ أثناء تحميل البيانات', 'error'));
-            }
-
-            // Load manufacturers (restored original logic)
-            function loadManufacturers() {
-                return new Promise((resolve, reject) => {
-                    $.ajax({
-                        url: '/api/YarnItems/GetManufacturers',
-                        method: 'GET',
-                        success: function(response) {
-                            if (response.success) {
-                                availableManufacturers = response.data;
-                                renderManufacturers();
-                                resolve();
-                            } else {
-                                reject('Failed to load manufacturers');
-                            }
-                        },
-                        error: function() {
-                            // Fallback with mock data
-                            availableManufacturers = [
-                                {id: 1, name: 'الشركة الأولى للغزل', status: true},
-                                {id: 2, name: 'مصانع النسيج المتطورة', status: true},
-                                {id: 3, name: 'شركة الغزل الذهبي', status: true}
-                            ];
-                            renderManufacturers();
-                            resolve();
-                        }
-                    });
-                });
-            }
-
-            // Load origin yarns (restored original logic)
-            function loadOriginYarns(excludeId = null) {
-                return new Promise((resolve, reject) => {
-                    $.ajax({
-                        url: '/api/YarnItems/GetOriginYarns',
-                        method: 'GET',
-                        data: excludeId ? { excludeId: excludeId } : {},
-                        success: function(response) {
-                            if (response.success) {
-                                availableOriginYarns = response.data;
-                                renderOriginYarns();
-                                resolve();
-                            } else {
-                                reject('Failed to load origin yarns');
-                            }
-                        },
-                        error: function() {
-                            reject('Failed to load origin yarns');
-                        }
-                    });
-                });
-            }
-
-            // Render manufacturers (enhanced from original)
-            function renderManufacturers() {
-                const container = $('#manufacturersContainer');
-                container.empty();
-                
-                availableManufacturers.forEach(manufacturer => {
-                    if (manufacturer.status) {
-                        const checkboxHtml = `
-                            <div class="form-check form-check-sm">
-                                <input class="form-check-input manufacturer-checkbox" type="checkbox" 
-                                       value="${manufacturer.id}" id="manufacturer_${manufacturer.id}" name="ManufacturerIds">
-                                <label class="form-check-label small" for="manufacturer_${manufacturer.id}">
-                                    ${manufacturer.name}
-                                </label>
-                            </div>
-                        `;
-                        container.append(checkboxHtml);
-                    }
-                });
-
-                // Add event listeners
-                $('.manufacturer-checkbox').on('change', updateSelectedManufacturers);
-            }
-
-            // Update selected manufacturers count
-            function updateSelectedManufacturers() {
-                const selectedCount = $('.manufacturer-checkbox:checked').length;
-                // Visual feedback could be added here
-            }
-
-            // Render origin yarns (restored original)
-            function renderOriginYarns() {
-                const select = $('#originYarnSelect');
-                select.empty().append('<option value="">-- اختر الغزل المكون --</option>');
-
-                availableOriginYarns.forEach(yarn => {
-                    select.append(`<option value="${yarn.value}">${yarn.text}</option>`);
-                });
-            }
-
-            // Load item for edit (restored original complex logic)
-            function loadItemForEdit(itemId) {
-                $('#formLoading').show();
-
-                Promise.all([
+                // Then load manufacturers and origin yarns with selections
+                return Promise.all([
                     loadManufacturers(),
-                    loadOriginYarns(itemId),
-                    loadItemData(itemId)
-                ]).then(() => {
-                    $('#formLoading').hide();
-                    yarnItemModal.show();
-                }).catch(error => {
-                    $('#formLoading').hide();
-                    showNotification('حدث خطأ أثناء تحميل بيانات الصنف', 'error');
-                    console.error('Error loading item data:', error);
-                });
-            }
+                    loadOriginYarns(itemId)
+                ]);
+            })
+            .then(() => {
+                console.log('✅ Manufacturers and origin yarns loaded');
+                
+                // Now apply selections
+                applySelections();
+                
+                hideFormLoading();
+                yarnItemModal.show();
+            })
+            .catch(error => {
+                console.error('❌ Error loading edit modal:', error);
+                hideFormLoading();
+                showNotification('حدث خطأ أثناء تحميل بيانات الصنف', 'error');
+            });
+    }
 
-            // Load item data (restored original with API fallback)
-            function loadItemData(itemId) {
-                return new Promise((resolve, reject) => {
-                    // Try to find in DOM first
-                    const row = $(`tr[data-id="${itemId}"], .mobile-item-card[data-id="${itemId}"]`);
-                    if (row.length) {
-                        // Extract data from DOM
-                        const itemName = row.find('.fw-bold, .fw-semibold').first().text().trim();
-                        const status = row.data('status') === 'active';
-                        const comment = row.find('[title]').attr('title') || 
-                                       row.find('small').text().trim() || '';
-
-                        // Populate form
-                        $('#yarnItemId').val(itemId);
-                        $('#yarnItemName').val(itemName);
-                        $('#yarnItemStatus').prop('checked', status);
-                        $('#yarnItemComment').val(comment);
-
+    // ================================
+    // LOAD ITEM DATA FROM DOM - FIXED
+    // ================================
+    function loadItemDataFromDOM(itemId) {
+        return new Promise((resolve, reject) => {
+            console.log('📥 Loading item data from DOM for ID:', itemId);
+            
+            // Try API first
+            $.ajax({
+                url: `/api/YarnItems/${itemId}`,
+                method: 'GET',
+                success: function(response) {
+                    console.log('✅ API Response:', response);
+                    
+                    if (response.success && response.data) {
+                        const item = response.data;
+                        
+                        // Populate form fields
+                        $('#yarnItemId').val(item.id);
+                        $('#yarnItemName').val(item.item);
+                        $('#yarnItemStatus').prop('checked', item.status);
+                        $('#yarnItemComment').val(item.comment || '');
+                        
+                        // ✅ Store selected IDs for later
+                        selectedManufacturerIds = item.manufacturerIds || [];
+                        selectedOriginYarnId = item.originYarnId || null;
+                        
+                        console.log('📌 Stored selections:', {
+                            manufacturers: selectedManufacturerIds,
+                            originYarn: selectedOriginYarnId
+                        });
+                        
                         updateStatusText();
                         resolve();
                     } else {
-                        // Fallback: API call
-                               $.ajax({
-            url: `/api/YarnItems/${itemId}`,   // ✅ Correct
-            method: 'GET',
-            success: function (response) {
-                if (response.success) {
-                    const item = response.data;
+                        // Fallback to DOM extraction
+                        loadItemDataFromDOMFallback(itemId, resolve, reject);
+                    }
+                },
+                error: function(xhr) {
+                    console.log('⚠️ API failed, trying DOM fallback');
+                    loadItemDataFromDOMFallback(itemId, resolve, reject);
+                }
+            });
+        });
+    }
 
-                    $('#yarnItemId').val(item.id);
-                    $('#yarnItemName').val(item.item);
-                    $('#yarnItemStatus').prop('checked', item.status);
-                    $('#yarnItemComment').val(item.comment);
+    // ================================
+    // FALLBACK: EXTRACT FROM DOM
+    // ================================
+    function loadItemDataFromDOMFallback(itemId, resolve, reject) {
+        const row = $(`tr:has([data-id="${itemId}"])`).first();
+        
+        if (row.length) {
+            console.log('✅ Found item in DOM');
+            
+            const itemName = row.find('td:eq(0) .fw-semibold').text().trim();
+            const status = row.data('status') === 'active';
+            const comment = row.find('td:eq(0) small').text().trim() || '';
+            const manufacturerText = row.find('td:eq(1)').text().trim();
+            const originYarnText = row.find('td:eq(2)').text().trim();
+            
+            // Populate form
+            $('#yarnItemId').val(itemId);
+            $('#yarnItemName').val(itemName);
+            $('#yarnItemStatus').prop('checked', status);
+            $('#yarnItemComment').val(comment);
+            
+            // ⚠️ We can't get IDs from DOM, will select by name later
+            selectedManufacturerIds = [];
+            selectedOriginYarnId = null;
+            
+            // Store text for matching
+            window.tempManufacturerText = manufacturerText !== 'غير محدد' ? manufacturerText : '';
+            window.tempOriginYarnText = originYarnText !== 'غير محدد' ? originYarnText : '';
+            
+            updateStatusText();
+            resolve();
+        } else {
+            console.error('❌ Item not found in DOM');
+            reject('Item not found');
+        }
+    }
 
-                    updateStatusText();
+    // ================================
+    // APPLY SELECTIONS - FIXED
+    // ================================
+    function applySelections() {
+        console.log('🎯 Applying selections...');
+        
+        // ✅ Select manufacturers by ID
+        if (selectedManufacturerIds && selectedManufacturerIds.length > 0) {
+            console.log('Selecting manufacturers:', selectedManufacturerIds);
+            
+            selectedManufacturerIds.forEach(id => {
+                $(`#manufacturer_${id}`).prop('checked', true);
+            });
+            
+            const checkedCount = $('.manufacturer-checkbox:checked').length;
+            console.log('✅ Selected', checkedCount, 'manufacturers');
+        } 
+        // Fallback: select by name if we only have text
+        else if (window.tempManufacturerText) {
+            console.log('Selecting manufacturers by name:', window.tempManufacturerText);
+            
+            const names = window.tempManufacturerText.split(',').map(n => n.trim());
+            names.forEach(name => {
+                $(`.manufacturer-checkbox`).each(function() {
+                    const label = $(this).next('label').text().trim();
+                    if (label === name) {
+                        $(this).prop('checked', true);
+                    }
+                });
+            });
+        }
+        
+        // ✅ Select origin yarn by ID
+        if (selectedOriginYarnId) {
+            console.log('Selecting origin yarn:', selectedOriginYarnId);
+            $('#originYarnSelect').val(selectedOriginYarnId);
+            console.log('✅ Selected origin yarn value:', $('#originYarnSelect').val());
+        }
+        // Fallback: select by name
+        else if (window.tempOriginYarnText) {
+            console.log('Selecting origin yarn by text:', window.tempOriginYarnText);
+            
+            $(`#originYarnSelect option`).each(function() {
+                if ($(this).text().trim() === window.tempOriginYarnText) {
+                    $(this).prop('selected', true);
+                }
+            });
+        }
+        
+        updateSelectedManufacturers();
+        
+        // Clean up temp variables
+        window.tempManufacturerText = null;
+        window.tempOriginYarnText = null;
+    }
+
+    // ================================
+    // LOAD MANUFACTURERS
+    // ================================
+    function loadManufacturers() {
+        return new Promise((resolve, reject) => {
+            console.log('📥 Loading manufacturers...');
+            
+            $.ajax({
+                url: '/api/YarnItems/GetManufacturers',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        availableManufacturers = response.data;
+                        console.log('✅ Loaded', availableManufacturers.length, 'manufacturers');
+                        renderManufacturers();
+                        resolve();
+                    } else {
+                        reject('Failed to load manufacturers');
+                    }
+                },
+                error: function() {
+                    console.log('⚠️ Using fallback manufacturers');
+                    // Fallback
+                    availableManufacturers = [
+                        {id: 1, name: 'الشركة الأولى للغزل', status: true},
+                        {id: 2, name: 'مصانع النسيج المتطورة', status: true},
+                        {id: 3, name: 'شركة الغزل الذهبي', status: true}
+                    ];
+                    renderManufacturers();
                     resolve();
-                } else {
-                    reject(response.message || 'Failed to load item from API');
                 }
-            },
-            error: function () {
-                reject('API error loading item');
-            }
+            });
         });
+    }
 
+    // ================================
+    // LOAD ORIGIN YARNS
+    // ================================
+    function loadOriginYarns(excludeId = null) {
+        return new Promise((resolve, reject) => {
+            console.log('📥 Loading origin yarns, excluding:', excludeId);
+            
+            $.ajax({
+                url: '/api/YarnItems/GetOriginYarns',
+                method: 'GET',
+                data: excludeId ? { excludeId: excludeId } : {},
+                success: function(response) {
+                    if (response.success) {
+                        availableOriginYarns = response.data;
+                        console.log('✅ Loaded', availableOriginYarns.length, 'origin yarns');
+                        renderOriginYarns();
+                        resolve();
+                    } else {
+                        reject('Failed to load origin yarns');
                     }
-                });
-            }
-
-            // Status switch handler (restored)
-            $('#yarnItemStatus').change(function() {
-                updateStatusText();
-            });
-
-            function updateStatusText() {
-                const isActive = $('#yarnItemStatus').prop('checked');
-                $('.status-text').text(isActive ? 'نشط' : 'غير نشط');
-            }
-
-            // Add select/clear all manufacturers buttons functionality
-            $(document).on('click', '#selectAllManufacturers', function() {
-                $('.manufacturer-checkbox').prop('checked', true);
-                updateSelectedManufacturers();
-            });
-
-            $(document).on('click', '#clearAllManufacturers', function() {
-                $('.manufacturer-checkbox').prop('checked', false);
-                updateSelectedManufacturers();
-            });
-
-            // Refresh origin yarns functionality
-            $(document).on('click', '#refreshOriginYarns', function() {
-                const btn = $(this);
-                const originalHtml = btn.html();
-                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
-
-                loadOriginYarns(isEditMode ? currentItemId : null).then(() => {
-                    btn.prop('disabled', false).html(originalHtml);
-                    showNotification('تم تحديث قائمة الغزل المكون بنجاح', 'success');
-                }).catch(() => {
-                    btn.prop('disabled', false).html(originalHtml);
-                    showNotification('فشل في تحديث قائمة الغزل المكون', 'error');
-                });
-            });
-
-            // Show delete confirmation
-            function showDeleteConfirm(itemId, itemName) {
-                $('#deleteItemId').val(itemId);
-                $('#deleteItemName').text(itemName);
-                deleteModal.show();
-            }
-
-            // Form submission (restored original with full validation and conversion)
-            $('#yarnItemForm').submit(function(e) {
-                e.preventDefault();
-                clearValidationErrors();
-
-                const formData = {
-                    Id: parseInt($('#yarnItemId').val()) || 0,
-                    Item: $('#yarnItemName').val().trim(),
-                    Status: $('#yarnItemStatus').prop('checked'),
-                    Comment: $('#yarnItemComment').val().trim(),
-                    OriginYarnId: $('#originYarnSelect').val() ? parseInt($('#originYarnSelect').val()) : null,
-                    ManufacturerIds: $('.manufacturer-checkbox:checked').map(function() {
-                        return parseInt($(this).val());
-                    }).get()
-                };
-
-                // Client-side validation
-                if (!formData.Item) {
-                    showFieldError('yarnItemName', 'itemError', 'اسم الصنف مطلوب');
-                    return;
+                },
+                error: function() {
+                    console.error('❌ Failed to load origin yarns');
+                    renderOriginYarns(); // Render empty
+                    resolve(); // Don't block modal
                 }
-
-                if (formData.Item.length > 200) {
-                    showFieldError('yarnItemName', 'itemError', 'اسم الصنف لا يمكن أن يزيد عن 200 حرف');
-                    return;
-                }
-
-                // Convert Arabic numbers to English for server
-                formData.Item = toLatinDigits(formData.Item);
-                formData.Comment = toLatinDigits(formData.Comment);
-
-                // Show loading state
-                const saveButton = $('#saveButton');
-                const originalText = saveButton.html();
-                saveButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
-
-                            $.ajax({
-            url: isEditMode ? `/YarnItems/Edit/${formData.Id}` : '/YarnItems/Create',
-            method: 'POST',
-            data: $.param(formData, true),   // ← يخلي ManufacturerIds[]=1&ManufacturerIds[]=2
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
-            },
-            success: function (response) {
-                saveButton.prop('disabled', false).html(originalText);
-
-                if (response.success) {
-                    const successMessage = isEditMode
-                        ? `تم تحديث الصنف "${formData.Item}" بنجاح`
-                        : `تم إضافة الصنف "${formData.Item}" بنجاح`;
-
-                    showNotification(successMessage, 'success');
-                    yarnItemModal.hide();
-
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    handleValidationErrors(response);
-                }
-            },
-            error: function (xhr) {
-                saveButton.prop('disabled', false).html(originalText);
-
-                if (xhr.status === 400 && xhr.responseJSON) {
-                    handleValidationErrors(xhr.responseJSON);
-                } else {
-                    showNotification('حدث خطأ أثناء الحفظ', 'error');
-                }
-            }
+            });
         });
+    }
 
-
-            });
-
-            // Handle validation errors (restored original)
-            function handleValidationErrors(response) {
-                if (response.errors) {
-                    Object.keys(response.errors).forEach(field => {
-                        const errors = response.errors[field];
-                        if (errors && errors.length > 0) {
-                            const fieldMap = {
-                                'Item': { input: 'yarnItemName', error: 'itemError' },
-                                'OriginYarnId': { input: 'originYarnSelect', error: 'originYarnError' },
-                                'ManufacturerIds': { input: '', error: '' }
-                            };
-
-                            const mapping = fieldMap[field];
-                            if (mapping && mapping.input) {
-                                showFieldError(mapping.input, mapping.error, errors[0]);
-                            }
-                        }
-                    });
-                }
-
-                if (response.message) {
-                    showNotification(response.message, 'error');
-                }
-            }
-
-            // Show field error
-            function showFieldError(fieldId, errorId, message) {
-                $(`#${fieldId}`).addClass('is-invalid');
-                if (errorId) {
-                    $(`#${errorId}`).text(message);
-                }
-            }
-
-            // Clear validation errors
-            function clearValidationErrors() {
-                $('.form-control, .form-select').removeClass('is-invalid');
-                $('.invalid-feedback').text('');
-            }
-
-            // Clear validation errors on input focus
-            $(document).on('focus', '.form-control, .form-select', function() {
-                $(this).removeClass('is-invalid');
-                const fieldName = $(this).attr('id');
-                if (fieldName) {
-                    const errorMap = {
-                        'yarnItemName': 'itemError',
-                        'originYarnSelect': 'originYarnError'
-                    };
-                    const errorId = errorMap[fieldName];
-                    if (errorId) {
-                        $(`#${errorId}`).text('');
-                    }
-                }
-            });
-
-            // Confirm delete
-            $('#confirmDeleteButton').click(function() {
-                const itemId = $('#deleteItemId').val();
-                const btn = $(this);
-                const originalText = btn.text();
-                
-                btn.prop('disabled', true).text('جاري الحذف...');
-
-                $.ajax({
-                    url: `/api/YarnItems/${itemId}`,
-                    method: 'DELETE',
-                    success: function(response) {
-                        btn.prop('disabled', false).text(originalText);
-                        showNotification('تم حذف الصنف بنجاح', 'success');
-                        deleteModal.hide();
-                        
-                        $(`tr:has([data-id="${itemId}"])`).fadeOut(300, function() {
-                            $(this).remove();
-                            $('#visibleCount').text($('#itemsTable tbody tr:visible').length);
-                        });
-                        $(`.mobile-item-card[data-id="${itemId}"]`).fadeOut(300);
-                    },
-                    error: function() {
-                        btn.prop('disabled', false).text(originalText);
-                        showNotification('حدث خطأ أثناء حذف الصنف', 'error');
-                    }
-                });
-            });
-
-            // Modal hidden events (restored from original)
-            $('#yarnItemModal').on('hidden.bs.modal', function() {
-                resetForm();
-                currentItemId = null;
-            });
-
-            $('#yarnDetailsModal').on('hidden.bs.modal', function() {
-                currentItemId = null;
-            });
-
-            // Enhanced notification function (restored original with better positioning)
-            function showNotification(message, type = 'success') {
-                // Try to use existing notification system first
-                if (typeof showAlert === 'function') {
-                    const alertType = type === 'error' ? 'danger' : type;
-                    showAlert(alertType, message);
-                    return;
-                }
-
-                // Fallback notification system (enhanced)
-                const alertClass = type === 'error' ? 'alert-danger' :
-                                  type === 'warning' ? 'alert-warning' :
-                                  type === 'info' ? 'alert-info' : 'alert-success';
-
-                const icon = type === 'error' ? 'fa-exclamation-circle' :
-                            type === 'warning' ? 'fa-exclamation-triangle' :
-                            type === 'info' ? 'fa-info-circle' : 'fa-check-circle';
-
-                const alertHtml = `
-                    <div class="alert ${alertClass} alert-dismissible fade show mb-4 shadow-sm border-0 popup-notification position-fixed" 
-                         style="top: 20px; right: 20px; z-index: 1055; min-width: 300px; max-width: 400px;">
-                        <div class="d-flex align-items-center">
-                            <i class="fas ${icon} me-3 fa-lg"></i>
-                            <div>
-                                <strong>${type === 'error' ? 'خطأ!' : type === 'warning' ? 'تحذير!' : type === 'info' ? 'معلومة!' : 'نجح!'}</strong>
-                                <span class="ms-2">${message}</span>
-                            </div>
-                        </div>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>`;
-
-                $('body').append(alertHtml);
-
-                // Auto-hide after 5 seconds
-                setTimeout(() => {
-                    $('.popup-notification').fadeOut(350, function() {
-                        $(this).remove();
-                    });
-                }, 5000);
-            }
-
-            // Update visible count function
-            function updateVisibleCount() {
-                const visibleDesktop = $('#itemsTable tbody tr:visible').length;
-                const visibleMobile = $('.mobile-item-card:visible').length;
-                const total = Math.max(visibleDesktop, visibleMobile);
-                $('#visibleCount').text(total);
-            }
-
-            // Add loading indicator to form (for consistency with original)
-            function showFormLoading() {
-                const loadingHtml = `
-                    <div id="formLoading" class="text-center py-4 position-absolute w-100 h-100 d-flex align-items-center justify-content-center" 
-                         style="background: rgba(255,255,255,0.9); top: 0; left: 0; z-index: 1000;">
-                        <div>
-                            <div class="spinner-border text-primary mb-3" role="status">
-                                <span class="visually-hidden">جاري التحميل...</span>
-                            </div>
-                            <div class="text-muted">جاري تحميل البيانات...</div>
-                        </div>
+    // ================================
+    // RENDER MANUFACTURERS - FIXED
+    // ================================
+    function renderManufacturers() {
+        const container = $('#manufacturersContainer');
+        container.empty();
+        
+        console.log('🎨 Rendering', availableManufacturers.length, 'manufacturers');
+        
+        if (availableManufacturers.length === 0) {
+            container.html('<p class="text-muted small text-center my-2">لا توجد شركات متاحة</p>');
+            return;
+        }
+        
+        availableManufacturers.forEach(manufacturer => {
+            if (manufacturer.status) {
+                const checkboxHtml = `
+                    <div class="form-check form-check-sm">
+                        <input class="form-check-input manufacturer-checkbox" 
+                               type="checkbox" 
+                               value="${manufacturer.id}" 
+                               id="manufacturer_${manufacturer.id}" 
+                               name="ManufacturerIds">
+                        <label class="form-check-label small" for="manufacturer_${manufacturer.id}">
+                            ${manufacturer.name}
+                        </label>
                     </div>
                 `;
-                $('.modal-body').append(loadingHtml);
+                container.append(checkboxHtml);
             }
-
-            function hideFormLoading() {
-                $('#formLoading').remove();
-            }
-
-            console.log('Simplified YarnItems system initialized');
         });
-    </script>
 
+        $('.manufacturer-checkbox').on('change', updateSelectedManufacturers);
+    }
+
+    // ================================
+    // RENDER ORIGIN YARNS - FIXED
+    // ================================
+    function renderOriginYarns() {
+        const select = $('#originYarnSelect');
+        select.empty().append('<option value="">-- اختر الغزل المكون --</option>');
+
+        console.log('🎨 Rendering', availableOriginYarns.length, 'origin yarns');
+
+        availableOriginYarns.forEach(yarn => {
+            select.append(`<option value="${yarn.value}">${yarn.text}</option>`);
+        });
+    }
+
+    // ================================
+    // UPDATE MODAL TITLE
+    // ================================
+    function updateModalTitle(title, iconClass, bgClass) {
+        $('#modalTitle').text(title);
+        $('#modalIcon').removeClass().addClass(`fas ${iconClass} me-2`);
+        $('.modal-header').removeClass('bg-success bg-primary bg-warning').addClass(bgClass);
+        $('#saveButton').html(`<i class="fas fa-save me-1"></i>${isEditMode ? 'تحديث الصنف' : 'حفظ الصنف'}`);
+    }
+
+    // ================================
+    // RESET FORM
+    // ================================
+    function resetForm() {
+        $('#yarnItemForm')[0].reset();
+        $('#yarnItemId').val('0');
+        $('#yarnItemStatus').prop('checked', true);
+        $('#manufacturersContainer').empty();
+        $('#originYarnSelect').empty().append('<option value="">-- اختر الغزل المكون --</option>');
+        clearValidationErrors();
+        selectedManufacturerIds = [];
+        selectedOriginYarnId = null;
+    }
+
+    // ================================
+    // LOAD DATA AND SHOW MODAL
+    // ================================
+    function loadDataAndShowModal() {
+        showFormLoading();
+        
+        Promise.all([loadManufacturers(), loadOriginYarns()])
+            .then(() => {
+                hideFormLoading();
+                yarnItemModal.show();
+            })
+            .catch(() => {
+                hideFormLoading();
+                showNotification('حدث خطأ أثناء تحميل البيانات', 'error');
+            });
+    }
+
+    // ================================
+    // STATUS SWITCH
+    // ================================
+    $('#yarnItemStatus').change(function() {
+        updateStatusText();
+    });
+
+    function updateStatusText() {
+        const isActive = $('#yarnItemStatus').prop('checked');
+        $('.status-text').text(isActive ? 'نشط' : 'غير نشط');
+    }
+
+    // ================================
+    // MANUFACTURER SELECTION
+    // ================================
+    function updateSelectedManufacturers() {
+        const selectedCount = $('.manufacturer-checkbox:checked').length;
+        console.log('📊 Selected manufacturers count:', selectedCount);
+    }
+
+    $('#selectAllManufacturers').click(function() {
+        $('.manufacturer-checkbox').prop('checked', true);
+        updateSelectedManufacturers();
+    });
+
+    $('#clearAllManufacturers').click(function() {
+        $('.manufacturer-checkbox').prop('checked', false);
+        updateSelectedManufacturers();
+    });
+
+    // ================================
+    // REFRESH ORIGIN YARNS
+    // ================================
+    $('#refreshOriginYarns').click(function() {
+        const btn = $(this);
+        const originalHtml = btn.html();
+        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i>');
+
+        loadOriginYarns(isEditMode ? currentItemId : null)
+            .then(() => {
+                // Reapply selection if in edit mode
+                if (isEditMode && selectedOriginYarnId) {
+                    $('#originYarnSelect').val(selectedOriginYarnId);
+                }
+                
+                btn.prop('disabled', false).html(originalHtml);
+                showNotification('تم تحديث قائمة الغزل المكون بنجاح', 'success');
+            })
+            .catch(() => {
+                btn.prop('disabled', false).html(originalHtml);
+                showNotification('فشل في تحديث قائمة الغزل المكون', 'error');
+            });
+    });
+
+    // ================================
+// FORM SUBMISSION - AUTO RELOAD VERSION
+// ================================
+$('#yarnItemForm').submit(function (e) {
+    e.preventDefault();
+    clearValidationErrors();
+
+    const formData = {
+        Id: parseInt($('#yarnItemId').val()) || 0,
+        Item: $('#yarnItemName').val().trim(),
+        Status: $('#yarnItemStatus').prop('checked'),
+        Comment: $('#yarnItemComment').val().trim(),
+        OriginYarnId: $('#originYarnSelect').val() ? parseInt($('#originYarnSelect').val()) : null,
+        ManufacturerIds: $('.manufacturer-checkbox:checked').map(function () {
+            return parseInt($(this).val());
+        }).get()
+    };
+
+    // Validation
+    if (!formData.Item) {
+        showFieldError('yarnItemName', 'itemError', 'اسم الصنف مطلوب');
+        return;
+    }
+
+    if (formData.Item.length > 200) {
+        showFieldError('yarnItemName', 'itemError', 'اسم الصنف لا يمكن أن يزيد عن 200 حرف');
+        return;
+    }
+
+    // Convert Arabic/Indic digits to Latin
+    formData.Item = toLatinDigits(formData.Item);
+    formData.Comment = toLatinDigits(formData.Comment);
+
+    const saveButton = $('#saveButton');
+    const originalText = saveButton.html();
+    saveButton.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
+
+    $.ajax({
+        url: isEditMode ? `/YarnItems/Edit/${formData.Id}` : '/YarnItems/Create',
+        method: 'POST',
+        data: $.param(formData, true),
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+        },
+        success: function (response) {
+            saveButton.prop('disabled', false).html(originalText);
+
+            if (response.success) {
+                // ✅ Hide modal
+                $('#yarnItemModal').modal('hide');
+
+                // ✅ Refresh page to show updated data (no alert)
+                window.location.reload();
+            } else {
+                handleValidationErrors(response);
+            }
+        },
+        error: function (xhr) {
+            saveButton.prop('disabled', false).html(originalText);
+
+            if (xhr.status === 400 && xhr.responseJSON) {
+                handleValidationErrors(xhr.responseJSON);
+            } else {
+                console.error('❌ Error saving Yarn Item:', xhr);
+            }
+        }
+    });
+});
+
+
+    // ================================
+    // UPDATE ITEM IN DOM WITHOUT RELOAD - NEW FUNCTION
+    // ================================
+    function updateItemInDOM(itemData) {
+        console.log('🔄 Updating item in DOM:', itemData);
+        
+        const itemId = itemData.id;
+        const rowSelector = `tr:has([data-id="${itemId}"])`;
+        const cardSelector = `.mobile-item-card[data-id="${itemId}"]`;
+        
+        // Update table row
+        if ($(rowSelector).length) {
+            const row = $(rowSelector);
+            
+            // Update name and comment
+            row.find('td:eq(0) .fw-semibold').text(itemData.item);
+            row.find('td:eq(0) small').text(itemData.comment || '');
+            
+            // Update manufacturers
+            const manufacturerNames = itemData.manufacturerNames || ['غير محدد'];
+            row.find('td:eq(1)').text(manufacturerNames.join(', '));
+            
+            // Update origin yarn
+            const originYarnName = itemData.originYarnName || 'غير محدد';
+            row.find('td:eq(2)').text(originYarnName);
+            
+            // Update status
+            row.data('status', itemData.status ? 'active' : 'inactive');
+            const statusBadge = itemData.status ? 
+                '<span class="badge bg-success">نشط</span>' : 
+                '<span class="badge bg-secondary">غير نشط</span>';
+            row.find('td:eq(3)').html(statusBadge);
+            
+            // Update search content for mobile cards
+            const searchContent = `${itemData.item} ${manufacturerNames.join(' ')} ${originYarnName} ${itemData.comment || ''}`;
+            row.attr('data-search-content', searchContent.toLowerCase());
+        }
+        
+        // Update mobile card
+        if ($(cardSelector).length) {
+            const card = $(cardSelector);
+            
+            // Update card content
+            card.find('.card-title').text(itemData.item);
+            card.find('.card-text').eq(0).text(itemData.manufacturerNames?.join(', ') || 'غير محدد');
+            card.find('.card-text').eq(1).text(itemData.originYarnName || 'غير محدد');
+            card.find('small').text(itemData.comment || '');
+            
+            // Update status badge
+            const statusBadge = itemData.status ? 
+                '<span class="badge bg-success">نشط</span>' : 
+                '<span class="badge bg-secondary">غير نشط</span>';
+            card.find('.status-badge').html(statusBadge);
+            
+            // Update search content
+            const searchContent = `${itemData.item} ${itemData.manufacturerNames?.join(' ')} ${itemData.originYarnName} ${itemData.comment || ''}`;
+            card.attr('data-search-content', searchContent.toLowerCase());
+        }
+        
+        // If it's a new item, reload the page to show it in the list
+        if (!isEditMode) {
+            setTimeout(() => {
+                window.location.reload();
+            }, 800);
+        }
+    }
+
+    // ================================
+    // VALIDATION
+    // ================================
+    function handleValidationErrors(response) {
+        if (response.errors) {
+            Object.keys(response.errors).forEach(field => {
+                const errors = response.errors[field];
+                if (errors && errors.length > 0) {
+                    const fieldMap = {
+                        'Item': { input: 'yarnItemName', error: 'itemError' },
+                        'OriginYarnId': { input: 'originYarnSelect', error: 'originYarnError' }
+                    };
+
+                    const mapping = fieldMap[field];
+                    if (mapping && mapping.input) {
+                        showFieldError(mapping.input, mapping.error, errors[0]);
+                    }
+                }
+            });
+        }
+
+        if (response.message) {
+            showNotification(response.message, 'error');
+        }
+    }
+
+    function showFieldError(fieldId, errorId, message) {
+        $(`#${fieldId}`).addClass('is-invalid');
+        if (errorId) {
+            $(`#${errorId}`).text(message);
+        }
+    }
+
+    function clearValidationErrors() {
+        $('.form-control, .form-select').removeClass('is-invalid');
+        $('.invalid-feedback').text('');
+    }
+
+    $(document).on('focus', '.form-control, .form-select', function() {
+        $(this).removeClass('is-invalid');
+    });
+
+ // ================================
+// DELETE ITEM - RELIABLE SILENT VERSION
+// ================================
+function showDeleteConfirm(itemId, itemName) {
+    $('#deleteItemId').val(itemId);
+    $('#deleteItemName').text(itemName);
+    deleteModal.show();
+}
+
+$('#confirmDeleteButton').off('click').on('click', function () {
+    const itemId = $('#deleteItemId').val();
+    const btn = $(this);
+    const originalText = btn.text();
+
+    btn.prop('disabled', true).text('جاري الحذف...');
+
+    $.ajax({
+        url: `/api/YarnItems/${itemId}`,
+        type: 'DELETE',
+        success: function (response) {
+            // ✅ Always hide modal immediately
+            deleteModal.hide();
+
+            // ✅ Small delay to ensure modal hides before reload
+            setTimeout(() => {
+                window.location.reload();
+            }, 400);
+        },
+        error: function (xhr) {
+            console.error('❌ Delete failed:', xhr);
+            
+            // ✅ Still hide modal & reload to keep UI in sync
+            deleteModal.hide();
+            setTimeout(() => {
+                window.location.reload();
+            }, 400);
+        },
+        complete: function () {
+            // Restore button text
+            btn.prop('disabled', false).text(originalText);
+        }
+    });
+});
+
+    // ================================
+    // DETAILS MODAL
+    // ================================
+    function openDetailsModal(itemId) {
+        currentItemId = itemId;
+        loadItemDetails(itemId);
+    }
+
+    function loadItemDetails(itemId) {
+        $('#detailsContent').html(`
+            <div class="text-center py-4">
+                <div class="spinner-border text-primary mb-3"></div>
+                <div class="text-muted">جاري تحميل التفاصيل...</div>
+            </div>
+        `);
+        detailsModal.show();
+
+        const row = $(`tr:has([data-id="${itemId}"])`);
+        if (row.length) {
+            const itemName = row.find('.fw-semibold, .fw-bold').first().text().trim();
+            const status = row.data('status') === 'active';
+            const manufacturer = row.find('td:eq(1)').text().trim() || 'غير محدد';
+            const originYarn = row.find('td:eq(2)').text().trim() || 'غير محدد';
+            const comment = row.find('small').text().trim() || 'لا يوجد بيان';
+
+            const detailsHtml = `
+                <div class="p-4">
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="me-3">
+                                    <i class="fas fa-box fa-2x text-primary"></i>
+                                </div>
+                                <div>
+                                    <h4 class="mb-1 fw-bold text-dark">${itemName}</h4>
+                                    <span class="badge bg-${status ? 'success' : 'secondary'} px-3 py-2">
+                                        ${status ? 'نشط' : 'غير نشط'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card"><div class="card-body">
+                                <h6 class="card-title text-success"><i class="fas fa-industry me-2"></i>الشركة المصنعة</h6>
+                                <p class="card-text">${manufacturer}</p>
+                            </div></div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card"><div class="card-body">
+                                <h6 class="card-title text-info"><i class="fas fa-link me-2"></i>الغزل المكون</h6>
+                                <p class="card-text">${originYarn}</p>
+                            </div></div>
+                        </div>
+                        <div class="col-12">
+                            <div class="card"><div class="card-body">
+                                <h6 class="card-title text-secondary"><i class="fas fa-comment-alt me-2"></i>البيان</h6>
+                                <p class="card-text">${comment}</p>
+                            </div></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#detailsContent').html(detailsHtml);
+        }
+    }
+
+    $('#editFromDetails').click(function() {
+        detailsModal.hide();
+        if (currentItemId) {
+            setTimeout(() => openEditModal(currentItemId), 300);
+        }
+    });
+
+    $('#deleteFromDetails').click(function() {
+        detailsModal.hide();
+        if (currentItemId) {
+            const row = $(`tr:has([data-id="${currentItemId}"])`);
+            const itemName = row.find('.fw-semibold').first().text().trim();
+            setTimeout(() => showDeleteConfirm(currentItemId, itemName), 300);
+        }
+    });
+
+    // ================================
+    // MODAL CLEANUP
+    // ================================
+    $('#yarnItemModal').on('hidden.bs.modal', function() {
+        resetForm();
+        currentItemId = null;
+        isEditMode = false;
+    });
+
+    $('#yarnDetailsModal').on('hidden.bs.modal', function() {
+        currentItemId = null;
+    });
+
+    // ================================
+    // LOADING OVERLAY
+    // ================================
+    function showFormLoading() {
+        $('#formLoadingOverlay').show();
+    }
+    function hideFormLoading() {
+        $('#formLoadingOverlay').hide();
+    }
+
+    // ================================
+    // NOTIFICATION FUNCTION
+    // ================================
+    function showNotification(message, type = 'success') {
+        // You can implement your notification system here
+        // For now using alert as fallback
+        alert(message);
+    }
+});
+</script>
     <style>
         /* Compact Styles */
         .card-header {

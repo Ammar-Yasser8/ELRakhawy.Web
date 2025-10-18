@@ -2,6 +2,7 @@
 using ELRakhawy.EL.Models;
 using ELRakhawy.EL.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.RegularExpressions;
 
 namespace ELRakhawy.Web.Controllers
 {
@@ -142,20 +143,30 @@ namespace ELRakhawy.Web.Controllers
                 var stakeholder = _unitOfWork.Repository<StakeholdersInfo>()
                     .GetOne(s => s.Id == id, "StakeholderInfoTypes");
 
-                if (stakeholder == null) return NotFound();
+                if (stakeholder == null)
+                    return NotFound();
 
-                // Parse country code and contact number
-                string countryCode = "+20"; // Default
-                string contactNumber = stakeholder.ContactNumbers ?? "";
+                // Default values
+                string countryCode = "+20";
+                string contactNumber = "";
 
-                // Extract country code from contact numbers
+                // Extract country code and contact number safely
                 if (!string.IsNullOrEmpty(stakeholder.ContactNumbers))
                 {
-                    var match = System.Text.RegularExpressions.Regex.Match(stakeholder.ContactNumbers, @"^(\+\d{1,4})(.*)");
-                    if (match.Success)
+                    var cleanNumber = stakeholder.ContactNumbers.Replace(" ", "").Replace("-", "");
+
+                    var supportedCodes = new[] { "+20", "+966", "+971", "+965", "+974", "+44", "+1" };
+                    var foundCode = supportedCodes.FirstOrDefault(code => cleanNumber.StartsWith(code));
+
+                    if (foundCode != null)
                     {
-                        countryCode = match.Groups[1].Value;
-                        contactNumber = match.Groups[2].Value;
+                        countryCode = foundCode;
+                        contactNumber = cleanNumber.Substring(foundCode.Length);
+                    }
+                    else
+                    {
+                        // fallback if unknown code
+                        contactNumber = cleanNumber;
                     }
                 }
 
@@ -187,6 +198,7 @@ namespace ELRakhawy.Web.Controllers
                 return StatusCode(500, "خطأ في تحميل الفورم");
             }
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]

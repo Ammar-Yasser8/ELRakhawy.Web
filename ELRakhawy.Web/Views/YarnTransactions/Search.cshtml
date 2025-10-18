@@ -7,44 +7,6 @@
 }
 
 <style>
-    /* ✅ Simple Arabic date and number styling */
-    .arabic-input {
-        direction: rtl;
-        font-family: 'Arial', 'Tahoma', sans-serif;
-    }
-
-    .arabic-display {
-        direction: rtl;
-        font-family: 'Arial', 'Tahoma', sans-serif;
-        unicode-bidi: bidi-override;
-    }
-
-    .date-input-arabic {
-        direction: ltr; /* Keep LTR for date picker functionality */
-        font-family: 'Arial', 'Tahoma', sans-serif;
-    }
-
-    /* ✅ Arabic date display below input */
-    .arabic-date-display {
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 0.375rem;
-        padding: 0.25rem 0.5rem;
-        font-size: 0.875rem;
-        color: #495057;
-        direction: rtl;
-        font-family: 'Arial', 'Tahoma', sans-serif;
-        margin-top: 0.25rem;
-        min-height: 1.5rem;
-    }
-
-        .arabic-date-display.has-date {
-            background: #e3f2fd;
-            border-color: #2196f3;
-            color: #1976d2;
-            font-weight: 500;
-        }
-
     /* Table styling for Arabic numbers */
     .table .arabic-cell {
         direction: rtl;
@@ -60,14 +22,93 @@
         border: 1px solid rgba(13, 110, 253, 0.3);
         color: #0d6efd;
     }
-</style>
 
-<div class="container-fluid">
+    /* Compact search form */
+    .search-container {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .form-label {
+        font-weight: 600;
+        font-size: 0.9rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .form-control, .form-select {
+        font-size: 0.875rem;
+    }
+
+    /* Clear button styling */
+    .btn-clear {
+        padding: 0.25rem 0.5rem;
+        border: 1px solid #ced4da;
+        border-left: none;
+        background: #fff;
+        color: #6c757d;
+        transition: all 0.2s;
+    }
+
+        .btn-clear:hover {
+            background: #e9ecef;
+            color: #dc3545;
+        }
+
+    .input-group-clearable {
+        position: relative;
+    }
+
+    /* Date picker button */
+    .calendar-btn {
+        border-left: 1px solid #ced4da;
+    }
+
+    /* Flatpickr Arabic styling */
+    .flatpickr-day.selected {
+        background: #198754 !important;
+        border-color: #198754 !important;
+    }
+
+    .flatpickr-calendar {
+        direction: rtl;
+    }
+
+    /* Select2 Arabic number display */
+    .select2-results__option {
+        direction: rtl;
+    }
+</style>
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Dashboard", "YarnItems")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Overview", "YarnItems")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">نظرة عامة</span>
+                    </a>
+                </li>
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-box text-success me-2"></i>
+                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+<div class="container-fluid search-container">
     <!-- Search Form -->
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h4><i class="fas fa-search me-2"></i>البحث في معاملات الغزل</h4>
-            <small class="opacity-75">البحث بالتاريخ الميلادي مع عرض الأرقام العربية</small>
+            <small class="opacity-75">البحث مع عرض الأرقام العربية</small>
         </div>
 
         <div class="card-body">
@@ -76,18 +117,21 @@
                 @Html.AntiForgeryToken()
 
                 <div class="row g-3">
-                    <!-- ✅ Simple Date Range with Arabic Display -->
+                    <!-- Date Range -->
                     <div class="col-md-3">
                         <label for="FromDate" class="form-label">
                             <i class="fas fa-calendar-alt text-primary me-1"></i>من تاريخ
                         </label>
-                        @Html.TextBoxFor(m => m.FromDate, "{0:yyyy-MM-dd}", new {
-                        @class = "form-control date-input-arabic",
-                                        @type = "date",
-                                        @id = "FromDate"
-                                        })
-                    <div class="arabic-date-display" id="fromDateArabic">
-                        <i class="fas fa-calendar-alt me-1"></i>اختر التاريخ
+                        <div class="input-group input-group-sm">
+                            @Html.TextBoxFor(m => m.FromDate, "{0:yyyy-MM-dd}", new {
+                            @class = "form-control",
+                                                @id = "FromDate",
+                                                @readonly = "readonly",
+                                                @autocomplete = "off"
+                                                })
+                        <button class="btn btn-outline-secondary calendar-btn" type="button" id="fromCalendarBtn">
+                            <i class="fas fa-calendar"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -95,13 +139,16 @@
                     <label for="ToDate" class="form-label">
                         <i class="fas fa-calendar-alt text-primary me-1"></i>إلى تاريخ
                     </label>
-                    @Html.TextBoxFor(m => m.ToDate, "{0:yyyy-MM-dd}", new {
-                                        @class = "form-control date-input-arabic",
-                                        @type = "date",
-                                        @id = "ToDate"
-                                        })
-                    <div class="arabic-date-display" id="toDateArabic">
-                        <i class="fas fa-calendar-alt me-1"></i>اختر التاريخ
+                    <div class="input-group input-group-sm">
+                        @Html.TextBoxFor(m => m.ToDate, "{0:yyyy-MM-dd}", new {
+                                                @class = "form-control",
+                                                @id = "ToDate",
+                                                @readonly = "readonly",
+                                                @autocomplete = "off"
+                                                })
+                        <button class="btn btn-outline-secondary calendar-btn" type="button" id="toCalendarBtn">
+                            <i class="fas fa-calendar"></i>
+                        </button>
                     </div>
                 </div>
 
@@ -110,11 +157,16 @@
                     <label for="InternalId" class="form-label">
                         <i class="fas fa-file-alt text-info me-1"></i>رقم الإذن الداخلي
                     </label>
-                    @Html.TextBoxFor(m => m.InternalId, new {
-                                        @class = "form-control arabic-input",
-                                        @placeholder = "أدخل رقم الإذن الداخلي",
-                                        @id = "InternalId"
-                                        })
+                    <div class="input-group input-group-sm input-group-clearable">
+                        @Html.TextBoxFor(m => m.InternalId, new {
+                                                @class = "form-control",
+                                                @placeholder = "أدخل رقم الإذن الداخلي",
+                                                @id = "InternalId"
+                                                })
+                        <button class="btn btn-outline-secondary btn-clear" type="button" data-target="InternalId">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- External ID Search -->
@@ -122,15 +174,20 @@
                     <label for="ExternalId" class="form-label">
                         <i class="fas fa-external-link-alt text-warning me-1"></i>رقم الإذن الخارجي
                     </label>
-                    @Html.TextBoxFor(m => m.ExternalId, new {
-                                        @class = "form-control arabic-input",
-                                        @placeholder = "أدخل رقم الإذن الخارجي",
-                                        @id = "ExternalId"
-                                        })
+                    <div class="input-group input-group-sm input-group-clearable">
+                        @Html.TextBoxFor(m => m.ExternalId, new {
+                                                @class = "form-control",
+                                                @placeholder = "أدخل رقم الإذن الخارجي",
+                                                @id = "ExternalId"
+                                                })
+                        <button class="btn btn-outline-secondary btn-clear" type="button" data-target="ExternalId">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Transaction Type -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="TransactionType" class="form-label">
                         <i class="fas fa-exchange-alt text-primary me-1"></i>نوع المعاملة
                     </label>
@@ -139,136 +196,59 @@
                         new SelectListItem { Text = "جميع الأنواع", Value = "" },
                                         new SelectListItem { Text = "وارد", Value = "inbound" },
                                         new SelectListItem { Text = "صادر", Value = "outbound" }
-                                        }, new { @class = "form-select", @id = "TransactionType" })
+                                        }, new { @class = "form-select form-select-sm", @id = "TransactionType" })
                 </div>
 
                 <!-- Yarn Item -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="YarnItemId" class="form-label">
                         <i class="fas fa-box text-primary me-1"></i>صنف الغزل
                     </label>
                     @Html.DropDownListFor(m => m.YarnItemId,
                                         new SelectList(Model.AvailableItems, "Value", "Text"),
                                         "اختر صنف الغزل",
-                                        new { @class = "form-select", @id = "YarnItemId" })
+                                        new { @class = "form-select form-select-sm", @id = "YarnItemId" })
                 </div>
 
                 <!-- Stakeholder -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="StakeholderId" class="form-label">
                         <i class="fas fa-user-tie text-primary me-1"></i>تاجر الغزل
                     </label>
                     @Html.DropDownListFor(m => m.StakeholderId,
                                         new SelectList(Model.YarnStakeholders, "Value", "Text"),
                                         "اختر تاجر الغزل",
-                                        new { @class = "form-select", @id = "StakeholderId" })
+                                        new { @class = "form-select form-select-sm", @id = "StakeholderId" })
                 </div>
-            </div>
 
-            <!-- Advanced Filters -->
-            <div class="mt-3">
-                <button type="button" class="btn btn-outline-info btn-sm" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
-                    <i class="fas fa-cog me-1"></i>خيارات متقدمة
-                </button>
-            </div>
-
-            <div class="collapse mt-3" id="advancedFilters">
-                <div class="card card-body bg-light">
-                    <div class="row g-3">
-                        <!-- Packaging Style -->
-                        <div class="col-md-4">
-                            <label for="PackagingStyleId" class="form-label">
-                                <i class="fas fa-cube text-success me-1"></i>نمط التعبئة
-                            </label>
-                            @Html.DropDownListFor(m => m.PackagingStyleId,
-                                                        new SelectList(Model.PackagingStyles, "Value", "Text"),
-                                                        "اختر نمط التعبئة",
-                                                        new { @class = "form-select", @id = "PackagingStyleId" })
-                        </div>
-
-                        <!-- Quantity Range -->
-                        <div class="col-md-4">
-                            <label for="MinQuantity" class="form-label">
-                                <i class="fas fa-weight text-success me-1"></i>أقل كمية (كجم)
-                            </label>
-                            @Html.TextBoxFor(m => m.MinQuantity, new {
-                                                        @class = "form-control arabic-input",
-                                                        @type = "number",
-                                                        @step = "0.001",
-                                                        @placeholder = "٠.٠",
-                                                        @id = "MinQuantity"
-                                                        })
-                        </div>
-
-                        <div class="col-md-4">
-                            <label for="MaxQuantity" class="form-label">
-                                <i class="fas fa-weight text-success me-1"></i>أعلى كمية (كجم)
-                            </label>
-                            @Html.TextBoxFor(m => m.MaxQuantity, new {
-                                                        @class = "form-control arabic-input",
-                                                        @type = "number",
-                                                        @step = "0.001",
-                                                        @placeholder = "٠.٠",
-                                                        @id = "MaxQuantity"
-                                                        })
-                        </div>
-
-                        <!-- Count Range -->
-                        <div class="col-md-6">
-                            <label for="MinCount" class="form-label">
-                                <i class="fas fa-sort-numeric-up text-info me-1"></i>أقل عدد
-                            </label>
-                            @Html.TextBoxFor(m => m.MinCount, new {
-                                                        @class = "form-control arabic-input",
-                                                        @type = "number",
-                                                        @placeholder = "٠",
-                                                        @id = "MinCount"
-                                                        })
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="MaxCount" class="form-label">
-                                <i class="fas fa-sort-numeric-up text-info me-1"></i>أعلى عدد
-                            </label>
-                            @Html.TextBoxFor(m => m.MaxCount, new {
-                                                        @class = "form-control arabic-input",
-                                                        @type = "number",
-                                                        @placeholder = "٠",
-                                                        @id = "MaxCount"
-                                                        })
-                        </div>
-
-                        <!-- Comment Search -->
-                        <div class="col-12">
-                            <label for="CommentSearch" class="form-label">
-                                <i class="fas fa-comment text-secondary me-1"></i>البحث في التعليقات
-                            </label>
-                            @Html.TextBoxFor(m => m.CommentSearch, new {
-                                                        @class = "form-control",
-                                                        @placeholder = "أدخل كلمة للبحث في التعليقات",
-                                                        @id = "CommentSearch"
-                                                        })
-                        </div>
-                    </div>
+                <!-- Packaging Style -->
+                <div class="col-md-3">
+                    <label for="PackagingStyleId" class="form-label">
+                        <i class="fas fa-cube text-success me-1"></i>نمط التعبئة
+                    </label>
+                    @Html.DropDownListFor(m => m.PackagingStyleId,
+                                        new SelectList(Model.PackagingStyles, "Value", "Text"),
+                                        "اختر نمط التعبئة",
+                                        new { @class = "form-select form-select-sm", @id = "PackagingStyleId" })
                 </div>
             </div>
 
             <!-- Search Buttons -->
-            <div class="mt-4">
+            <div class="mt-3">
                 <div class="d-flex gap-2 flex-wrap">
-                    <button type="submit" class="btn btn-primary">
+                    <button type="submit" class="btn btn-primary btn-sm">
                         <i class="fas fa-search me-1"></i>بحث
                     </button>
-                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="resetForm()">
                         <i class="fas fa-times me-1"></i>مسح
                     </button>
-                    <button type="button" class="btn btn-outline-info" onclick="setToday()">
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="setToday()">
                         <i class="fas fa-calendar-day me-1"></i>اليوم
                     </button>
-                    <button type="button" class="btn btn-outline-info" onclick="setThisWeek()">
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="setThisWeek()">
                         <i class="fas fa-calendar-week me-1"></i>هذا الأسبوع
                     </button>
-                    <button type="button" class="btn btn-outline-info" onclick="setThisMonth()">
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="setThisMonth()">
                         <i class="fas fa-calendar-alt me-1"></i>هذا الشهر
                     </button>
                 </div>
@@ -286,8 +266,6 @@
             </div>
 
             <div class="card-body">
-              
-
                 @if (Model.Results != null && Model.Results.Any())
                 {
                     <!-- Results Table -->
@@ -395,107 +373,196 @@
 </div>
 
 @section Scripts {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
+
     <script>
         $(document).ready(function() {
-            console.log('🗓️ Simple Arabic Date System Loading...');
+            console.log('🔍 Yarn Transaction Search with Arabic Calendar');
             console.log('👤 User: Ammar-Yasser8 | Time: 2025-10-11 12:38:59');
 
             // ✅ Arabic/Latin conversion functions
             function toArabicDigits(str) {
-                if (typeof str !== 'string') str = str.toString();
-                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                if (!str) return str;
+                return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
             }
 
             function toLatinDigits(str) {
-                if (typeof str !== 'string') str = str.toString();
-                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+                if (!str) return str;
+                return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
             }
 
-            // ✅ Format date to Arabic display
-            function formatDateToArabic(dateStr) {
-                if (!dateStr) return '';
-
-                try {
-                    const date = new Date(dateStr);
-                    const day = String(date.getDate()).padStart(2, '0');
-                    const month = String(date.getMonth() + 1).padStart(2, '0');
-                    const year = date.getFullYear();
-
-                    const formattedDate = `${day}/${month}/${year}`;
-                    return toArabicDigits(formattedDate);
-                } catch (error) {
-                    console.error('Date formatting error:', error);
-                    return toArabicDigits(dateStr);
-                }
-            }
-
-            // ✅ Update Arabic date display
-            function updateArabicDateDisplay(inputId, displayId) {
-                const dateValue = $(`#${inputId}`).val();
-                const $display = $(`#${displayId}`);
-
-                if (dateValue) {
-                    const arabicDate = formatDateToArabic(dateValue);
-                    $display.html(`<i class="fas fa-calendar-check me-1 text-success"></i>${arabicDate}`)
-                           .addClass('has-date');
-                } else {
-                    $display.html('<i class="fas fa-calendar-alt me-1"></i>اختر التاريخ')
-                           .removeClass('has-date');
-                }
-            }
-
-            // ✅ Date change handlers
-            $('#FromDate').on('change', function() {
-                updateArabicDateDisplay('FromDate', 'fromDateArabic');
-                console.log('From date changed:', $(this).val());
-            });
-
-            $('#ToDate').on('change', function() {
-                updateArabicDateDisplay('ToDate', 'toDateArabic');
-                console.log('To date changed:', $(this).val());
-            });
-
-            // ✅ Real-time Arabic display for number inputs
-            $('.arabic-input').on('input', function() {
-                const cursorPos = this.selectionStart;
-                const originalValue = $(this).val();
-                const arabicValue = toArabicDigits(originalValue);
-
-                if (originalValue !== arabicValue) {
-                    $(this).val(arabicValue);
-                    try {
-                        this.setSelectionRange(cursorPos, cursorPos);
-                    } catch (ex) {
-                        // Ignore cursor positioning errors
+            // ✅ Initialize Select2 with Arabic numbers
+            $('.form-select').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                dir: 'rtl',
+                language: {
+                    noResults: () => "لا توجد نتائج",
+                    searching: () => "جاري البحث..."
+                },
+                templateResult: function(data) {
+                    if (!data.id) return data.text;
+                    var text = data.text;
+                    if (text && /\d/.test(text)) {
+                        text = toArabicDigits(text);
                     }
+                    return $('<span>' + text + '</span>');
+                },
+                templateSelection: function(data) {
+                    var text = data.text;
+                    if (text && /\d/.test(text)) {
+                        text = toArabicDigits(text);
+                    }
+                    return text;
+                },
+                matcher: function(params, data) {
+                    if ($.trim(params.term) === '') return data;
+                    if (typeof data.text === 'undefined') return null;
+
+                    const normalizeArabic = (str) => {
+                        if (!str) return '';
+                        return str.replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي');
+                    };
+
+                    let searchTerm = toLatinDigits(params.term.toLowerCase().trim());
+                    let optionText = toLatinDigits(data.text.toLowerCase().trim());
+
+                    searchTerm = normalizeArabic(searchTerm);
+                    optionText = normalizeArabic(optionText);
+
+                    if (optionText.includes(searchTerm)) {
+                        return data;
+                    }
+                    return null;
                 }
             });
 
-            // ✅ Form submission with conversion
-            $('#searchForm').on('submit', function(e) {
-                console.log('🔄 Form submission - converting Arabic numbers to Latin');
-
-                // Convert Arabic numbers to Latin before submission
-                $('.arabic-input').each(function() {
-                    const originalValue = $(this).val();
-                    const latinValue = toLatinDigits(originalValue);
-
-                    if (originalValue !== latinValue) {
-                        console.log('Converting:', originalValue, '→', latinValue);
-                        $(this).val(latinValue);
+            // ✅ Initialize Flatpickr for FromDate
+            const fromDateInput = document.getElementById('FromDate');
+            const fpFrom = flatpickr(fromDateInput, {
+                dateFormat: 'Y-m-d',
+                locale: {
+                    ...flatpickr.l10ns.ar,
+                    firstDayOfWeek: 6
+                },
+                allowInput: false,
+                disableMobile: true,
+                defaultDate: fromDateInput.value || new Date(),
+                onChange: function(selectedDates, dateStr, instance) {
+                    fromDateInput.setAttribute('data-latin-date', dateStr);
+                    fromDateInput.value = toArabicDigits(dateStr);
+                    updateCalendarArabic();
+                },
+                onReady: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        fromDateInput.setAttribute('data-latin-date', dateStr);
+                        fromDateInput.value = toArabicDigits(dateStr);
                     }
-                });
+                    updateCalendarArabic();
+                },
+                onMonthChange: updateCalendarArabic,
+                onYearChange: updateCalendarArabic
+            });
 
-                // Show loading state
-                const submitBtn = $(this).find('button[type="submit"]');
-                const originalText = submitBtn.html();
-                submitBtn.prop('disabled', true)
-                       .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري البحث...');
+            // ✅ Initialize Flatpickr for ToDate
+            const toDateInput = document.getElementById('ToDate');
+            const fpTo = flatpickr(toDateInput, {
+                dateFormat: 'Y-m-d',
+                locale: {
+                    ...flatpickr.l10ns.ar,
+                    firstDayOfWeek: 6
+                },
+                allowInput: false,
+                disableMobile: true,
+                defaultDate: toDateInput.value || new Date(),
+                onChange: function(selectedDates, dateStr, instance) {
+                    toDateInput.setAttribute('data-latin-date', dateStr);
+                    toDateInput.value = toArabicDigits(dateStr);
+                    updateCalendarArabic();
+                },
+                onReady: function(selectedDates, dateStr, instance) {
+                    if (dateStr) {
+                        toDateInput.setAttribute('data-latin-date', dateStr);
+                        toDateInput.value = toArabicDigits(dateStr);
+                    }
+                    updateCalendarArabic();
+                },
+                onMonthChange: updateCalendarArabic,
+                onYearChange: updateCalendarArabic
+            });
 
-                // Re-enable button after form processes
+            // Update calendar display to Arabic
+            function updateCalendarArabic() {
                 setTimeout(() => {
-                    submitBtn.prop('disabled', false).html(originalText);
-                }, 3000);
+                    $('.flatpickr-day').each(function() {
+                        const text = $(this).text();
+                        if (text && /\d/.test(text)) {
+                            $(this).text(toArabicDigits(text));
+                        }
+                    });
+                }, 0);
+            }
+
+            // Calendar button handlers
+            $('#fromCalendarBtn').on('click', () => fpFrom.open());
+            $('#toCalendarBtn').on('click', () => fpTo.open());
+
+            // Convert existing dates to Arabic
+            if (fromDateInput.value) {
+                const latinDate = fromDateInput.value;
+                fromDateInput.setAttribute('data-latin-date', latinDate);
+                fromDateInput.value = toArabicDigits(latinDate);
+            }
+            if (toDateInput.value) {
+                const latinDate = toDateInput.value;
+                toDateInput.setAttribute('data-latin-date', latinDate);
+                toDateInput.value = toArabicDigits(latinDate);
+            }
+
+            // ✅ Clear button functionality
+            $(document).on('click', '.btn-clear', function() {
+                const targetId = $(this).data('target');
+                $('#' + targetId).val('').trigger('change').focus();
+            });
+
+            // Show/hide clear buttons
+            $(document).on('input change', '#InternalId, #ExternalId', function() {
+                const $clearBtn = $(this).siblings('.btn-clear');
+                if ($(this).val().trim()) {
+                    $clearBtn.show();
+                } else {
+                    $clearBtn.hide();
+                }
+            });
+
+            // Initial hide for empty fields
+            $('#InternalId, #ExternalId').each(function() {
+                const $clearBtn = $(this).siblings('.btn-clear');
+                if (!$(this).val().trim()) {
+                    $clearBtn.hide();
+                }
+            });
+
+            // ✅ Form submission - convert to Latin
+            $('#searchForm').on('submit', function(e) {
+                console.log('🔄 Form submission - converting to Latin');
+
+                // Convert dates back to Latin
+                const fromLatin = $('#FromDate').attr('data-latin-date') || toLatinDigits($('#FromDate').val());
+                const toLatin = $('#ToDate').attr('data-latin-date') || toLatinDigits($('#ToDate').val());
+
+                $('#FromDate').val(fromLatin);
+                $('#ToDate').val(toLatin);
+
+                // Convert other Arabic inputs
+                $('#InternalId, #ExternalId').each(function() {
+                    const latinValue = toLatinDigits($(this).val());
+                    $(this).val(latinValue);
+                });
 
                 console.log('✅ Form ready for submission');
             });
@@ -520,7 +587,12 @@
             // ✅ Quick date functions
             window.setToday = function() {
                 const today = new Date().toISOString().split('T')[0];
-                $('#FromDate, #ToDate').val(today).trigger('change');
+                fromDateInput.setAttribute('data-latin-date', today);
+                toDateInput.setAttribute('data-latin-date', today);
+                fromDateInput.value = toArabicDigits(today);
+                toDateInput.value = toArabicDigits(today);
+                fpFrom.setDate(today);
+                fpTo.setDate(today);
                 console.log('✅ Set to today:', today);
             };
 
@@ -528,9 +600,15 @@
                 const today = new Date();
                 const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
                 const lastDay = new Date();
+                const firstStr = firstDay.toISOString().split('T')[0];
+                const lastStr = lastDay.toISOString().split('T')[0];
 
-                $('#FromDate').val(firstDay.toISOString().split('T')[0]).trigger('change');
-                $('#ToDate').val(lastDay.toISOString().split('T')[0]).trigger('change');
+                fromDateInput.setAttribute('data-latin-date', firstStr);
+                toDateInput.setAttribute('data-latin-date', lastStr);
+                fromDateInput.value = toArabicDigits(firstStr);
+                toDateInput.value = toArabicDigits(lastStr);
+                fpFrom.setDate(firstStr);
+                fpTo.setDate(lastStr);
                 console.log('✅ Set to this week');
             };
 
@@ -538,49 +616,63 @@
                 const today = new Date();
                 const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
                 const lastDay = new Date();
+                const firstStr = firstDay.toISOString().split('T')[0];
+                const lastStr = lastDay.toISOString().split('T')[0];
 
-                $('#FromDate').val(firstDay.toISOString().split('T')[0]).trigger('change');
-                $('#ToDate').val(lastDay.toISOString().split('T')[0]).trigger('change');
+                fromDateInput.setAttribute('data-latin-date', firstStr);
+                toDateInput.setAttribute('data-latin-date', lastStr);
+                fromDateInput.value = toArabicDigits(firstStr);
+                toDateInput.value = toArabicDigits(lastStr);
+                fpFrom.setDate(firstStr);
+                fpTo.setDate(lastStr);
                 console.log('✅ Set to this month');
             };
 
             // ✅ Reset function
             window.resetForm = function() {
                 $('#searchForm')[0].reset();
+                $('.form-select').val('').trigger('change');
 
-                // Reset date displays
-                $('#fromDateArabic, #toDateArabic')
-                    .html('<i class="fas fa-calendar-alt me-1"></i>اختر التاريخ')
-                    .removeClass('has-date');
-
-                // Set default dates (last 30 days)
                 const today = new Date();
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(today.getDate() - 30);
+                const todayStr = today.toISOString().split('T')[0];
+                const thirtyStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-                $('#FromDate').val(thirtyDaysAgo.toISOString().split('T')[0]).trigger('change');
-                $('#ToDate').val(today.toISOString().split('T')[0]).trigger('change');
+                fromDateInput.setAttribute('data-latin-date', thirtyStr);
+                toDateInput.setAttribute('data-latin-date', todayStr);
+                fromDateInput.value = toArabicDigits(thirtyStr);
+                toDateInput.value = toArabicDigits(todayStr);
+                fpFrom.setDate(thirtyStr);
+                fpTo.setDate(todayStr);
 
-                console.log('✅ Form reset with default dates');
+                $('.btn-clear').hide();
+                console.log('✅ Form reset');
             };
 
-            // ✅ Initialize page
+            // ✅ Initialize
             convertDisplayToArabic();
 
-            // Set initial dates and update displays
+            // Set default dates (last 30 days)
             const today = new Date();
             const thirtyDaysAgo = new Date();
             thirtyDaysAgo.setDate(today.getDate() - 30);
 
-            $('#FromDate').val(thirtyDaysAgo.toISOString().split('T')[0]);
-            $('#ToDate').val(today.toISOString().split('T')[0]);
+            const todayStr = today.toISOString().split('T')[0];
+            const thirtyStr = thirtyDaysAgo.toISOString().split('T')[0];
 
-            // Update Arabic displays for initial dates
-            updateArabicDateDisplay('FromDate', 'fromDateArabic');
-            updateArabicDateDisplay('ToDate', 'toDateArabic');
+            if (!fromDateInput.value) {
+                fromDateInput.setAttribute('data-latin-date', thirtyStr);
+                fromDateInput.value = toArabicDigits(thirtyStr);
+                fpFrom.setDate(thirtyStr);
+            }
+            if (!toDateInput.value) {
+                toDateInput.setAttribute('data-latin-date', todayStr);
+                toDateInput.value = toArabicDigits(todayStr);
+                fpTo.setDate(todayStr);
+            }
 
-            console.log('✅ Simple Arabic Date System Ready!');
-            console.log('📅 Features: Normal calendar with Arabic number display');
+            console.log('✅ Search form ready with Arabic calendar!');
         });
     </script>
 }
