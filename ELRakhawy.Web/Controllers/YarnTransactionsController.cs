@@ -87,6 +87,7 @@ namespace ELRakhawy.Web.Controllers
                 ModelState.Remove("TransactionId");
                 ModelState.Remove("OriginYarnName");
                 ModelState.Remove("StakeholderTypeId");
+                ModelState.Remove("Date");
 
                 if (!ModelState.IsValid)
                 {
@@ -1592,6 +1593,10 @@ namespace ELRakhawy.Web.Controllers
                 // Validate inputs
                 if (desiredQuantityBalance < 0 || desiredCountBalance < 0)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = false, error = "القيم المطلوبة يجب أن تكون موجبة أو صفر" });
+                    }
                     TempData["Error"] = "القيم المطلوبة يجب أن تكون موجبة أو صفر";
                     return RedirectToAction("ResetPackagingBalance");
                 }
@@ -1602,6 +1607,10 @@ namespace ELRakhawy.Web.Controllers
 
                 if (yarnItem == null)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = false, error = "الصنف غير موجود" });
+                    }
                     TempData["Error"] = "الصنف غير موجود";
                     return RedirectToAction("Overview");
                 }
@@ -1612,6 +1621,10 @@ namespace ELRakhawy.Web.Controllers
 
                 if (packagingStyle == null)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = false, error = "نوع التعبئة غير موجود" });
+                    }
                     TempData["Error"] = "نوع التعبئة غير موجود";
                     return RedirectToAction("ResetPackagingBalance");
                 }
@@ -1648,6 +1661,10 @@ namespace ELRakhawy.Web.Controllers
                 // Check if adjustment is needed
                 if (quantityDifference == 0 && countDifference == 0)
                 {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return Json(new { success = false, error = "رصيد التعبئة الحالي يطابق القيم المطلوبة بالفعل" });
+                    }
                     TempData["Info"] = "رصيد التعبئة الحالي يطابق القيم المطلوبة بالفعل";
                     return RedirectToAction("ResetPackagingBalance");
                 }
@@ -1655,7 +1672,7 @@ namespace ELRakhawy.Web.Controllers
                 _logger.LogInformation("📊 Packaging adjustment needed: Qty Diff={QtyDiff}, Count Diff={CountDiff}",
                     quantityDifference, countDifference);
 
-                // Get overall current balance for the yarn item
+                // Get overall current balance for the yarn item (UNCHANGED)
                 var latestTransaction = _unitOfWork.Repository<YarnTransaction>()
                     .GetAll(t => t.YarnItemId == yarnItemId)
                     .OrderByDescending(t => t.Date)
@@ -1691,10 +1708,10 @@ namespace ELRakhawy.Web.Controllers
                     InternalId = $"PKG-ADJ-{DateTime.Now:yyyyMMddHHmmss}",
                     ExternalId = null,
                     YarnItemId = yarnItemId,
-                    PackagingStyleId = packagingStyleId, // ✅ Use the specific packaging style
+                    PackagingStyleId = packagingStyleId,
                     StakeholderId = adjustmentStakeholder.Id,
                     Date = DateTime.Now,
-                    Comment = $"تعديل رصيد تعبئة محددة - الصنف: {yarnItem?.Item}. نوع التعبئة: {packagingStyle?.StyleName}. السبب: {(string.IsNullOrEmpty(reason) ? "تسوية إدارية" : reason)}. الرصيد السابق للتعبئة: {currentPackagingQuantity:N3} كمية، {currentPackagingCount} عدد. الرصيد المطلوب للتعبئة: {desiredQuantityBalance:N3} كمية، {desiredCountBalance} عدد. تم بواسطة: {currentUser} في {currentTime}"
+                    Comment = $"تعديل رصيد تعبئة محددة (مع تطبيق الفرق على الرصيد الإجمالي) - الصنف: {yarnItem?.Item}. نوع التعبئة: {packagingStyle?.StyleName}. السبب: {(string.IsNullOrEmpty(reason) ? "تسوية إدارية" : reason)}. الرصيد السابق للتعبئة: {currentPackagingQuantity:N3} كمية، {currentPackagingCount} عدد. الرصيد المطلوب للتعبئة: {desiredQuantityBalance:N3} كمية، {desiredCountBalance} عدد. تم بواسطة: {currentUser} في {currentTime}"
                 };
 
                 // Set inbound/outbound based on quantity difference
@@ -1720,15 +1737,16 @@ namespace ELRakhawy.Web.Controllers
                 // Set count based on difference
                 adjustmentTransaction.Count = Math.Abs(countDifference);
 
-                // ✅ Calculate new TOTAL balance (overall for yarn item)
+                // ✅ ADD the difference to total balance
+                // If reducing packaging (negative difference), total will also reduce
+                // If increasing packaging (positive difference), total will also increase
                 var newTotalQuantity = currentTotalQuantity + quantityDifference;
                 var newTotalCount = currentTotalCount + countDifference;
 
-                // Set final balances to the new TOTAL (not just packaging)
                 adjustmentTransaction.QuantityBalance = newTotalQuantity;
                 adjustmentTransaction.CountBalance = newTotalCount;
 
-                _logger.LogInformation("📋 Packaging adjustment transaction created: ID={TransactionId}, Packaging={PackagingId}, Inbound={Inbound}, Outbound={Outbound}, Count={Count}, NewTotalBalance={NewQuantity}/{NewCount}",
+                _logger.LogInformation("📋 Packaging adjustment transaction created: ID={TransactionId}, Packaging={PackagingId}, Inbound={Inbound}, Outbound={Outbound}, Count={Count}, NewTotalBalance={NewQuantity}/{NewCount} (Applied difference)",
                     adjustmentTransaction.TransactionId, packagingStyleId, adjustmentTransaction.Inbound,
                     adjustmentTransaction.Outbound, adjustmentTransaction.Count,
                     adjustmentTransaction.QuantityBalance, adjustmentTransaction.CountBalance);
@@ -1737,18 +1755,36 @@ namespace ELRakhawy.Web.Controllers
                 _unitOfWork.Repository<YarnTransaction>().Add(adjustmentTransaction);
                 _unitOfWork.Complete();
 
-                _logger.LogInformation("✅ Packaging balance adjustment completed for yarn item {YarnItemId}, packaging {PackagingId} - Transaction {TransactionId} created by {User} at {Time}. Packaging: {OldQty}/{OldCount} → {NewQty}/{NewCount}. Total: {OldTotal}/{OldTotalCount} → {NewTotal}/{NewTotalCount}",
+                _logger.LogInformation("✅ Packaging balance adjustment completed for yarn item {YarnItemId}, packaging {PackagingId} - Transaction {TransactionId} created by {User} at {Time}. Packaging: {OldQty}/{OldCount} → {NewQty}/{NewCount}. Total: {OldTotal}/{OldTotalCount} → {NewTotal}/{NewTotalCount} (Difference applied)",
                     yarnItemId, packagingStyleId, adjustmentTransaction.TransactionId, currentUser, currentTime,
                     currentPackagingQuantity, currentPackagingCount, desiredQuantityBalance, desiredCountBalance,
                     currentTotalQuantity, currentTotalCount, newTotalQuantity, newTotalCount);
 
-                TempData["Success"] = $"تم تعديل رصيد التعبئة بنجاح - رقم معاملة التسوية: {adjustmentTransaction.TransactionId}";
-                return RedirectToAction("Details", new { id = adjustmentTransaction.Id });
+                // Return JSON for AJAX requests
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new
+                    {
+                        success = true,
+                        transactionId = adjustmentTransaction.TransactionId,
+                        message = $"تم تعديل رصيد التعبئة بنجاح - رقم معاملة التسوية: {adjustmentTransaction.TransactionId}",
+                        detailsUrl = Url.Action("Overview")
+                    });
+                }
+
+                TempData["Success"] = $"تم تعديل رصيد التعبئة بنجاح (تم تطبيق الفرق على الرصيد الإجمالي) - رقم معاملة التسوية: {adjustmentTransaction.TransactionId}";
+                return RedirectToAction("Overview");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error adjusting packaging balance for yarn item {YarnItemId}, packaging {PackagingId} by {User} at {Time}",
                     yarnItemId, packagingStyleId, "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return Json(new { success = false, error = "حدث خطأ أثناء تعديل رصيد التعبئة: " + ex.Message });
+                }
+
                 TempData["Error"] = "حدث خطأ أثناء تعديل رصيد التعبئة";
                 return RedirectToAction("ResetPackagingBalance");
             }

@@ -313,12 +313,12 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
 
     <script>
-        $(document).ready(function () {
+               $(document).ready(function () {
             // ✅ Updated Constants
-            const CURRENT_TIME = '2025-10-11 14:27:18';
+            const CURRENT_TIME = '2025-10-14 20:37:20';
             const CURRENT_USER = 'Ammar-Yasser8';
-            const IS_INBOUND = @Json.Serialize(Model.IsInbound);
-            const FORM_NAME = '@Html.Raw(formName)';
+            const IS_INBOUND = window.yarnFormConfig?.isInbound || false;
+            const FORM_NAME = window.yarnFormConfig?.formName || '';
 
             console.log('🚀 Enhanced yarn transaction form initializing:', {
                 time: CURRENT_TIME,
@@ -327,7 +327,109 @@
                 formType: 'yarn'
             });
 
-            // Initialize select2 for all dropdowns
+            // ✅ Enhanced utility functions with improved logic
+            function toArabicDigits(str) {
+                if (!str) return str;
+                return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            }
+
+            function toLatinDigits(str) {
+                if (!str) return str;
+                return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
+
+            function hasArabicChar(str) {
+                if (!str) return false;
+                return /[\u0600-\u06FF]/.test(str);
+            }
+
+            function hasEnglishChar(str) {
+                if (!str) return false;
+                return /[a-zA-Z]/.test(str);
+            }
+
+            // ✅ Enhanced logic: Arabic numbers if Arabic chars present, English numbers if English chars present
+            function shouldUseArabicDigits(str) {
+                if (!str) return true; // Default to Arabic for empty strings
+
+                // If contains Arabic characters → use Arabic numbers
+                if (hasArabicChar(str)) {
+                    return true;
+                }
+
+                // If contains English characters → use English numbers
+                if (hasEnglishChar(str)) {
+                    return false;
+                }
+
+                // If only numbers or symbols → default to Arabic
+                return true;
+            }
+
+            // ✅ Smart number conversion function for any input field
+            function applySmartNumberConversion($input) {
+                let val = $input.val();
+                let cursorPos = $input[0].selectionStart || 0;
+
+                if (!val) return;
+
+                // Determine conversion direction based on content
+                let shouldUseArabic = shouldUseArabicDigits(val);
+                let convertedVal = shouldUseArabic ? toArabicDigits(val) : toLatinDigits(val);
+
+                if (val !== convertedVal) {
+                    $input.val(convertedVal);
+                    try {
+                        $input[0].setSelectionRange(cursorPos, cursorPos);
+                    } catch (ex) {
+                        $input.focus();
+                    }
+                }
+            }
+
+            // ✅ Enhanced keypress handler for immediate number conversion
+            function handleNumberKeypress(e) {
+                if (e.which >= 48 && e.which <= 57) { // 0-9
+                    e.preventDefault();
+
+                    let digit = String.fromCharCode(e.which);
+                    let input = e.target;
+                    let currentValue = input.value;
+                    let cursorPos = input.selectionStart || 0;
+
+                    // Create temporary value to test conversion
+                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
+
+                    // Determine conversion based on content
+                    let useArabic = shouldUseArabicDigits(tempValue);
+                    let convertedDigit = useArabic ? toArabicDigits(digit) : digit;
+
+                    // Insert the converted digit
+                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
+                    input.value = newValue;
+                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                    // Trigger input event for real-time processing
+                    $(input).trigger('input');
+                }
+            }
+
+            // ✅ Apply smart number conversion to ALL input fields
+            const INPUT_SELECTORS = [
+                '#Quantity', '#Count', '#Comment',
+                '#searchByName', '#searchByForms', '#searchByComment',
+                '#styleName', '#styleComment', '#manufacturerName', '#manufacturerDescription',
+                'input[type="text"]', 'input[type="number"]', 'textarea'
+            ].join(', ');
+
+            // Apply to existing fields and dynamically added fields
+            $(document).on('input keyup paste', INPUT_SELECTORS, function(e) {
+                applySmartNumberConversion($(this));
+            });
+
+            $(document).on('keypress', INPUT_SELECTORS, handleNumberKeypress);
+
+            // Initialize select2 for all dropdowns with enhanced search
             $('.form-select').select2({
                 theme: 'bootstrap-5',
                 width: '100%',
@@ -349,41 +451,131 @@
                 }
             })();
 
-            // ✅ FIXED: Initialize Arabic date picker (Flatpickr)
-            if (window.flatpickr) {
-                flatpickr.localize(flatpickr.l10ns.ar);
+            // ✅ Convert all existing numeric content to Arabic on page load
+            function convertExistingContentToArabic() {
+                // Convert all visible text elements containing numbers
+                $('span, div, p, td, th, label, small').each(function() {
+                    let $element = $(this);
+                    let text = $element.text();
 
-                const datePicker = flatpickr('#Date', {
-                    dateFormat: 'Y-m-d',
-                    locale: 'ar',
-                    allowInput: true,
-                    disableMobile: true,
-                    defaultDate: $('#Date').val() || new Date(),
-                    onReady: function(selectedDates, dateStr, instance) {
-                        if (dateStr) {
-                            $('#Date').val(toArabicDigits(dateStr));
-                        }
-                    },
-                    onChange: function(selectedDates, dateStr, instance) {
-                        if (dateStr) {
-                            $('#Date').val(toArabicDigits(dateStr));
-                        }
-                    },
-                    onClose: function(selectedDates, dateStr, instance) {
-                        if (dateStr) {
-                            $('#Date').val(toArabicDigits(dateStr));
-                        }
+                    // Skip if element has input children or is part of a form control
+                    if ($element.find('input, select, textarea').length > 0) return;
+
+                    // Convert numbers in text content
+                    if (/[0-9]/.test(text)) {
+                        $element.text(toArabicDigits(text));
                     }
                 });
 
-                // ✅ Convert date input to Arabic immediately on any change
-                $('#Date').on('input change', function() {
-                    let val = $(this).val();
-                    if (val) {
-                        $(this).val(toArabicDigits(val));
+                // Convert placeholder text
+                $('input[placeholder], textarea[placeholder]').each(function() {
+                    let $input = $(this);
+                    let placeholder = $input.attr('placeholder');
+                    if (placeholder && /[0-9]/.test(placeholder)) {
+                        $input.attr('placeholder', toArabicDigits(placeholder));
+                    }
+                });
+
+                // Convert badges, alerts, and other UI elements
+                $('.badge, .alert, .card-text, .form-text').each(function() {
+                    let $element = $(this);
+                    let html = $element.html();
+                    if (html && /[0-9]/.test(html)) {
+                        // Preserve HTML tags while converting numbers
+                        $element.html(html.replace(/\b\d+(\.\d+)?\b/g, match => toArabicDigits(match)));
                     }
                 });
             }
+
+             // ✅ Convert all existing numeric content to Arabic on page load (excluding date inputs)
+        function convertExistingContentToArabic() {
+            // Convert all visible text elements containing numbers
+            $('span, div, p, td, th, label, small').each(function() {
+                let $element = $(this);
+                let text = $element.text();
+                // Skip if element has input children, is part of a form control, or is related to date picker
+                if ($element.find('input, select, textarea').length > 0 ||
+                    $element.hasClass('flatpickr-calendar') ||
+                    $element.closest('.flatpickr-calendar').length > 0 ||
+                    $element.attr('id') === 'Date' ||
+                    $element.find('#Date').length > 0) {
+                    return;
+                }
+                // Convert numbers in text content
+                if (/[0-9]/.test(text)) {
+                    $element.text(toArabicDigits(text));
+                }
+            });
+
+            // Convert placeholder text (excluding date inputs)
+            $('input[placeholder]:not(#Date):not(.flatpickr-input), textarea[placeholder]').each(function() {
+                let $input = $(this);
+                let placeholder = $input.attr('placeholder');
+                if (placeholder && /[0-9]/.test(placeholder)) {
+                    $input.attr('placeholder', toArabicDigits(placeholder));
+                }
+            });
+
+            // Convert badges, alerts, and other UI elements
+            $('.badge, .alert, .card-text, .form-text').each(function() {
+                let $element = $(this);
+                let html = $element.html();
+                if (html && /[0-9]/.test(html) &&
+                    !$element.closest('.flatpickr-calendar').length &&
+                    !$element.find('#Date').length) {
+                    // Preserve HTML tags while converting numbers
+                    $element.html(html.replace(/\b\d+(\.\d+)?\b/g, match => toArabicDigits(match)));
+                }
+            });
+
+            console.log('✅ Converted existing content to Arabic digits');
+        }
+
+        // Convert header date to Arabic digits
+        (function() {
+            var headerDateText = $('#headerDate').text();
+            if (headerDateText) {
+                $('#headerDate').text(toArabicDigits(headerDateText));
+            }
+        })();
+
+        // ✅ Call the conversion function BEFORE initializing date picker
+        convertExistingContentToArabic();
+
+        // ✅ Initialize date picker (Flatpickr) - English format, calendar only
+        if (window.flatpickr) {
+            flatpickr.localize(flatpickr.l10ns.ar);
+
+            const datePicker = flatpickr('#Date', {
+                dateFormat: 'Y-m-d',
+                locale: 'ar',
+                allowInput: false, // ✅ Prevent manual typing - calendar only
+                disableMobile: true,
+                defaultDate: $('#Date').val() || new Date(),
+                onReady: function(selectedDates, dateStr, instance) {
+                    // Keep date in English format (Latin digits)
+                    if (dateStr) {
+                        $('#Date').val(dateStr);
+                    }
+                },
+                onChange: function(selectedDates, dateStr, instance) {
+                    // Keep date in English format (Latin digits)
+                    if (dateStr) {
+                        $('#Date').val(dateStr);
+                    }
+                },
+                onClose: function(selectedDates, dateStr, instance) {
+                    // Keep date in English format (Latin digits)
+                    if (dateStr) {
+                        $('#Date').val(dateStr);
+                    }
+                }
+            });
+
+            // ✅ Make input readonly to prevent manual typing
+            $('#Date').attr('readonly', true).css('background-color', '#fff');
+        }
+
 
             // ✅ Enhanced packaging validation function
             function getAvailablePackagingDisplay() {
@@ -397,18 +589,16 @@
                     .join('<br>');
             }
 
-            // ✅ Enhanced packaging change handler with specific weight info
+            // ✅ Enhanced packaging change handler with Arabic numbers
             $('#PackagingStyleId').on('change', function () {
                 var selectedText = $(this).find('option:selected').text();
                 var selectedId = $(this).val();
                 $('#PackagingStyleName').val(selectedText);
 
-                // Clear validation errors when packaging changes
                 $('#Quantity, #Count').removeClass('is-invalid');
                 $('.invalid-feedback').remove();
                 $('#validationSummary').hide().removeClass('alert-danger');
 
-                // Show available count and weight for selected packaging type
                 if (selectedId && window.currentPackagingBreakdown) {
                     var availableCount = 0;
                     var availableWeight = 0;
@@ -420,7 +610,6 @@
                         }
                     });
 
-                    // Update UI to show available count and weight for this packaging type
                     var $countGroup = $('#Count').closest('.input-group');
                     var existingHelp = $countGroup.next('.packaging-help');
                     existingHelp.remove();
@@ -444,29 +633,6 @@
                 }
             });
 
-            // ✅ FIXED: Initialize form with Arabic digits for all text fields
-            $('#yarnTransactionForm').find("input[type='text'], textarea").each(function() {
-                var v = $(this).val();
-                if (v) {
-                    $(this).val(toArabicDigits(v));
-                }
-            });
-
-            // ✅ FIXED: Smart input handling - immediate Arabic conversion
-            $(document).on("input", "#yarnTransactionForm input[type='text']:not(#Date), #yarnTransactionForm textarea", function() {
-                let input = this;
-                let val = input.value;
-                let cursorPos = input.selectionStart;
-
-                if (val.length > 0) {
-                    let newVal = toArabicDigits(val);
-                    if (newVal !== val) {
-                        input.value = newVal;
-                        input.setSelectionRange(cursorPos, cursorPos);
-                    }
-                }
-            });
-
             // Clear placeholder zeros and handle decimal formatting
             $('#Quantity, #Count').on('focus', function() {
                 if (this.value === '0' || this.value === '٠') {
@@ -474,12 +640,12 @@
                 }
             });
 
-            // ✅ FIXED: Enhanced Quantity input handler with immediate Arabic conversion
+            // ✅ Enhanced Quantity input handler with Arabic numbers
             $('#Quantity').on('input blur', function() {
                 let val = this.value;
                 let cursorPos = this.selectionStart;
 
-                // Convert Arabic decimal comma to dot
+                // Convert Arabic decimal comma to dot for calculation
                 val = val.replace(/،/g, '.');
 
                 // Handle decimal point
@@ -489,13 +655,8 @@
                 }
                 val = val.replace(/[^\d٠-٩.]/g, '');
 
-                // ✅ Immediately convert to Arabic digits
-                let displayVal = toArabicDigits(val);
-
-                if (this.value !== displayVal) {
-                    this.value = displayVal;
-                    this.setSelectionRange(cursorPos, cursorPos);
-                }
+                // Apply smart conversion
+                applySmartNumberConversion($(this));
 
                 // Real-time weight validation for outbound transactions
                 if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
@@ -538,7 +699,7 @@
                 }
             });
 
-            // ✅ FIXED: Enhanced Count input handler with immediate Arabic conversion
+            // ✅ Enhanced Count input handler with Arabic numbers
             $('#Count').on('input blur', function() {
                 let val = this.value;
                 let cursorPos = this.selectionStart;
@@ -547,13 +708,8 @@
                 val = val.replace(/\./g, '');
                 val = val.replace(/[^\d٠-٩]/g, '');
 
-                // ✅ Immediately convert to Arabic digits
-                let displayVal = toArabicDigits(val);
-
-                if (this.value !== displayVal) {
-                    this.value = displayVal;
-                    this.setSelectionRange(cursorPos, cursorPos);
-                }
+                // Apply smart conversion
+                applySmartNumberConversion($(this));
 
                 // Real-time packaging validation for Count field
                 if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
@@ -596,7 +752,19 @@
                 }
             });
 
-            // ✅ Enhanced preview with specific weight information
+            // ✅ Enhanced Comment field handler with smart number conversion
+            $('#Comment').on('input', function() {
+                applySmartNumberConversion($(this));
+
+                // Update character count with Arabic numbers
+                let length = this.value.length;
+                $('#commentCharCount').text(toArabicDigits(length.toString()));
+            });
+
+            // Initialize character count for comment with Arabic numbers
+            $('#commentCharCount').text(toArabicDigits($('#Comment').val().length.toString()));
+
+            // ✅ Enhanced preview with Arabic numbers
             $('#previewBtn').click(function () {
                 let validation = validateForm();
                 if (!validation.isValid) {
@@ -615,7 +783,9 @@
                     type: IS_INBOUND ? 'وارد' : 'صادر'
                 };
 
-                // ✅ Add packaging weight information to preview
+                // Convert date to Arabic for display
+                var displayDate = toArabicDigits(data.date);
+
                 var packagingWeight = '';
                 if (window.currentPackagingBreakdown && $('#PackagingStyleId').val()) {
                     var selectedPackagingId = $('#PackagingStyleId').val();
@@ -643,7 +813,7 @@
                             <p><strong>الجهة:</strong> ${data.stakeholder}</p>
                             <p><strong>التعبئة:</strong> ${data.packaging}</p>
                             ${packagingWeight}
-                            <p><strong>التاريخ:</strong> ${data.date}</p>
+                            <p><strong>التاريخ:</strong> ${displayDate}</p>
                         </div>
                         <div class="col-12">
                             <p><strong>البيان:</strong> ${data.comment}</p>
@@ -668,7 +838,7 @@
                 });
             });
 
-            // ✅ Enhanced form validation function with strict packaging checks
+            // ✅ Enhanced form validation function
             function validateForm() {
                 var isValid = true;
                 var errors = [];
@@ -723,15 +893,14 @@
                 }
 
                 // Validate date
-                if (!$('#Date').val()) {
-                    errors.push('يجب تحديد تاريخ المعاملة');
-                    $('#Date').addClass('is-invalid');
-                    isValid = false;
-                } else {
-                    $('#Date').removeClass('is-invalid');
-                }
-
-                // ✅ STRICT PACKAGING VALIDATION
+        if (!$('#Date').val()) {
+            errors.push('يجب تحديد تاريخ المعاملة');
+            $('#Date').addClass('is-invalid');
+            isValid = false;
+        } else {
+            $('#Date').removeClass('is-invalid');
+        }
+                // Enhanced packaging validation with Arabic numbers in error messages
                 if (!IS_INBOUND && quantity > 0 && count > 0 && window.currentPackagingBreakdown) {
                     let selectedPackagingId = $('#PackagingStyleId').val();
                     if (selectedPackagingId) {
@@ -739,21 +908,18 @@
                             pkg.packagingId.toString() === selectedPackagingId);
 
                         if (selectedPackaging) {
-                            // Check weight limit
                             if (quantity > selectedPackaging.specificWeight) {
                                 errors.push(`الكمية المطلوبة (${toArabicDigits(quantity.toFixed(2))} كجم) تتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم)`);
                                 $('#Quantity').addClass('is-invalid');
                                 isValid = false;
                             }
 
-                            // Check count limit
                             if (count > selectedPackaging.totalCount) {
                                 errors.push(`العدد المطلوب (${toArabicDigits(count.toString())} وحدة) يتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة)`);
                                 $('#Count').addClass('is-invalid');
                                 isValid = false;
                             }
 
-                            // Additional check: verify count matches estimated weight
                             let estimatedTotalWeight = count * selectedPackaging.averageWeightPerUnit;
                             if (Math.abs(quantity - estimatedTotalWeight) > (estimatedTotalWeight * 0.2)) {
                                 errors.push(`تحذير: الكمية المدخلة (${toArabicDigits(quantity.toFixed(2))} كجم) لا تتطابق مع العدد المطلوب. الوزن المتوقع: ${toArabicDigits(estimatedTotalWeight.toFixed(2))} كجم`);
@@ -767,7 +933,7 @@
                 return { isValid: isValid, errors: errors };
             }
 
-            // ✅ Enhanced error display function
+            // ✅ Enhanced error display function with Arabic numbers
             function showValidationErrors(errors) {
                 if (errors && errors.length > 0) {
                     var errorHtml = errors.map(error => `<li class="mb-1">${error}</li>`).join('');
@@ -786,7 +952,7 @@
                 }
             }
 
-            // ✅ FIXED: Enhanced form submission with Arabic to Latin conversion
+            // ✅ Enhanced form submission handler
             $('#yarnTransactionForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -827,7 +993,7 @@
                 submitForm();
             });
 
-            // ✅ Enhanced submitForm function with final validation check
+            // ✅ Enhanced submitForm function
             function submitForm() {
                 let finalValidation = validateForm();
                 if (!finalValidation.isValid) {
@@ -836,15 +1002,25 @@
                     return false;
                 }
 
-                // ✅ Convert Arabic digits back to Latin for server
+                // Convert to Latin digits for server processing
                 let quantityLatin = toLatinDigits($('#Quantity').val() || '0');
                 let countLatin = toLatinDigits($('#Count').val() || '0');
-                let dateLatin = toLatinDigits($('#Date').val() || '');
+        let dateLatin = toLatinDigits($('#Date').val() || ''); // Always convert date
 
                 let selectedPackagingId = $('#PackagingStyleId').val();
-                let selectedPackagingName = $('#PackagingStyleId option:selected').text();
+                        // Validate date format after conversion
+        if (!dateLatin || !/^\d{4}-\d{2}-\d{2}$/.test(dateLatin)) {
+            Swal.fire({
+                title: 'خطأ في التاريخ',
+                text: 'تنسيق التاريخ غير صحيح. يجب أن يكون بصيغة yyyy-MM-dd',
+                icon: 'error',
+                confirmButtonText: 'موافق',
+                confirmButtonColor: '#dc3545'
+            });
+            return false;
+        }
 
-                // ✅ DOUBLE CHECK for outbound transactions
+                // Final validation for outbound transactions with Arabic error messages
                 if (!IS_INBOUND) {
                     let quantity = parseFloat(quantityLatin);
                     let count = parseInt(countLatin);
@@ -854,7 +1030,6 @@
                             pkg.packagingId.toString() === selectedPackagingId);
 
                         if (selectedPackaging) {
-                            // FINAL weight check
                             if (quantity > selectedPackaging.specificWeight) {
                                 Swal.fire({
                                     title: '🚫 تم منع الحفظ',
@@ -875,7 +1050,6 @@
                                 return false;
                             }
 
-                            // FINAL count check
                             if (count > selectedPackaging.totalCount) {
                                 Swal.fire({
                                     title: '🚫 تم منع الحفظ',
@@ -899,11 +1073,9 @@
                     }
                 }
 
-                // If all validations pass, proceed with actual submission
                 return proceedWithSubmission(quantityLatin, countLatin, dateLatin);
             }
 
-            // ✅ Separate function for actual form submission
             function proceedWithSubmission(quantityLatin, countLatin, dateLatin) {
                 $('#Quantity').val(quantityLatin);
                 $('#Count').val(countLatin);
@@ -965,9 +1137,12 @@
 
             $('.alert').delay(5000).fadeOut(350);
 
-            console.log('✅ Enhanced yarn transaction form initialized successfully');
+            // ✅ Apply Arabic number conversion to existing content on page load
+            convertExistingContentToArabic();
 
-            // ✅ Helper Functions
+            console.log('✅ Enhanced yarn transaction form with comprehensive Arabic number support initialized successfully');
+
+            // ✅ Helper Functions (continuing from previous code...)
 
             function resetStakeholderDropdown($select) {
                 $select
@@ -1097,7 +1272,7 @@
                 });
             }
 
-            // ✅ Updated fetchYarnItemBalance function to work with enhanced balance API
+            // ✅ Enhanced fetchYarnItemBalance with comprehensive Arabic number conversion
             function fetchYarnItemBalance(yarnItemId) {
                 $.ajax({
                     url: '/YarnTransactions/GetYarnItemBalance',
@@ -1143,7 +1318,7 @@
                                 time: CURRENT_TIME
                             });
                         } else {
-                            $('#currentBalanceDisplay').html('<small class="text-danger">0</small>');
+                            $('#currentBalanceDisplay').html('<small class="text-danger">٠</small>');
                             showError(response.error || 'فشل في تحميل رصيد الصنف');
                         }
                     },
@@ -1159,7 +1334,7 @@
                 });
             }
 
-            // ✅ New function to create packaging breakdown display
+            // ✅ Enhanced packaging breakdown display with Arabic numbers
             function createPackagingBreakdownDisplay(packagingBreakdown) {
                 if (!packagingBreakdown || packagingBreakdown.length === 0) {
                     return '<div class="text-muted small"><i class="fas fa-inbox me-1"></i>لا توجد وحدات</div>';
@@ -1189,7 +1364,7 @@
                 `;
             }
 
-            // ✅ Enhanced balance info display function
+            // ✅ Enhanced balance info display with comprehensive Arabic number conversion
             function showEnhancedBalanceInfo(data) {
                 window.currentPackagingBreakdown = data.packagingBreakdown || [];
                 window.currentYarnItemData = data;
@@ -1336,7 +1511,7 @@
                 $('#balanceInfo').html(infoHtml);
                 $('#balanceInfoCard').fadeIn();
 
-                console.log('✅ Enhanced balance info displayed:', {
+                console.log('✅ Enhanced balance info displayed with Arabic numbers:', {
                     yarnItemId: data.yarnItemId,
                     totalWeight: data.totalQuantityBalance,
                     packagingTypes: data.packagingTypesCount,
@@ -1356,6 +1531,47 @@
                     confirmButtonColor: '#dc3545'
                 });
             }
+
+            // ✅ Enhanced reset button handler with Arabic numbers
+            $('#resetBtn').on('click', function() {
+                Swal.fire({
+                    title: 'إعادة تعيين النموذج',
+                    text: 'هل أنت متأكد من إعادة تعيين جميع الحقول؟',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'نعم، إعادة تعيين',
+                    cancelButtonText: 'إلغاء',
+                    confirmButtonColor: '#0d6efd',
+                    cancelButtonColor: '#6c757d',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#yarnTransactionForm')[0].reset();
+                        $('.form-select').val('').trigger('change');
+                        $('#validationSummary').hide();
+                        $('.is-invalid').removeClass('is-invalid');
+                        $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
+                        $('#balanceInfoCard').fadeOut();
+                        $('#commentCharCount').text(toArabicDigits('0'));
+
+                        Swal.fire({
+                            title: 'تم إعادة التعيين',
+                            text: 'تم مسح جميع الحقول بنجاح',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    }
+                });
+            });
+
+            // ✅ Expose utility functions globally for use in other scripts
+            window.toArabicDigits = toArabicDigits;
+            window.toLatinDigits = toLatinDigits;
+            window.hasArabicChar = hasArabicChar;
+            window.hasEnglishChar = hasEnglishChar;
+            window.shouldUseArabicDigits = shouldUseArabicDigits;
+            window.applySmartNumberConversion = applySmartNumberConversion;
         });
 
         // ✅ Utility functions (defined globally)

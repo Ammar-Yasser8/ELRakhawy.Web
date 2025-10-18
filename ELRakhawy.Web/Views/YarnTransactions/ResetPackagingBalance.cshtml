@@ -917,7 +917,7 @@
             });
         }
 
-        // ✅ Submit the adjustment (convert Arabic to English for server)
+               // ✅ Submit the adjustment (convert Arabic to English for server)
         function submitAdjustment() {
             var formData = {
                 yarnItemId: parseInt($('#YarnItemId').val()),
@@ -934,6 +934,10 @@
                 url: '@Url.Action("ResetPackagingBalance")',
                 type: 'POST',
                 data: formData,
+                dataType: 'json', // Expect JSON response
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest' // Identify as AJAX request
+                },
                 beforeSend: function() {
                     Swal.fire({
                         title: 'جاري المعالجة...',
@@ -946,56 +950,48 @@
                 },
                 success: function(response) {
                     Swal.close();
-                    if (typeof response === 'string' && response.includes('<!DOCTYPE html>')) {
+
+                    if (response.success) {
                         Swal.fire({
                             title: 'تم التعديل بنجاح',
-                            text: 'تم إنشاء معاملة التعديل بنجاح',
+                            html: response.message || 'تم إنشاء معاملة التعديل بنجاح',
                             icon: 'success',
-                            confirmButtonText: 'موافق'
-                        }).then(() => {
-                            window.location.href = '@Url.Action("Overview")';
-                        });
-                    } else if (response && response.success !== false) {
-                        Swal.fire({
-                            title: 'تم التعديل بنجاح',
-                            text: 'تم إنشاء معاملة التعديل بنجاح',
-                            icon: 'success',
-                            confirmButtonText: 'موافق'
-                        }).then(() => {
-                            window.location.reload();
+                            confirmButtonText: 'موافق',
+                            showCancelButton: true,
+                            cancelButtonText: 'العودة للقائمة'
+                        }).then((result) => {
+                            if (result.isConfirmed && response.detailsUrl) {
+                                window.location.href = response.detailsUrl;
+                            } else {
+                                window.location.href = '@Url.Action("Overview")';
+                            }
                         });
                     } else {
-                        showArabicError('فشل في تعديل الرصيد: ' + (response.error || 'خطأ غير معروف'));
+                        showArabicError(response.error || 'فشل في تعديل الرصيد');
                     }
                 },
                 error: function(xhr, status, error) {
                     Swal.close();
                     console.error('Submit error:', xhr.responseText);
 
-                    if (xhr.status === 200) {
-                        Swal.fire({
-                            title: 'تم التعديل بنجاح',
-                            text: 'تم إنشاء معاملة التعديل بنجاح',
-                            icon: 'success',
-                            confirmButtonText: 'موافق'
-                        }).then(() => {
-                            window.location.href = '@Url.Action("Overview")';
-                        });
-                    } else {
-                        showArabicError('حدث خطأ أثناء تعديل الرصيد: ' + error);
+                    // Try to parse error response
+                    try {
+                        var errorResponse = JSON.parse(xhr.responseText);
+                        showArabicError(errorResponse.error || 'حدث خطأ أثناء تعديل الرصيد');
+                    } catch (e) {
+                        showArabicError('حدث خطأ أثناء تعديل الرصيد: ' + (xhr.statusText || error));
                     }
                 }
             });
         }
 
-        // ✅ Enhanced utility functions with Arabic support
+        // Helper function to show Arabic error messages
         function showArabicError(message) {
             Swal.fire({
                 title: 'خطأ',
                 text: message,
                 icon: 'error',
-                confirmButtonText: 'موافق',
-                confirmButtonColor: '#dc3545'
+                confirmButtonText: 'موافق'
             });
         }
 
