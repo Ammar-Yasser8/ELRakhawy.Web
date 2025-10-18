@@ -165,10 +165,139 @@ namespace ELRakhawy.Web.Controllers
                 return View("TransactionForm", model);
             }
         }
+        // Get: YarnTransactions/Edit/5
+        // Keep your GET Edit action exactly as is:
+        public IActionResult Edit(int id)
+        {
+            try
+            {
+                var transaction = _unitOfWork.Repository<YarnTransaction>()
+                    .GetOne(t => t.Id == id, includeEntities: "YarnItem,Stakeholder,PackagingStyle");
+                if (transaction == null)
+                {
+                    TempData["Error"] = "المعاملة غير موجودة!";
+                    return RedirectToAction("Index", "YarnItems");
+                }
+                var viewModel = new YarnTransactionViewModel
+                {
+                    Id = transaction.Id,
+                    TransactionId = transaction.TransactionId,
+                    InternalId = transaction.InternalId,
+                    ExternalId = transaction.ExternalId,
+                    YarnItemId = transaction.YarnItemId,
+                    YarnItemName = transaction.YarnItem.Item,
+                    Quantity = transaction.Inbound > 0 ? transaction.Inbound : transaction.Outbound,
+                    IsInbound = transaction.Inbound > 0,
+                    Count = transaction.Count,
+                    StakeholderId = transaction.StakeholderId,
+                    StakeholderName = transaction.Stakeholder.Name,
+                    PackagingStyleId = transaction.PackagingStyleId,
+                    PackagingStyleName = transaction.PackagingStyle.StyleName,
+                    Date = transaction.Date,
+                    Comment = transaction.Comment,
+                    AvailableItems = GetActiveYarnItems()
+                };
+                _logger.LogInformation("Yarn transaction edit form loaded for TransactionId {TransactionId} by {User} at {Time}",
+                    transaction.TransactionId, "Ammar-Yasser8", "2025-09-04 17:09:12");
+                return View("TransactionForm", viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading yarn transaction edit form by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-09-04 17:09:12");
+                TempData["Error"] = "حدث خطأ أثناء تحميل صفحة التعديل";
+                return RedirectToAction("Index", "YarnItems");
+            }
+        }
+
+        // Keep your POST Edit action exactly as is:
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Edit(YarnTransactionViewModel model)
+        {
+            try
+            {
+                // ✅ إزالة الحقول اللي السيرفر بيحسبها
+                ModelState.Remove("YarnItemName");
+                ModelState.Remove("StakeholderName");
+                ModelState.Remove("StakeholderTypeName");
+                ModelState.Remove("PackagingStyleName");
+                ModelState.Remove("TransactionId");
+                ModelState.Remove("OriginYarnName");
+                ModelState.Remove("StakeholderTypeId");
+                ModelState.Remove("Date");
+
+                if (!ModelState.IsValid)
+                {
+                    model.AvailableItems = GetActiveYarnItems();
+                    return View("TransactionForm", model);
+                }
+
+                // ✅ جلب المعاملة القديمة
+                var oldTransaction = _unitOfWork.Repository<YarnTransaction>()
+                    .GetOne(t => t.Id == model.Id);
+
+                if (oldTransaction == null)
+                {
+                    TempData["Error"] = "المعاملة غير موجودة!";
+                    return RedirectToAction("Index", "YarnItems");
+                }
+
+                // ✅ جلب آخر معاملة سابقة لهذا العنصر
+                var previousLatest = _unitOfWork.Repository<YarnTransaction>()
+                    .GetAll(t => t.YarnItemId == model.YarnItemId && t.Id != model.Id)
+                    .OrderByDescending(t => t.Date)
+                    .ThenByDescending(t => t.Id)
+                    .FirstOrDefault();
+
+                var currentQuantityBalance = previousLatest?.QuantityBalance ?? 0;
+                var currentCountBalance = previousLatest?.CountBalance ?? 0;
+
+                // ✅ تحقق الرصيد لو العملية Outbound
+                if (!model.IsInbound && model.Quantity > currentQuantityBalance)
+                {
+                    ModelState.AddModelError("Quantity",
+                        $"الكمية المطلوبة ({model.Quantity:N3}) أكبر من الرصيد المتاح ({currentQuantityBalance:N3})");
+                    model.AvailableItems = GetActiveYarnItems();
+                    return View("TransactionForm", model);
+                }
+
+                // ✅ تحديث نفس السجل (مش إضافة واحد جديد)
+                oldTransaction.InternalId = model.InternalId?.Trim();
+                oldTransaction.ExternalId = model.ExternalId?.Trim();
+                oldTransaction.YarnItemId = model.YarnItemId;
+                oldTransaction.Inbound = model.IsInbound ? model.Quantity : 0;
+                oldTransaction.Outbound = model.IsInbound ? 0 : model.Quantity;
+                oldTransaction.Count = model.Count;
+                oldTransaction.StakeholderId = model.StakeholderId;
+                oldTransaction.PackagingStyleId = model.PackagingStyleId;
+                oldTransaction.Date = model.Date;
+                oldTransaction.Comment = model.Comment?.Trim();
+
+                // ✅ إعادة احتساب الرصيد بناءً على أحدث قيم
+                oldTransaction.QuantityBalance = currentQuantityBalance + (oldTransaction.Inbound - oldTransaction.Outbound);
+
+                var countInbound = oldTransaction.Inbound > 0 ? oldTransaction.Count : 0;
+                var countOutbound = oldTransaction.Outbound > 0 ? oldTransaction.Count : 0;
+                oldTransaction.CountBalance = currentCountBalance + countInbound - countOutbound;
+
+                _unitOfWork.Repository<YarnTransaction>().Update(oldTransaction);
+                _unitOfWork.Complete();
+
+                TempData["Success"] = $"تم تعديل {(model.IsInbound ? "وارد" : "صادر")} الغزل بنجاح - رقم الإذن: {oldTransaction.TransactionId}";
+                return RedirectToAction("Index", "YarnItems");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error editing yarn transaction by {User} at {Time}",
+                    "Ammar-Yasser8", "2025-09-04 17:09:12");
+                ModelState.AddModelError("", "حدث خطأ أثناء تعديل المعاملة");
+                model.AvailableItems = GetActiveYarnItems();
+                return View("TransactionForm", model);
+            }
+        }
 
 
-        // GET: YarnTransactions/Search
-        // GET: YarnTransactions/Search
         public IActionResult Search()
         {
             try
