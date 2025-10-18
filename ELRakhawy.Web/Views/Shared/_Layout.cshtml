@@ -66,6 +66,23 @@
             position: relative;
         }
 
+        @@media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            #printSection, #printSection * {
+                visibility: visible !important;
+            }
+
+            #printSection {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 100%;
+                padding: 20px;
+            }
+        }
         /* Sidebar */
         .sidebar {
             width: var(--sidebar-width);

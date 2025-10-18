@@ -752,8 +752,10 @@
         // ✅ Print table - respects hidden rows/columns and RTL layout
                function printTable() {
             try {
-                const printContent = document.createElement('div');
-                printContent.style.direction = 'rtl';
+                       const printContent = document.createElement('div');
+        printContent.id = 'printSection';  // ✅ مهم جداً
+        printContent.style.direction = 'rtl';
+
 
                 // --- Title and Date ---
                 const title = document.createElement('h4');
@@ -1838,18 +1840,29 @@
 
         }
 
-        /* Print styles */
         @@media print {
-            .btn-group, .search-row
+            body * {
+                visibility: hidden !important;
+            }
 
-        {
-            display: none !important;
-        }
+            #printSection, #printSection * {
+                visibility: visible !important;
+            }
 
-        .stakeholder-type-row {
+            #printSection {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 100%;
+                padding: 20px;
+
+            }
+              .stakeholder-type-row {
             break-inside: avoid;
         }
-
         }
+      
+
+        
     </style>
 }

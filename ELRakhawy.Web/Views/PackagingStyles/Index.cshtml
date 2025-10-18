@@ -1328,6 +1328,25 @@
     </script>
 
     <style>
+
+        @@media print {
+            /* إخفاء كل عناصر الصفحة */
+            body * {
+                visibility: hidden !important;
+            }
+            /* إظهار فقط محتوى الطباعة */
+            #printSection, #printSection * {
+                visibility: visible !important;
+            }
+            /* منع الجدول من الالتصاق */
+            #printSection {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 100%;
+                padding: 20px;
+            }
+        }
         /* Enhanced Styles */
         .icon-circle {
             width: 60px;
