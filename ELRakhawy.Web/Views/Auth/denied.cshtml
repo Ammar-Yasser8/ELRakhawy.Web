@@ -1,0 +1,83 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الوصول مرفوض</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #fff;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        .denied-container {
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 25px;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            animation: float 3s ease-in-out infinite;
+        }
+
+            .denied-container h1 {
+                font-size: 2rem;
+                margin-bottom: 15px;
+                color: #ffcc00;
+            }
+
+            .denied-container p {
+                font-size: 1.1rem;
+                color: #ddd;
+                margin-bottom: 25px;
+            }
+
+        .btn-back {
+            display: inline-block;
+            padding: 12px 25px;
+            background-color: #ffcc00;
+            color: #111;
+            font-weight: 700;
+            border-radius: 12px;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(255, 204, 0, 0.3);
+        }
+
+            .btn-back:hover {
+                background-color: #ffd633;
+                transform: scale(1.05);
+                box-shadow: 0 6px 15px rgba(255, 204, 0, 0.4);
+            }
+
+        @@keyframes float {
+            0%, 100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-8px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="denied-container">
+        <h1>😅 أوووه شكلك تايه يا برنس</h1>
+        <p>واضح إنك بتحاول توصل لحاجة مش ليك... شد حيلك وارجع للطريق الصح 💪</p>
+        <a href="/" class="btn-back">شد عجلك يا لا</a>
+    </div>
+</body>
+</html>

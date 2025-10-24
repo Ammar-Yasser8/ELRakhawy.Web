@@ -1,0 +1,1512 @@
+﻿@using ELRakhawy.EL.Models
+@model IEnumerable<AppUser>
+@{
+    ViewData["Title"] = "قائمة المستخدمين";
+    var currentTime = "2025-10-24 22:04:51";
+    var currentUser = "Ammar-Yasser8";
+}
+
+<!-- Enhanced Navigation Breadcrumb -->
+<nav aria-label="breadcrumb" class="mb-4">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body py-2">
+            <ol class="breadcrumb mb-0 align-items-center">
+                <li class="breadcrumb-item">
+                    <a href="@Url.Action("Index", "Home")" class="text-decoration-none d-flex align-items-center">
+                        <i class="fas fa-home text-primary me-2"></i>
+                        <span class="fw-semibold">الرئيسية</span>
+                    </a>
+                </li>
+               
+                <li class="breadcrumb-item active d-flex align-items-center">
+                    <i class="fas fa-users text-success me-2"></i>
+                    <span class="fw-bold text-dark">@ViewData["Title"]</span>
+                </li>
+            </ol>
+        </div>
+    </div>
+</nav>
+
+<!-- Enhanced Data Display Section with Inline Search -->
+<div id="usersContainer">
+    <div class="section-card">
+        <div class="card border-0 shadow-sm">
+            <div class="card-header bg-light border-bottom">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-list me-2 text-primary"></i>قائمة المستخدمين
+                    </h5>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="badge bg-success px-3 py-2">
+                            <i class="fas fa-database me-1"></i>
+                            <span id="badgeCount">@((Model?.Count() ?? 0).ToString("N0", new System.Globalization.CultureInfo("ar-SA")))</span> مستخدم
+                        </div>
+                        <button class="btn btn-outline-danger btn-sm" id="clearAllSearch" style="display: none;">
+                            <i class="fas fa-eraser me-1"></i>مسح المرشحات
+                        </button>
+                        <div class="d-flex flex-column flex-lg-row gap-2 justify-content-lg-end">
+                            <button class="btn btn-outline-info" id="refreshData" onclick="location.reload()">
+                                <i class="fas fa-sync-alt me-1"></i>تحديث البيانات
+                            </button>
+
+                            <button class="btn btn-success" id="addUserBtn">
+                                <i class="fas fa-plus-circle me-1"></i>إضافة مستخدم جديد
+                            </button>
+                        </div>
+                        <div class="btn-group export-btn-group ms-2">
+                            <button class="btn btn-outline-success export-btn" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel me-1"></i>تصدير إلى Excel
+                            </button>
+                            <button class="btn btn-outline-secondary export-btn" onclick="printTable()">
+                                <i class="fas fa-print me-1"></i>طباعة
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table content with users -->
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0" id="usersTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="fw-bold sortable" data-column="0" style="width: 35%;">
+                                    <i class="fas fa-user text-primary me-1"></i>الاسم الكامل
+                                    <i class="fas fa-sort sort-icon text-muted ms-1"></i>
+                                </th>
+                                <th class="fw-bold sortable" data-column="1" style="width: 35%;">
+                                    <i class="fas fa-envelope text-info me-1"></i>البريد الإلكتروني
+                                    <i class="fas fa-sort sort-icon text-muted ms-1"></i>
+                                </th>
+                                <th class="fw-bold sortable" data-column="2" style="width: 15%;">
+                                    <i class="fas fa-user-tag text-warning me-1"></i>الدور
+                                    <i class="fas fa-sort sort-icon text-muted ms-1"></i>
+                                </th>
+                                <th class="text-center fw-bold" style="width: 15%;">
+                                    <i class="fas fa-cogs text-secondary me-1"></i>الإجراءات
+                                </th>
+                            </tr>
+                            <!-- Inline Search Row -->
+                            <tr class="search-row bg-white">
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByName" class="form-control border-start-0"
+                                                   placeholder="ابحث في الأسماء...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearNameSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-search text-muted"></i>
+                                            </span>
+                                            <input type="text" id="searchByEmail" class="form-control border-start-0"
+                                                   placeholder="ابحث في البريد الإلكتروني...">
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearEmailSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2">
+                                    <div class="search-container">
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text bg-light border-end-0">
+                                                <i class="fas fa-filter text-muted"></i>
+                                            </span>
+                                            <select id="searchByRole" class="form-select border-start-0">
+                                                <option value="">جميع الأدوار</option>
+                                                <option value="SuperAdmin">مدير عام</option>
+                                                <option value="Editor">محرر</option>
+                                                <option value="Viewer">مشاهد</option>
+                                                <option value="Added">مضاف</option>
+                                                <option value="Clear">واضح</option>
+                                            </select>
+                                            <button class="btn btn-outline-secondary btn-sm" type="button" id="clearRoleSearch" style="display: none;">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th>
+                                <th class="border-bottom-0 pb-2 pt-2 text-center">
+                                    <small class="text-muted">
+                                        <i class="fas fa-filter me-1"></i>البحث والتصفية
+                                    </small>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            @if (Model != null && Model.Any())
+                            {
+                                @foreach (var user in Model)
+                                {
+                                    <tr class="user-row" 
+                                        data-id="@user.Id"
+                                        data-name="@user.FullName.ToLower()" 
+                                        data-email="@user.Email.ToLower()" 
+                                        data-role="@user.Role.ToString()">
+                                        <td class="user-name">
+                                            <div class="d-flex align-items-center">
+                                                <div class="user-icon me-3">
+                                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                                         style="width: 45px; height: 45px;">
+                                                        <i class="fas fa-user"></i>
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <span class="fw-semibold">@user.FullName</span>
+                                                    <br>
+                                                    <small class="text-muted">@user.FirstName @user.LastName</small>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="user-email">
+                                            <span class="text-primary">@user.Email</span>
+                                        </td>
+                                        <td class="user-role">
+                                            @{
+                                                string badgeClass = user.Role switch
+                                                {
+                                                    UserRole.SuperAdmin => "bg-danger",
+                                                    UserRole.Editor => "bg-info",
+                                                    UserRole.Viewer => "bg-warning text-dark",
+                                                    UserRole.Added => "bg-success",
+                                                    UserRole.Clear => "bg-secondary",
+                                                    _ => "bg-light text-dark"
+                                                };
+                                                
+                                                string roleNameAr = user.Role switch
+                                                {
+                                                    UserRole.SuperAdmin => "مدير عام",
+                                                    UserRole.Editor => "محرر",
+                                                    UserRole.Viewer => "مشاهد",
+                                                    UserRole.Added => "مضاف",
+                                                    UserRole.Clear => "واضح",
+                                                    _ => "غير محدد"
+                                                };
+                                            }
+                                            <span class="badge @badgeClass px-3 py-2">@roleNameAr</span>
+                                        </td>
+                                        <td class="text-center">
+                                            <div class="btn-group" role="group">
+                                                <button class="btn btn-sm btn-outline-info view-details"
+                                                        data-id="@user.Id"
+                                                        title="عرض تفاصيل @user.FullName"
+                                                        data-bs-toggle="tooltip">
+                                                    <i class="fas fa-info-circle"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-warning edit-user"
+                                                        data-id="@user.Id"
+                                                        title="تعديل @user.FullName"
+                                                        data-bs-toggle="tooltip">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-secondary reset-password"
+                                                        data-id="@user.Id"
+                                                        data-name="@user.FullName"
+                                                        title="إعادة تعيين كلمة المرور"
+                                                        data-bs-toggle="tooltip">
+                                                    <i class="fas fa-key"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger delete-user"
+                                                        data-id="@user.Id" 
+                                                        data-name="@user.FullName" 
+                                                        title="حذف @user.FullName"
+                                                        data-bs-toggle="tooltip">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal (Removed Active Status) -->
+<div class="modal fade" id="createUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-user-plus me-2"></i>إضافة مستخدم جديد
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="createUserForm" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="createFirstName" class="form-label fw-semibold">
+                                <i class="fas fa-user text-primary me-1"></i>الاسم الأول <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="createFirstName" name="FirstName" required maxlength="50"
+                                   placeholder="أدخل الاسم الأول">
+                            <div class="invalid-feedback">يرجى إدخال الاسم الأول</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="createLastName" class="form-label fw-semibold">
+                                <i class="fas fa-user text-primary me-1"></i>الاسم الأخير <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="createLastName" name="LastName" required maxlength="50"
+                                   placeholder="أدخل الاسم الأخير">
+                            <div class="invalid-feedback">يرجى إدخال الاسم الأخير</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createEmail" class="form-label fw-semibold">
+                            <i class="fas fa-envelope text-info me-1"></i>البريد الإلكتروني <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="createEmail" name="Email" required
+                               placeholder="أدخل البريد الإلكتروني">
+                        <div class="invalid-feedback">يرجى إدخال بريد إلكتروني صحيح</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createPassword" class="form-label fw-semibold">
+                            <i class="fas fa-lock text-warning me-1"></i>كلمة المرور <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="createPassword" name="Password" required minlength="6"
+                                   placeholder="أدخل كلمة المرور">
+                            <button class="btn btn-outline-secondary" type="button" id="toggleCreatePassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">كلمة المرور يجب أن تكون 6 أحرف على الأقل</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="createRole" class="form-label fw-semibold">
+                            <i class="fas fa-user-tag text-secondary me-1"></i>الدور <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="createRole" name="Role" required>
+                            <option value="">اختر الدور</option>
+                        </select>
+                        <div class="invalid-feedback">يرجى اختيار الدور</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-success" id="saveUser">
+                    <i class="fas fa-save me-1"></i>حفظ المستخدم
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal (Removed Active Status) -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-edit me-2"></i>تعديل المستخدم
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="editUserForm" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="editUserId" name="Id">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="editFirstName" class="form-label fw-semibold">
+                                <i class="fas fa-user text-primary me-1"></i>الاسم الأول <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="editFirstName" name="FirstName" required maxlength="50"
+                                   placeholder="أدخل الاسم الأول">
+                            <div class="invalid-feedback">يرجى إدخال الاسم الأول</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="editLastName" class="form-label fw-semibold">
+                                <i class="fas fa-user text-primary me-1"></i>الاسم الأخير <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="editLastName" name="LastName" required maxlength="50"
+                                   placeholder="أدخل الاسم الأخير">
+                            <div class="invalid-feedback">يرجى إدخال الاسم الأخير</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editEmail" class="form-label fw-semibold">
+                            <i class="fas fa-envelope text-info me-1"></i>البريد الإلكتروني <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="editEmail" name="Email" required
+                               placeholder="أدخل البريد الإلكتروني">
+                        <div class="invalid-feedback">يرجى إدخال بريد إلكتروني صحيح</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editRole" class="form-label fw-semibold">
+                            <i class="fas fa-user-tag text-secondary me-1"></i>الدور <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="editRole" name="Role" required>
+                            <option value="">اختر الدور</option>
+                        </select>
+                        <div class="invalid-feedback">يرجى اختيار الدور</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-warning" id="updateUser">
+                    <i class="fas fa-save me-1"></i>تحديث المستخدم
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Modal -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-key me-2"></i>إعادة تعيين كلمة المرور
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-user-lock fa-3x text-info mb-3"></i>
+                    <h6 class="mb-3">إعادة تعيين كلمة المرور للمستخدم:</h6>
+                    <div class="alert alert-info">
+                        <strong id="resetPasswordUserName"></strong>
+                    </div>
+                </div>
+                
+                <form id="resetPasswordForm" class="needs-validation" novalidate>
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="resetUserId" name="UserId">
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label fw-semibold">
+                            <i class="fas fa-lock text-warning me-1"></i>كلمة المرور الجديدة <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="newPassword" name="NewPassword" required minlength="6"
+                                   placeholder="أدخل كلمة المرور الجديدة">
+                            <button class="btn btn-outline-secondary" type="button" id="toggleNewPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">كلمة المرور يجب أن تكون 6 أحرف على الأقل</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label fw-semibold">
+                            <i class="fas fa-lock text-warning me-1"></i>تأكيد كلمة المرور <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="confirmPassword" name="ConfirmPassword" required
+                                   placeholder="أعد إدخال كلمة المرور">
+                            <button class="btn btn-outline-secondary" type="button" id="toggleConfirmPassword">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="invalid-feedback">كلمة المرور غير متطابقة</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-info" id="confirmResetPassword">
+                    <i class="fas fa-key me-1"></i>إعادة تعيين كلمة المرور
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Other modals remain the same -->
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-info text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-info-circle me-2"></i>تفاصيل المستخدم
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="userDetailsContent">
+                <!-- Details content will be loaded here -->
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إغلاق
+                </button>
+                <button type="button" class="btn btn-warning" id="editFromDetails">
+                    <i class="fas fa-edit me-1"></i>تعديل
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white border-bottom-0">
+                <h5 class="modal-title fw-bold">
+                    <i class="fas fa-exclamation-triangle me-2"></i>تأكيد الحذف
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="text-center">
+                    <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
+                    <h6 class="mb-3">هل أنت متأكد من حذف هذا المستخدم؟</h6>
+                    <div class="alert alert-warning">
+                        <strong id="deleteUserName" class="text-dark"></strong>
+                    </div>
+                    <p class="text-muted">لا يمكن التراجع عن هذا الإجراء</p>
+                </div>
+                <input type="hidden" id="deleteUserId">
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>إلغاء
+                </button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">
+                    <i class="fas fa-trash me-1"></i>تأكيد الحذف
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Enhanced Toast Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i id="toastIcon" class="fas fa-check-circle me-2"></i>
+                <span id="toastMessage"></span>
+            </div>
+            <button type="button" class="btn-close btn-close-white ms-auto me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Spinner -->
+<div id="loadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-flex justify-content-center align-items-center d-none" style="z-index: 9999; background: rgba(255,255,255,0.8);">
+    <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+        <span class="visually-hidden">جاري التحميل...</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const CURRENT_TIME = '@currentTime';
+            const CURRENT_USER = '@currentUser';
+            
+            console.log('Enhanced users table with fixed form submissions loaded:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER
+            });
+
+            // Initialize modals
+            const createUserModal = new bootstrap.Modal(document.getElementById('createUserModal'));
+            const editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
+            const resetPasswordModal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+            const userDetailsModal = new bootstrap.Modal(document.getElementById('userDetailsModal'));
+            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Global variables
+            let currentEditUserId = null;
+            let availableRoles = [];
+
+            // ===== UTILITY FUNCTIONS =====
+            function showLoading() {
+                document.getElementById('loadingOverlay').classList.remove('d-none');
+            }
+
+            function hideLoading() {
+                document.getElementById('loadingOverlay').classList.add('d-none');
+            }
+
+            function showNotification(message, type = 'success') {
+                const icons = {
+                    success: 'fa-check-circle',
+                    error: 'fa-exclamation-circle',
+                    warning: 'fa-exclamation-triangle',
+                    info: 'fa-info-circle'
+                };
+
+                const colors = {
+                    success: 'bg-success',
+                    error: 'bg-danger',
+                    warning: 'bg-warning',
+                    info: 'bg-info'
+                };
+
+                const toastElement = document.getElementById('notificationToast');
+                const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
+
+                document.getElementById('toastIcon').className = `fas ${icons[type]} me-2`;
+                document.getElementById('toastMessage').textContent = message;
+                toastElement.className = `toast align-items-center text-white border-0 ${colors[type]}`;
+
+                toast.show();
+            }
+
+            // ===== FORM SUBMISSION FUNCTIONS =====
+            
+            // Create user with form data
+            async function saveUser() {
+                const form = document.getElementById('createUserForm');
+                
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const btn = document.getElementById('saveUser');
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...';
+
+                try {
+                    const response = await fetch('/User/Create', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        createUserModal.hide();
+                        location.reload(); // Reload to show new user
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error creating user:', error);
+                    showNotification('حدث خطأ أثناء إنشاء المستخدم', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+
+            // Update user with form data
+            async function updateUser() {
+                const form = document.getElementById('editUserForm');
+                
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const btn = document.getElementById('updateUser');
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...';
+
+                try {
+                    const response = await fetch('/User/Edit', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        editUserModal.hide();
+                        location.reload(); // Reload to show updated data
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error updating user:', error);
+                    showNotification('حدث خطأ أثناء تحديث المستخدم', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+
+            // Reset password with form data
+            async function resetPassword() {
+                const form = document.getElementById('resetPasswordForm');
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+
+                // Check if passwords match
+                if (newPassword !== confirmPassword) {
+                    document.getElementById('confirmPassword').setCustomValidity('كلمة المرور غير متطابقة');
+                } else {
+                    document.getElementById('confirmPassword').setCustomValidity('');
+                }
+
+                if (!form.checkValidity()) {
+                    form.classList.add('was-validated');
+                    return;
+                }
+
+                const formData = new FormData(form);
+                const btn = document.getElementById('confirmResetPassword');
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جاري إعادة التعيين...';
+
+                try {
+                    const response = await fetch('/User/ResetPassword', {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        resetPasswordModal.hide();
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error resetting password:', error);
+                    showNotification('حدث خطأ أثناء إعادة تعيين كلمة المرور', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+
+            // ===== LOAD ROLES =====
+            async function loadRoles() {
+                try {
+                    const response = await fetch('/User/GetRoles');
+                    const result = await response.json();
+                    
+                    if (result.success) {
+                        availableRoles = result.data;
+                        populateRoleDropdowns();
+                    }
+                } catch (error) {
+                    console.error('Error loading roles:', error);
+                }
+            }
+
+            function populateRoleDropdowns() {
+                const createRoleSelect = document.getElementById('createRole');
+                const editRoleSelect = document.getElementById('editRole');
+                
+                // Clear existing options (except placeholder)
+                createRoleSelect.innerHTML = '<option value="">اختر الدور</option>';
+                editRoleSelect.innerHTML = '<option value="">اختر الدور</option>';
+                
+                availableRoles.forEach(role => {
+                    const option1 = new Option(role.text, role.value);
+                    const option2 = new Option(role.text, role.value);
+                    createRoleSelect.add(option1);
+                    editRoleSelect.add(option2);
+                });
+            }
+
+            // ===== PASSWORD TOGGLE FUNCTIONALITY =====
+            function setupPasswordToggle(toggleButtonId, passwordInputId) {
+                document.getElementById(toggleButtonId).addEventListener('click', function() {
+                    const passwordInput = document.getElementById(passwordInputId);
+                    const icon = this.querySelector('i');
+                    
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
+            }
+
+            // ===== MODAL FUNCTIONS =====
+            function openCreateUserModal() {
+                document.getElementById('createUserForm').reset();
+                document.getElementById('createUserForm').classList.remove('was-validated');
+                createUserModal.show();
+            }
+
+            async function openEditUserModal(userId) {
+                try {
+                    showLoading();
+                    
+                    const response = await fetch(`/User/GetForEdit/${userId}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        const user = result.data;
+                        
+                        document.getElementById('editUserId').value = user.id;
+                        document.getElementById('editFirstName').value = user.firstName;
+                        document.getElementById('editLastName').value = user.lastName;
+                        document.getElementById('editEmail').value = user.email;
+                        document.getElementById('editRole').value = user.role;
+
+                        document.getElementById('editUserForm').classList.remove('was-validated');
+                        currentEditUserId = userId;
+                        editUserModal.show();
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error loading user for edit:', error);
+                    showNotification('حدث خطأ أثناء تحميل بيانات المستخدم', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            function openResetPasswordModal(userId, userName) {
+                document.getElementById('resetUserId').value = userId;
+                document.getElementById('resetPasswordUserName').textContent = userName;
+                document.getElementById('resetPasswordForm').reset();
+                document.getElementById('resetPasswordForm').classList.remove('was-validated');
+                resetPasswordModal.show();
+            }
+
+            async function viewUserDetails(userId) {
+                try {
+                    showLoading();
+                    
+                    const response = await fetch(`/User/Details/${userId}`);
+                    const result = await response.json();
+
+                    if (result.success) {
+                        renderUserDetails(result.data);
+                        userDetailsModal.show();
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error loading user details:', error);
+                    showNotification('حدث خطأ أثناء تحميل تفاصيل المستخدم', 'error');
+                } finally {
+                    hideLoading();
+                }
+            }
+
+            function renderUserDetails(user) {
+                const detailsContent = `
+                    <div class="row">
+                        <div class="col-12 mb-4">
+                            <div class="d-flex align-items-center p-3 bg-light rounded">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="avatar bg-primary text-white rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width: 80px; height: 80px; font-size: 2rem;">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h4 class="mb-1 fw-bold text-dark">${user.fullName}</h4>
+                                    <p class="mb-1 text-muted">
+                                        <i class="fas fa-envelope me-2"></i>${user.email}
+                                    </p>
+                                    <span class="badge ${getRoleBadgeClass(user.role)} px-3 py-2">
+                                        ${user.roleNameAr}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold text-primary">
+                                        <i class="fas fa-user me-2"></i>المعلومات الشخصية
+                                    </h6>
+                                    <p class="mb-2"><strong>الاسم الأول:</strong> ${user.firstName}</p>
+                                    <p class="mb-2"><strong>الاسم الأخير:</strong> ${user.lastName}</p>
+                                    <p class="mb-0"><strong>الاسم الكامل:</strong> ${user.fullName}</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title fw-bold text-info">
+                                        <i class="fas fa-cog me-2"></i>معلومات الحساب
+                                    </h6>
+                                    <p class="mb-2"><strong>الدور:</strong> ${user.roleNameAr}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body">
+                                                                        <h6 class="card-title fw-bold text-success">
+                                        <i class="fas fa-clock me-2"></i>معلومات زمنية
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <p class="mb-2">
+                                                <strong>تاريخ الإنشاء:</strong><br>
+                                                <small class="text-muted">${user.createdAtFormatted}</small>
+                                            </p>
+                                        </div>
+                                        <div class="col-md-6">
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('userDetailsContent').innerHTML = detailsContent;
+
+                // Store current user ID for edit from details
+                document.getElementById('editFromDetails').onclick = () => {
+                    userDetailsModal.hide();
+                    openEditUserModal(user.id);
+                };
+            }
+
+            function getRoleBadgeClass(role) {
+                switch (role) {
+                    case 'SuperAdmin': return 'bg-danger';
+                    case 'Editor': return 'bg-info';
+                    case 'Viewer': return 'bg-warning text-dark';
+                    case 'Added': return 'bg-success';
+                    case 'Clear': return 'bg-secondary';
+                    default: return 'bg-light text-dark';
+                }
+            }
+
+            // ===== DELETE USER =====
+            function openDeleteModal(userId, userName) {
+                document.getElementById('deleteUserId').value = userId;
+                document.getElementById('deleteUserName').textContent = userName;
+                deleteModal.show();
+            }
+
+            async function deleteUser() {
+                const userId = document.getElementById('deleteUserId').value;
+                const btn = document.getElementById('confirmDelete');
+                const originalText = btn.innerHTML;
+
+                btn.disabled = true;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحذف...';
+
+                try {
+                    // Create form data with anti-forgery token
+                    const formData = new FormData();
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                    formData.append('__RequestVerificationToken', token);
+
+                    const response = await fetch(`/User/Delete/${userId}`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        showNotification(result.message, 'success');
+                        deleteModal.hide();
+
+                        // Remove the row from the table
+                        const row = document.querySelector(`[data-id="${userId}"]`).closest('tr');
+                        if (row) {
+                            row.remove();
+                            updateUserCount();
+                        }
+                    } else {
+                        showNotification(result.message, 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting user:', error);
+                    showNotification('حدث خطأ أثناء حذف المستخدم', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                }
+            }
+
+            function updateUserCount() {
+                const visibleRows = document.querySelectorAll('.user-row:not([style*="display: none"])');
+                const count = visibleRows.length;
+                document.getElementById('badgeCount').textContent = count.toLocaleString('ar-SA');
+
+                // Show empty state if no users
+                if (count === 0) {
+                    document.getElementById('usersContainer').style.display = 'none';
+                    document.getElementById('emptyState').style.display = 'block';
+                }
+            }
+
+            // ===== SEARCH FUNCTIONALITY =====
+            function toArabicDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            }
+
+            function toLatinDigits(str) {
+                if (typeof str !== 'string') return str;
+                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
+            }
+
+            function containsArabic(str) {
+                return /[\u0600-\u06FF]/.test(str);
+            }
+
+            function shouldUseArabicNumbers(str) {
+                if (!str || str.trim().length === 0) return true;
+                if (containsArabic(str)) return true;
+                if (/^[0-9٠-٩]+$/.test(str)) return true;
+                return false;
+            }
+
+            function applyNumberConversion(input) {
+                let val = input.value;
+                let useArabicNumbers = shouldUseArabicNumbers(val || "");
+                let newVal = useArabicNumbers ? toArabicDigits(val || "") : toLatinDigits(val || "");
+
+                if (newVal !== val) {
+                    let cursorPos = input.selectionStart || 0;
+                    input.value = newVal;
+                    try {
+                        input.setSelectionRange(cursorPos, cursorPos);
+                    } catch (ex) {
+                        input.focus();
+                    }
+                }
+            }
+
+            function performSearch() {
+                const nameSearch = document.getElementById('searchByName').value.toLowerCase().trim();
+                const nameSearchLatin = toLatinDigits(nameSearch);
+                const nameSearchArabic = toArabicDigits(nameSearch);
+
+                const emailSearch = document.getElementById('searchByEmail').value.toLowerCase().trim();
+                const emailSearchLatin = toLatinDigits(emailSearch);
+                const emailSearchArabic = toArabicDigits(emailSearch);
+
+                const roleSearch = document.getElementById('searchByRole').value;
+
+                let visibleCount = 0;
+
+                document.querySelectorAll('.user-row').forEach(function(row) {
+                    const name = row.getAttribute('data-name');
+                    const email = row.getAttribute('data-email');
+                    const role = row.getAttribute('data-role');
+
+                    const nameMatch = !nameSearch ||
+                        name.includes(nameSearch) ||
+                        name.includes(nameSearchLatin) ||
+                        name.includes(nameSearchArabic);
+
+                    const emailMatch = !emailSearch ||
+                        email.includes(emailSearch) ||
+                        email.includes(emailSearchLatin) ||
+                        email.includes(emailSearchArabic);
+
+                    const roleMatch = !roleSearch || role === roleSearch;
+
+                    const shouldShow = nameMatch && emailMatch && roleMatch;
+                    row.style.display = shouldShow ? '' : 'none';
+
+                    if (shouldShow) visibleCount++;
+                });
+
+                updateSearchInfo(visibleCount, nameSearch, emailSearch, roleSearch);
+            }
+
+            function updateSearchInfo(visibleCount, nameSearch, emailSearch, roleSearch) {
+                document.getElementById('badgeCount').textContent = toArabicDigits(visibleCount.toString());
+
+                // Show/hide clear buttons
+                document.getElementById('clearNameSearch').style.display = nameSearch.length > 0 ? 'block' : 'none';
+                document.getElementById('clearEmailSearch').style.display = emailSearch.length > 0 ? 'block' : 'none';
+                document.getElementById('clearRoleSearch').style.display = roleSearch.length > 0 ? 'block' : 'none';
+
+                const hasAnySearch = nameSearch.length > 0 || emailSearch.length > 0 || roleSearch.length > 0;
+                document.getElementById('clearAllSearch').style.display = hasAnySearch ? 'block' : 'none';
+
+                // Add visual feedback to search inputs
+                document.getElementById('searchByName').classList.toggle('border-primary', nameSearch.length > 0);
+                document.getElementById('searchByEmail').classList.toggle('border-primary', emailSearch.length > 0);
+                document.getElementById('searchByRole').classList.toggle('border-primary', roleSearch.length > 0);
+            }
+
+            // ===== EXPORT FUNCTIONS =====
+            window.exportToExcel = function() {
+                const table = document.getElementById('usersTable');
+                const wsData = [];
+
+                // Header row (only visible columns, skip actions)
+                const headerCells = table.querySelectorAll('thead tr:first-child th');
+                const headers = [];
+                const visibleColumnIndices = [];
+
+                headerCells.forEach((th, index) => {
+                    if (index === headerCells.length - 1) return; // skip actions column
+                    if (th.style.display === "none") return; // skip hidden columns
+
+                    visibleColumnIndices.push(index);
+                    headers.push(th.textContent.trim().replace(/\s+/g, ' '));
+                });
+                wsData.push(headers);
+
+                // Body rows (only visible rows and columns)
+                const rows = table.querySelectorAll('tbody tr');
+                rows.forEach(row => {
+                    if (row.style.display === "none" || row.offsetParent === null) return;
+
+                    const cols = row.querySelectorAll('td');
+                    const rowData = [];
+
+                    visibleColumnIndices.forEach(index => {
+                        const col = cols[index];
+                        if (!col) return;
+
+                        let text = col.textContent.trim().replace(/\s+/g, ' ');
+                        rowData.push(text);
+                    });
+
+                    wsData.push(rowData);
+                });
+
+                // Generate Excel with RTL layout
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                ws['!rtl'] = true;
+                const colWidths = visibleColumnIndices.map(() => ({ wch: 25 }));
+                ws['!cols'] = colWidths;
+
+                XLSX.utils.book_append_sheet(wb, ws, "قائمة المستخدمين");
+
+                const currentDate = new Date().toLocaleDateString('ar-EG');
+                XLSX.writeFile(wb, `users_list_${currentDate.replace(/\//g, '-')}.xlsx`);
+            };
+
+            window.printTable = function() {
+                try {
+                    const printContent = document.createElement('div');
+                    printContent.id = 'printSection';
+                    printContent.style.direction = 'rtl';
+
+                    const printTable = document.createElement('table');
+                    printTable.className = 'print-table table table-bordered table-striped';
+
+                    // Create table header with visible columns only
+                    const thead = document.createElement('thead');
+                    const headerRow = document.createElement('tr');
+
+                    const headerCells = document.querySelectorAll('#usersTable thead tr:first-child th');
+                    const visibleHeaders = [];
+
+                    headerCells.forEach((th, index) => {
+                        if (index === headerCells.length - 1) return; // skip actions
+                        if (th.style.display === "none") return; // skip hidden
+
+                        const headerTh = document.createElement('th');
+                        headerTh.textContent = th.textContent.trim().replace(/\s+/g, ' ');
+                        headerTh.className = 'bg-light text-center';
+                        headerRow.appendChild(headerTh);
+                        visibleHeaders.push(index);
+                    });
+
+                    thead.appendChild(headerRow);
+                    printTable.appendChild(thead);
+
+                    // Create table body with visible rows and columns
+                    const tbody = document.createElement('tbody');
+                    const visibleRows = document.querySelectorAll('#usersTable tbody tr:not([style*="display: none"])');
+
+                    if (visibleRows.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.textContent = 'لا توجد بيانات للعرض';
+                        cell.colSpan = visibleHeaders.length;
+                        cell.className = 'text-center py-4 text-muted';
+                        row.appendChild(cell);
+                        tbody.appendChild(row);
+                    } else {
+                        visibleRows.forEach(row => {
+                            const dataRow = document.createElement('tr');
+                            const cells = row.querySelectorAll('td');
+
+                            visibleHeaders.forEach(index => {
+                                const cell = cells[index];
+                                if (!cell) return;
+
+                                const td = document.createElement('td');
+                                let text = cell.textContent.trim().replace(/\s+/g, ' ');
+                                td.textContent = text;
+                                td.className = 'text-center';
+                                dataRow.appendChild(td);
+                            });
+
+                            tbody.appendChild(dataRow);
+                        });
+                    }
+
+                    printTable.appendChild(tbody);
+                    printContent.appendChild(printTable);
+
+                    document.body.appendChild(printContent);
+                    window.print();
+                    document.body.removeChild(printContent);
+
+                } catch (error) {
+                    console.error('Error printing table:', error);
+                    showNotification('حدث خطأ أثناء الطباعة', 'error');
+                }
+            };
+
+            // ===== EVENT LISTENERS =====
+
+            // Add user buttons
+            document.getElementById('addUserBtn').addEventListener('click', openCreateUserModal);
+
+            // Save/Update buttons
+            document.getElementById('saveUser').addEventListener('click', saveUser);
+            document.getElementById('updateUser').addEventListener('click', updateUser);
+            document.getElementById('confirmResetPassword').addEventListener('click', resetPassword);
+            document.getElementById('confirmDelete').addEventListener('click', deleteUser);
+
+            // Action buttons in table
+            document.addEventListener('click', function(e) {
+                const target = e.target.closest('button');
+                if (!target) return;
+
+                const userId = target.getAttribute('data-id');
+                const userName = target.getAttribute('data-name');
+
+                if (target.classList.contains('view-details')) {
+                    viewUserDetails(userId);
+                } else if (target.classList.contains('edit-user')) {
+                    openEditUserModal(userId);
+                } else if (target.classList.contains('reset-password')) {
+                    openResetPasswordModal(userId, userName);
+                } else if (target.classList.contains('delete-user')) {
+                    openDeleteModal(userId, userName);
+                }
+            });
+
+            // Password toggle buttons
+            setupPasswordToggle('toggleCreatePassword', 'createPassword');
+            setupPasswordToggle('toggleNewPassword', 'newPassword');
+            setupPasswordToggle('toggleConfirmPassword', 'confirmPassword');
+
+            // Search functionality
+            let searchTimeout;
+            ['searchByName', 'searchByEmail', 'searchByRole'].forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('input', function() {
+                        if (this.type === 'text') {
+                            applyNumberConversion(this);
+                        }
+                        clearTimeout(searchTimeout);
+                        searchTimeout = setTimeout(performSearch, 200);
+                    });
+
+                    element.addEventListener('change', function() {
+                        clearTimeout(searchTimeout);
+                        searchTimeout = setTimeout(performSearch, 200);
+                    });
+                }
+            });
+
+            // Clear search buttons
+            document.getElementById('clearNameSearch').addEventListener('click', function() {
+                document.getElementById('searchByName').value = '';
+                document.getElementById('searchByName').classList.remove('border-primary');
+                performSearch();
+            });
+
+            document.getElementById('clearEmailSearch').addEventListener('click', function() {
+                document.getElementById('searchByEmail').value = '';
+                document.getElementById('searchByEmail').classList.remove('border-primary');
+                performSearch();
+            });
+
+            document.getElementById('clearRoleSearch').addEventListener('click', function() {
+                document.getElementById('searchByRole').value = '';
+                document.getElementById('searchByRole').classList.remove('border-primary');
+                performSearch();
+            });
+
+            document.getElementById('clearAllSearch').addEventListener('click', function() {
+                ['searchByName', 'searchByEmail', 'searchByRole'].forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.value = '';
+                        element.classList.remove('border-primary');
+                    }
+                });
+                performSearch();
+            });
+
+            // Password confirmation validation
+            document.getElementById('confirmPassword').addEventListener('input', function() {
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = this.value;
+
+                if (newPassword !== confirmPassword) {
+                    this.setCustomValidity('كلمة المرور غير متطابقة');
+                } else {
+                    this.setCustomValidity('');
+                }
+            });
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', function(e) {
+                if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+                    e.preventDefault();
+                    document.getElementById('searchByName').focus();
+                }
+                if (e.keyCode === 27) { // Escape
+                    document.getElementById('clearAllSearch').click();
+                }
+            });
+
+            // ===== INITIALIZE =====
+            // Check if we should show empty state
+            const hasUsers = document.querySelectorAll('.user-row').length > 0;
+            if (!hasUsers) {
+                document.getElementById('usersContainer').style.display = 'none';
+                document.getElementById('emptyState').style.display = 'block';
+            }
+
+            // Load roles on page load
+            loadRoles();
+
+            // Focus on first search input
+            document.getElementById('searchByName').focus();
+
+            console.log('Enhanced users table with fixed form submissions initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+        });
+    </script>
+
+    <style>
+        @@media print {
+            body * {
+                visibility: hidden !important;
+            }
+
+            #printSection, #printSection * {
+                visibility: visible !important;
+            }
+
+            #printSection {
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 100%;
+                padding: 20px;
+            }
+        }
+
+        .user-row {
+            transition: all 0.2s ease;
+        }
+
+            .user-row:hover {
+                background-color: rgba(25,135,84,0.05);
+                transform: scale(1.002);
+            }
+
+        .search-row th {
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+            padding: 8px 12px;
+        }
+
+        .search-container .input-group {
+            transition: all 0.2s ease;
+        }
+
+            .search-container .input-group:hover {
+                transform: translateY(-1px);
+            }
+
+        .search-container .input-group-text {
+            background-color: #f8f9fa;
+            border-color: #ced4da;
+            font-size: 0.875rem;
+        }
+
+        .search-container .form-control, .search-container .form-select {
+            border-color: #ced4da;
+            font-size: 0.875rem;
+            padding: 6px 12px;
+        }
+
+            .search-container .form-control:focus, .search-container .form-select:focus {
+                border-color: #86b7fe;
+                box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            }
+
+            .search-container .form-control.border-primary, .search-container .form-select.border-primary {
+                border-color: #0d6efd;
+                box-shadow: 0 0 0 0.1rem rgba(13, 110, 253, 0.15);
+            }
+
+        .user-icon {
+            width: 45px;
+            text-align: center;
+        }
+
+        .avatar {
+            font-size: 1.1rem;
+        }
+
+        .btn-group .btn {
+            margin: 0 1px;
+        }
+
+        .toast {
+            min-width: 300px;
+        }
+
+        .modal-content {
+            border-radius: 12px;
+        }
+
+        .user-row {
+            animation: fadeInUp 0.5s ease-out;
+        }
+
+        @@keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .table thead th {
+            position: relative;
+            vertical-align: middle;
+        }
+
+        .table thead tr:first-child th {
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .search-container .input-group {
+            position: relative;
+        }
+
+            .search-container .input-group::before {
+                content: '';
+                position: absolute;
+                top: -2px;
+                left: -2px;
+                right: -2px;
+                bottom: -2px;
+                background: linear-gradient(45deg, transparent, rgba(13, 110, 253, 0.1), transparent);
+                border-radius: 6px;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+                z-index: -1;
+            }
+
+            .search-container .input-group:focus-within::before {
+                opacity: 1;
+            }
+
+        /* Modal enhancements */
+        .modal-header {
+            border-top-left-radius: 12px;
+            border-top-right-radius: 12px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+
+        .is-invalid {
+            border-color: #dc3545;
+        }
+
+            .is-invalid:focus {
+                border-color: #dc3545;
+                box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
+            }
+
+        @@media (max-width: 768px) {
+            .avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 0.9rem;
+            }
+
+            .btn-group {
+                flex-direction: column;
+                width: 100%;
+            }
+
+                .btn-group .btn {
+                    margin: 1px 0;
+                    border-radius: 4px;
+                }
+
+            .search-row th {
+                padding: 6px 8px;
+            }
+
+            .search-container .form-control, .search-container .form-select {
+                font-size: 0.8rem;
+                padding: 4px 8px;
+            }
+
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+        }
+    </style>
+}

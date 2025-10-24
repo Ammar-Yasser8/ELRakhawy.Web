@@ -14,5 +14,6 @@ namespace ELRakhawy.EL.Interfaces
         Task AddAsync(AppUser user);
         Task UpdateAsync(AppUser user);
         Task<IEnumerable<AppUser>> GetAllAsync();
+        Task DeleteAsync(int id);
     }
 }

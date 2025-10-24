@@ -1,73 +1,194 @@
 ﻿using ELRakhawy.DAL.Services;
 using ELRakhawy.EL.Models;
+using ELRakhawy.EL.ViewModels;
 using Microsoft.AspNetCore.Mvc;
+using System.ComponentModel.DataAnnotations;
 
 namespace ELRakhawy.Web.Controllers
 {
-    [ApiController]
-    [Route("api/[controller]")]
-    public class AuthController : Controller
-    {
-        private readonly AuthService _authService;
-        public AuthController(AuthService authService)
-        {
-            _authService = authService;
+   public class AuthController : Controller
+   {
+       private readonly AuthService _authService;
+       private readonly ILogger<AuthController> _logger;
 
+       public AuthController(AuthService authService, ILogger<AuthController> logger)
+       {
+           _authService = authService;
+           _logger = logger;
+       }
+
+        public IActionResult denied()
+        {
+            return View();
         }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+        // GET: /Auth/Login
+        [HttpGet]
+       public IActionResult Login()
+       {
+           // Redirect if already logged in
+           if (HttpContext.Session.GetString("UserId") != null)
+           {
+               return RedirectToAction("Dashboard", "Home");
+           }
 
-            var success = await _authService.RegisterAsync(dto.FirstName, dto.LastName, dto.Email, dto.Password, dto.Role);
-            return success ? Ok(new { Message = "User created successfully" }) : BadRequest(new { Message = "Email already exists" });
-        }
+           return View(new LoginViewModel());
+       }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+       // POST: /Auth/Login
+       [HttpPost]
+       [ValidateAntiForgeryToken]
+       public async Task<IActionResult> Login(LoginViewModel model)
+       {
+           try
+           {
+               if (!ModelState.IsValid)
+               {
+                   return View(model);
+               }
 
-            var user = await _authService.LoginAsync(dto.Email, dto.Password);
-            if (user == null)
-                return Unauthorized(new { Message = "Invalid credentials" });
+               var user = await _authService.LoginAsync(model.Email, model.Password);
 
-            return Ok(new
-            {
-                user.Id,
-                user.FirstName,
-                user.LastName,
-                user.FullName,
-                user.Email,
-                user.Role
-            });
-        }
+               if (user == null)
+               {
+                   ModelState.AddModelError(string.Empty, "البريد الإلكتروني أو كلمة المرور غير صحيحة");
+                   _logger.LogWarning("فشل محاولة تسجيل دخول للبريد الإلكتروني: {Email} في {Timestamp}",
+                       model.Email, DateTime.UtcNow);
+                   return View(model);
+               }
 
-        [HttpPost("reset-password")]
-        public async Task<IActionResult> ResetPassword(ResetPasswordDto dto)
-        {
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+               // Set session data
+               HttpContext.Session.SetString("UserId", user.Id.ToString());
+               HttpContext.Session.SetString("UserName", user.FullName);
+               HttpContext.Session.SetString("UserRole", user.Role.ToString());
+               HttpContext.Session.SetString("UserEmail", user.Email);
 
-            try
-            {
-                var success = await _authService.ResetPasswordAsync(dto.UserId, dto.NewPassword, dto.RequesterRole);
-                return success ? Ok(new { Message = "Password reset successfully" }) : NotFound(new { Message = "User not found" });
+               _logger.LogInformation("المستخدم {UserName} ({Email}) قام بتسجيل الدخول بنجاح في {Timestamp}",
+                   user.FullName, user.Email, DateTime.UtcNow);
+
+               return RedirectToAction("Index", "Home");
             }
-            catch (UnauthorizedAccessException ex)
-            {
-                return Forbid(ex.Message);
-            }
-            catch (ArgumentException ex)
-            {
-                return BadRequest(new { Message = ex.Message });
-            }
-        }
-    }
-    public record RegisterDto(string FirstName, string LastName, string Email, string Password, UserRole Role);
-    public record LoginDto(string Email, string Password);
-    public record ResetPasswordDto(int UserId, string NewPassword, UserRole RequesterRole);
+           catch (Exception ex)
+           {
+               _logger.LogError(ex, "خطأ في تسجيل الدخول للمستخدم {Email}", model.Email);
+               ModelState.AddModelError(string.Empty, "حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.");
+               return View(model);
+           }
+       }
+
+       // GET: /Auth/Register
+       [HttpGet]
+       public IActionResult Register()
+       {
+           return View(new RegisterViewModel());
+       }
+
+       // POST: /Auth/Register
+       [HttpPost]
+       [ValidateAntiForgeryToken]
+       public async Task<IActionResult> Register(RegisterViewModel model)
+       {
+           try
+           {
+               if (!ModelState.IsValid)
+               {
+                   return View(model);
+               }
+
+               var success = await _authService.RegisterAsync(model.FirstName, model.LastName, model.Email, model.Password, model.Role);
+
+               if (!success)
+               {
+                   ModelState.AddModelError(string.Empty, "البريد الإلكتروني مستخدم بالفعل");
+                   return View(model);
+               }
+
+               _logger.LogInformation("تم إنشاء حساب جديد للمستخدم {FirstName} {LastName} ({Email}) في {Timestamp}",
+                   model.FirstName, model.LastName, model.Email, DateTime.UtcNow);
+
+               TempData["SuccessMessage"] = "تم إنشاء الحساب بنجاح. يمكنك الآن تسجيل الدخول.";
+               return RedirectToAction("Login");
+           }
+           catch (Exception ex)
+           {
+               _logger.LogError(ex, "خطأ في إنشاء حساب للمستخدم {Email}", model.Email);
+               ModelState.AddModelError(string.Empty, "حدث خطأ أثناء إنشاء الحساب. يرجى المحاولة مرة أخرى.");
+               return View(model);
+           }
+       }
+
+       // GET: /Auth/ResetPassword
+       [HttpGet]
+       public IActionResult ResetPassword()
+       {
+           return View(new ResetPasswordViewModel());
+       }
+
+       // POST: /Auth/ResetPassword
+       [HttpPost]
+       [ValidateAntiForgeryToken]
+       public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+       {
+           try
+           {
+               if (!ModelState.IsValid)
+               {
+                   return View(model);
+               }
+
+               var success = await _authService.ResetPasswordAsync(model.UserId, model.NewPassword, model.RequesterRole);
+
+               if (!success)
+               {
+                   ModelState.AddModelError(string.Empty, "المستخدم غير موجود");
+                   return View(model);
+               }
+
+               _logger.LogInformation("تم إعادة تعيين كلمة المرور للمستخدم {UserId} في {Timestamp}",
+                   model.UserId, DateTime.UtcNow);
+
+               TempData["SuccessMessage"] = "تم إعادة تعيين كلمة المرور بنجاح";
+               return RedirectToAction("Login");
+           }
+           catch (UnauthorizedAccessException)
+           {
+               ModelState.AddModelError(string.Empty, "ليس لديك صلاحية لتنفيذ هذا الإجراء");
+               return View(model);
+           }
+           catch (ArgumentException ex)
+           {
+               ModelState.AddModelError(string.Empty, ex.Message);
+               return View(model);
+           }
+           catch (Exception ex)
+           {
+               _logger.LogError(ex, "خطأ في إعادة تعيين كلمة المرور للمستخدم {UserId}", model.UserId);
+               ModelState.AddModelError(string.Empty, "حدث خطأ أثناء إعادة تعيين كلمة المرور. يرجى المحاولة مرة أخرى.");
+               return View(model);
+           }
+       }
+
+       // POST: /Auth/Logout
+       [HttpPost]
+       [ValidateAntiForgeryToken]
+       public IActionResult Logout()
+       {
+           var userName = HttpContext.Session.GetString("UserName");
+           HttpContext.Session.Clear();
+
+           _logger.LogInformation("المستخدم {UserName} قام بتسجيل الخروج في {Timestamp}",
+               userName ?? "غير معروف", DateTime.UtcNow);
+
+           TempData["Message"] = "تم تسجيل الخروج بنجاح";
+           return RedirectToAction("Login");
+       }
+
+       // GET: /Auth/AccessDenied
+       [HttpGet]
+       public IActionResult AccessDenied()
+       {
+           return View();
+       }
+   }
+
 }

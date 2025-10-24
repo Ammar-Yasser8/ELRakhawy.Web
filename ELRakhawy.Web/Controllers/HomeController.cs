@@ -1,5 +1,6 @@
 using ELRakhawy.EL.Interfaces;
 using ELRakhawy.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 
@@ -18,8 +19,14 @@ namespace ELRakhawy.Web.Controllers
 
         public IActionResult Index()
         {
+            var userId = HttpContext.Session.GetString("UserId");
+
+            if (string.IsNullOrEmpty(userId))
+                return RedirectToAction("denied", "Auth"); // ?? ??? ????????? ???? ??? ??????
+
             return View();
         }
+
 
         // Display Public tables 
         public IActionResult PublicTables()

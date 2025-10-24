@@ -1,318 +1,586 @@
 ﻿@{
     ViewData["Title"] = "الصفحة الرئيسية";
+
+    // Get current user information from session
+    var currentUserName = Context.Session.GetString("UserName") ?? "مستخدم ضيف";
+    var currentUserEmail = Context.Session.GetString("UserEmail") ?? "";
+    var currentUserRole = Context.Session.GetString("UserRole") ?? "Viewer";
+    var currentUserId = Context.Session.GetString("UserId") ?? "";
+
+    // Check if user is logged in
+    bool isUserLoggedIn = !string.IsNullOrEmpty(currentUserId);
+
+    // Convert role to Arabic
+    string roleNameArabic = currentUserRole switch
+    {
+        "SuperAdmin" => "مدير عام",
+        "Editor" => "محرر",
+        "Viewer" => "مشاهد",
+        "Added" => "مضاف",
+        "Clear" => "واضح",
+        _ => "مشاهد"
+    };
+
+    // Current UTC time - using provided time: 2025-10-24 23:22:47
+    string currentDateTime = "2025-10-24 23:22:47";
+
+    // Parse the datetime for display formatting
+    var utcTime = DateTime.Parse("2025-10-24T23:22:47Z");
+    var arabicCulture = new System.Globalization.CultureInfo("ar-SA");
 }
 
-<div class="welcome-card mb-4">
-    <div class="row">
-        <div class="col-lg-8">
-            <h2 class="mb-3">مرحباً بك، <span class="text-primary">عمار ياسر</span></h2>
-            <p class="text-muted">إليك نظرة سريعة على نشاط مصنع النسيج اليوم</p>
-        </div>
-        <div class="col-lg-4 text-start text-lg-end mt-3 mt-lg-0">
-            <a href="#" class="btn btn-primary">
-                <i class="fas fa-tachometer-alt me-2"></i>
-                تخصيص لوحة التحكم
-            </a>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">إيرادات اليوم</h6>
-                <div class="stat-icon bg-info text-white">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-            </div>
-            <div class="stat-value">٨٥,٤٣٠</div>
-            <div class="stat-label">جنيه</div>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">الأقمشة الجاهزة</h6>
-                <div class="stat-icon bg-success text-white">
-                    <i class="fas fa-cut"></i>
-                </div>
-            </div>
-            <div class="stat-value">٣٢٦.٧</div>
-            <div class="stat-label">متر</div>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">الأقمشة الخام</h6>
-                <div class="stat-icon bg-warning text-white">
-                    <i class="fas fa-roll-fabric"></i>
-                </div>
-            </div>
-            <div class="stat-value">٤٨٧.٣</div>
-            <div class="stat-label">متر</div>
-        </div>
-    </div>
-
-    <div class="col-6 col-md-6 col-lg-3">
-        <div class="stat-card h-100">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h6 class="mb-0">إجمالي المخزون</h6>
-                <div class="stat-icon bg-primary text-white">
-                    <i class="fas fa-boxes"></i>
-                </div>
-            </div>
-            <div class="stat-value">١٣٥.٨</div>
-            <div class="stat-label">طن</div>
-        </div>
-    </div>
-</div>
-
-<div class="row g-3">
-    <div class="col-lg-6 mb-3 mb-lg-4">
-        <div class="section-card h-100">
-            <div class="section-header">
-                <h5 class="mb-0">الأنشطة الأخيرة</h5>
-                <button class="btn btn-sm btn-light">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-            </div>
-            <div class="section-content">
-                <div class="list-group list-group-flush">
-                    <div class="list-group-item px-0">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap">
-                            <div class="d-flex align-items-center mb-2 mb-md-0">
-                                <span class="badge bg-success me-2">جديد</span>
-                                <span class="activity-text">تم استلام ٥٠ متر من القماش الخام</span>
-                            </div>
-                            <small class="text-muted">منذ ٢٠ دقيقة</small>
+<div class="container-fluid" dir="rtl">
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm bg-gradient-primary text-white">
+                <div class="card-body p-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <h1 class="mb-2 fw-bold">
+                                <i class="fas fa-tachometer-alt me-3"></i>
+                                مرحباً بك في نظام إدارة المصنع
+                            </h1>
+                            <p class="mb-0 opacity-90 fs-5">
+                                نظام شامل لإدارة عمليات النسيج والإنتاج
+                            </p>
                         </div>
-                    </div>
-                    <div class="list-group-item px-0">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap">
-                            <div class="d-flex align-items-center mb-2 mb-md-0">
-                                <span class="badge bg-info me-2">تحديث</span>
-                                <span class="activity-text">تم تحديث مخزون الأقمشة الجاهزة</span>
-                            </div>
-                            <small class="text-muted">منذ ٤٥ دقيقة</small>
-                        </div>
-                    </div>
-                    <div class="list-group-item px-0">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap">
-                            <div class="d-flex align-items-center mb-2 mb-md-0">
-                                <span class="badge bg-warning me-2">طلب</span>
-                                <span class="activity-text">طلب جديد من العميل "أحمد محمود"</span>
-                            </div>
-                            <small class="text-muted">منذ ساعتين</small>
-                        </div>
-                    </div>
-                    <div class="list-group-item px-0">
-                        <div class="d-flex justify-content-between align-items-center flex-wrap">
-                            <div class="d-flex align-items-center mb-2 mb-md-0">
-                                <span class="badge bg-danger me-2">تنبيه</span>
-                                <span class="activity-text">انخفاض مخزون الخيوط القطنية</span>
-                            </div>
-                            <small class="text-muted">منذ ٣ ساعات</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-lg-6 mb-3 mb-lg-4">
-        <div class="section-card h-100">
-            <div class="section-header">
-                <h5 class="mb-0">الوصول السريع</h5>
-                <button class="btn btn-sm btn-light">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-            </div>
-            <div class="section-content">
-                <div class="row g-3">
-                    <div class="col-6">
-                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
-                            <i class="fas fa-plus-circle fa-2x mb-2 text-success"></i>
-                            <span class="text-center">إضافة طلب جديد</span>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
-                            <i class="fas fa-file-invoice fa-2x mb-2 text-primary"></i>
-                            <span class="text-center">الفواتير</span>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
-                            <i class="fas fa-chart-line fa-2x mb-2 text-info"></i>
-                            <span class="text-center">التقارير</span>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="#" class="btn btn-light w-100 p-3 d-flex flex-column align-items-center">
-                            <i class="fas fa-cog fa-2x mb-2 text-secondary"></i>
-                            <span class="text-center">الإعدادات</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Number Formatting Demonstration Section -->
-<div class="row g-3 mb-4">
-    <div class="col-12">
-        <div class="section-card">
-            <div class="section-header">
-                <h5 class="mb-0">عرض توضيحي لتنسيق الأرقام - Number Formatting Demo</h5>
-                <span class="badge bg-info">جديد</span>
-            </div>
-            <div class="section-content">
-                <div class="row">
-                    <!-- Arabic Context Examples -->
-                    <div class="col-md-6">
-                        <div class="card border-primary h-100">
-                            <div class="card-header bg-primary text-white">
-                                <h6 class="mb-0">النصوص العربية - Arabic Text</h6>
-                            </div>
-                            <div class="card-body" lang="ar">
-                                <p class="mb-2"><strong>إجمالي المبيعات:</strong> 1,250,000 جنيه مصري</p>
-                                <p class="mb-2"><strong>عدد العملاء:</strong> 500 عميل</p>
-                                <p class="mb-2"><strong>تاريخ اليوم:</strong> 2025-08-16</p>
-                                <p class="mb-2"><strong>الوقت الحالي:</strong> 18:51:08</p>
-                                <p class="mb-2"><strong>نسبة الربح:</strong> 25.5%</p>
-                                <p class="mb-2"><strong>كمية الإنتاج:</strong> 1,000 متر</p>
-                                <p class="mb-2"><strong>سعر الوحدة:</strong> 150.75 جنيه</p>
-                                <p class="mb-0"><strong>إجمالي الفواتير:</strong> 75,500 جنيه</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- English Context Examples -->
-                    <div class="col-md-6">
-                        <div class="card border-success h-100">
-                            <div class="card-header bg-success text-white">
-                                <h6 class="mb-0">English Text</h6>
-                            </div>
-                            <div class="card-body" lang="en">
-                                <p class="mb-2"><strong>Total Sales:</strong> 1,250,000 Egyptian Pounds</p>
-                                <p class="mb-2"><strong>Number of Customers:</strong> 500 customers</p>
-                                <p class="mb-2"><strong>Today's Date:</strong> 2025-08-16</p>
-                                <p class="mb-2"><strong>Current Time:</strong> 18:51:08</p>
-                                <p class="mb-2"><strong>Profit Margin:</strong> 25.5%</p>
-                                <p class="mb-2"><strong>Production Quantity:</strong> 1,000 meters</p>
-                                <p class="mb-2"><strong>Unit Price:</strong> 150.75 pounds</p>
-                                <p class="mb-0"><strong>Total Invoices:</strong> 75,500 pounds</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <hr class="my-4">
-
-                <!-- Mixed Context Examples -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border-warning">
-                            <div class="card-header bg-warning text-dark">
-                                <h6 class="mb-0">نصوص مختلطة - Mixed Text Examples</h6>
-                            </div>
-                            <div class="card-body">
-                                <div class="row">
-                                    <div class="col-md-6">
-                                        <p class="mb-2">This is English text with numbers: <strong>123,456</strong> and <strong>789.012</strong></p>
-                                        <p class="mb-2">هذا نص عربي مع أرقام: <strong>١٢٣٬٤٥٦</strong> و <strong>٧٨٩٫٠١٢</strong></p>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <p class="mb-2">Mixed: English <strong>123</strong> and Arabic نص <strong>456</strong></p>
-                                        <p class="mb-0">مختلط: عربي <strong>١٢٣</strong> و English <strong>٤٥٦</strong></p>
+                        <div class="col-md-4 text-md-end">
+                            <div class="d-flex flex-column align-items-md-end">
+                                <div class="mb-2">
+                                    <i class="fas fa-clock fa-2x opacity-75"></i>
+                                </div>
+                                <div class="text-center text-md-end">
+                                    <div class="fw-semibold">التوقيت الحالي (UTC)</div>
+                                    <div class="fs-4 fw-bold" id="currentDateTime" style="font-family: 'Courier New', monospace;">
+                                        @currentDateTime
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <hr class="my-4">
-
-                <!-- Interactive Examples -->
-                <div class="row">
-                    <div class="col-12">
-                        <div class="card border-info">
-                            <div class="card-header bg-info text-white">
-                                <h6 class="mb-0">أمثلة تفاعلية - Interactive Examples</h6>
+    <!-- User Information Card -->
+    @if (isUserLoggedIn)
+    {
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-light border-bottom">
+                        <h5 class="mb-0 fw-bold text-dark">
+                            <i class="fas fa-user-circle text-primary me-2"></i>
+                            معلومات المستخدم الحالي
+                        </h5>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row align-items-center">
+                            <div class="col-md-2 text-center mb-3 mb-md-0">
+                                <div class="user-avatar-large bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 80px; height: 80px; font-size: 1.8rem; font-weight: 600;">
+                                    @{
+                                        string userInitials = "";
+                                        var nameParts = currentUserName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                                        if (nameParts.Length >= 2)
+                                        {
+                                            userInitials = nameParts[0].Substring(0, 1) + nameParts[1].Substring(0, 1);
+                                        }
+                                        else if (nameParts.Length == 1)
+                                        {
+                                            userInitials = nameParts[0].Substring(0, Math.Min(2, nameParts[0].Length));
+                                        }
+                                        else
+                                        {
+                                            userInitials = "AM";
+                                        }
+                                    }
+                                    @userInitials
+                                </div>
                             </div>
-                            <div class="card-body">
+                            <div class="col-md-10">
                                 <div class="row">
-                                    <div class="col-md-6">
-                                        <h6>إدخال أرقام - Number Input</h6>
-                                        <div class="mb-3">
-                                            <label for="arabicInput" class="form-label">أدخل رقماً:</label>
-                                            <input type="text" class="form-control" id="arabicInput" placeholder="123456" lang="ar">
-                                            <small class="form-text text-muted">سيتم تحويل الأرقام تلقائياً إلى العربية</small>
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="icon-circle bg-info bg-opacity-10 text-info">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">اسم المستخدم</div>
+                                                <div class="fw-semibold">@currentUserName</div>
+                                            </div>
                                         </div>
-                                        <button class="btn btn-primary btn-sm" onclick="formatInput('arabicInput')">تنسيق الأرقام</button>
                                     </div>
-                                    <div class="col-md-6">
-                                        <h6>Number Input</h6>
-                                        <div class="mb-3">
-                                            <label for="englishInput" class="form-label">Enter a number:</label>
-                                            <input type="text" class="form-control" id="englishInput" placeholder="١٢٣٤٥٦" lang="en">
-                                            <small class="form-text text-muted">Numbers will be automatically converted to Latin</small>
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="icon-circle bg-success bg-opacity-10 text-success">
+                                                    <i class="fas fa-user-tag"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">الدور الوظيفي</div>
+                                                <div class="fw-semibold">
+                                                    <span class="badge @(currentUserRole switch
+                                                          {
+                                                              "SuperAdmin" => "bg-danger",
+                                                              "Editor" => "bg-info",
+                                                              "Viewer" => "bg-warning text-dark",
+                                                              "Added" => "bg-success",
+                                                              "Clear" => "bg-secondary",
+                                                              _ => "bg-secondary"
+                                                          }) px-3 py-2 fs-6">
+                                                        @roleNameArabic
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <button class="btn btn-success btn-sm" onclick="formatInput('englishInput')">Format Numbers</button>
+                                    </div>
+                                    <div class="col-lg-4 mb-3">
+                                        <div class="d-flex align-items-center">
+                                            <div class="flex-shrink-0 me-3">
+                                                <div class="icon-circle bg-warning bg-opacity-10 text-warning">
+                                                    <i class="fas fa-envelope"></i>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div class="text-muted small">البريد الإلكتروني</div>
+                                                <div class="fw-semibold">@(!string.IsNullOrEmpty(currentUserEmail) ? currentUserEmail : "غير محدد")</div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="mt-3 text-center">
-                    <a href="/Home/NumberFormattingDemo" class="btn btn-outline-primary">
-                        <i class="fas fa-external-link-alt me-2"></i>
-                        عرض المزيد من الأمثلة - View More Examples
-                    </a>
-                </div>
             </div>
         </div>
-    </div>
-</div>
-
-<script>
-    function formatInput(inputId) {
-        const input = document.getElementById(inputId);
-        const value = input.value;
-        const lang = input.getAttribute('lang');
-        
-        if (lang === 'ar') {
-            // Convert to Arabic digits
-            input.value = toArabicDigits(value);
-        } else if (lang === 'en') {
-            // Convert to Latin digits
-            input.value = toLatinDigits(value);
-        }
     }
 
-    // Add event listeners for real-time formatting
-    document.addEventListener('DOMContentLoaded', function() {
-        const arabicInput = document.getElementById('arabicInput');
-        const englishInput = document.getElementById('englishInput');
+    <!-- Quick Stats Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+                                <i class="fas fa-tshirt"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="stat-value text-primary fw-bold">٢٤٧</div>
+                            <div class="stat-label">أصناف الغزل</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-success bg-opacity-10 text-success">
+                                <i class="fas fa-cut"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="stat-value text-success fw-bold">١٨٩</div>
+                            <div class="stat-label">أصناف الخام</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-info bg-opacity-10 text-info">
+                                <i class="fas fa-layer-group"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="stat-value text-info fw-bold">١٥٦</div>
+                            <div class="stat-label">أنواع القماش</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center">
+                        <div class="flex-shrink-0 me-3">
+                            <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                                <i class="fas fa-users"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="stat-value text-warning fw-bold">@(isUserLoggedIn && currentUserRole == "SuperAdmin" ? "١٢" : "---")</div>
+                            <div class="stat-label">المستخدمين</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-        if (arabicInput) {
-            arabicInput.addEventListener('input', function() {
-                this.value = toArabicDigits(this.value);
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-bolt text-primary me-2"></i>
+                        إجراءات سريعة
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="row">
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="/YarnItems/Index" class="btn btn-outline-primary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none">
+                                <i class="fas fa-tshirt fa-2x mb-2"></i>
+                                <span class="fw-semibold">إدارة الغزل</span>
+                                <small class="text-muted mt-1">عرض وإدارة أصناف الغزل</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="/RawItems/Index" class="btn btn-outline-success w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none">
+                                <i class="fas fa-cut fa-2x mb-2"></i>
+                                <span class="fw-semibold">إدارة الخام</span>
+                                <small class="text-muted mt-1">عرض وإدارة المواد الخام</small>
+                            </a>
+                        </div>
+                        <div class="col-lg-3 col-md-6 mb-3">
+                            <a href="/FabricItems/Index" class="btn btn-outline-info w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none">
+                                <i class="fas fa-layer-group fa-2x mb-2"></i>
+                                <span class="fw-semibold">إدارة القماش</span>
+                                <small class="text-muted mt-1">عرض وإدارة أنواع القماش</small>
+                            </a>
+                        </div>
+                        @if (isUserLoggedIn && currentUserRole == "SuperAdmin")
+                        {
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <a href="/User/Index" class="btn btn-outline-warning w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none">
+                                    <i class="fas fa-users fa-2x mb-2"></i>
+                                    <span class="fw-semibold">إدارة المستخدمين</span>
+                                    <small class="text-muted mt-1">إضافة وتعديل المستخدمين</small>
+                                </a>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="col-lg-3 col-md-6 mb-3">
+                                <a href="/Home/PublicTables" class="btn btn-outline-secondary w-100 h-100 d-flex flex-column align-items-center justify-content-center p-4 text-decoration-none">
+                                    <i class="fas fa-table fa-2x mb-2"></i>
+                                    <span class="fw-semibold">الجداول العامة</span>
+                                    <small class="text-muted mt-1">عرض البيانات العامة</small>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-light border-bottom d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-history text-primary me-2"></i>
+                        النشاطات الأخيرة
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-sync-alt me-1"></i>تحديث
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item d-flex align-items-center py-3">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="activity-icon bg-success bg-opacity-10 text-success">
+                                    <i class="fas fa-plus"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">تم إضافة صنف غزل جديد</div>
+                                <small class="text-muted">قبل ٢٠ دقيقة - بواسطة @currentUserName</small>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center py-3">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="activity-icon bg-info bg-opacity-10 text-info">
+                                    <i class="fas fa-edit"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">تم تحديث بيانات المخزون</div>
+                                <small class="text-muted">قبل ساعة واحدة - بواسطة محمد أحمد</small>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center py-3">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="activity-icon bg-warning bg-opacity-10 text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">تحذير: مخزون منخفض</div>
+                                <small class="text-muted">قبل ٣ ساعات - صنف القطن الأبيض</small>
+                            </div>
+                        </div>
+                        <div class="list-group-item d-flex align-items-center py-3">
+                            <div class="flex-shrink-0 me-3">
+                                <div class="activity-icon bg-primary bg-opacity-10 text-primary">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">تم تصدير التقرير الشهري</div>
+                                <small class="text-muted">قبل ٦ ساعات - بواسطة فاطمة علي</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4 mb-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-light border-bottom">
+                    <h5 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-info-circle text-primary me-2"></i>
+                        معلومات النظام
+                    </h5>
+                </div>
+                <div class="card-body p-4">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">إصدار النظام</span>
+                            <span class="fw-semibold">v2.1.0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">آخر تحديث</span>
+                            <span class="fw-semibold">٢٠٢٥/١٠/٢٠</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">حالة الخادم</span>
+                            <span class="badge bg-success">نشط</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3">
+                            <span class="text-muted">وقت التشغيل</span>
+                            <span class="fw-semibold">٧٢ ساعة</span>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">استخدام المعالج</span>
+                            <span class="fw-semibold small">٢٣%</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-primary" style="width: 23%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">استخدام الذاكرة</span>
+                            <span class="fw-semibold small">٦٧%</span>
+                        </div>
+                        <div class="progress mb-2" style="height: 6px;">
+                            <div class="progress-bar bg-warning" style="width: 67%"></div>
+                        </div>
+                    </div>
+
+                    <div class="mb-0">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">مساحة القرص</span>
+                            <span class="fw-semibold small">٤٥%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" style="width: 45%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Update current date/time based on provided UTC time: 2025-10-24 23:22:47
+            function updateDateTime() {
+                const baseTime = new Date('2025-10-24T23:22:47Z');
+                const pageLoadTime = new Date('@DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")');
+                const now = new Date();
+                const elapsed = now.getTime() - pageLoadTime.getTime();
+                const currentTime = new Date(baseTime.getTime() + elapsed);
+
+                // Format as YYYY-MM-DD HH:MM:SS
+                const year = currentTime.getUTCFullYear();
+                const month = String(currentTime.getUTCMonth() + 1).padStart(2, '0');
+                const day = String(currentTime.getUTCDate()).padStart(2, '0');
+                const hours = String(currentTime.getUTCHours()).padStart(2, '0');
+                const minutes = String(currentTime.getUTCMinutes()).padStart(2, '0');
+                const seconds = String(currentTime.getUTCSeconds()).padStart(2, '0');
+
+                const formatted = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+                $('#currentDateTime').text(formatted);
+            }
+
+            // Update time immediately and then every second
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+
+            // Animate statistics on load
+            $('.stat-value').each(function() {
+                const $this = $(this);
+                const targetValue = parseInt($this.text().replace(/[٠-٩]/g, function(match) {
+                    return '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(match)];
+                }));
+
+                if (!isNaN(targetValue)) {
+                    $this.text('٠');
+                    $({ countNum: 0 }).animate({ countNum: targetValue }, {
+                        duration: 2000,
+                        easing: 'swing',
+                        step: function() {
+                            const arabicNum = Math.floor(this.countNum).toString().replace(/[0-9]/g, function(match) {
+                                return '٠١٢٣٤٥٦٧٨٩'[match];
+                            });
+                            $this.text(arabicNum);
+                        },
+                        complete: function() {
+                            const finalArabicNum = targetValue.toString().replace(/[0-9]/g, function(match) {
+                                return '٠١٢٣٤٥٦٧٨٩'[match];
+                            });
+                            $this.text(finalArabicNum);
+                        }
+                    });
+                }
             });
+
+            // Add hover effects to cards
+            $('.card').hover(
+                function() {
+                    $(this).css('transform', 'translateY(-2px)');
+                },
+                function() {
+                    $(this).css('transform', 'translateY(0)');
+                }
+            );
+
+            console.log('Dashboard loaded for user: @currentUserName at @currentDateTime');
+        });
+    </script>
+}
+
+<style>
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, #4285F4 0%, #34A853 100%);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        font-size: 1.25rem;
+    }
+
+    .icon-circle {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 1.1rem;
+    }
+
+    .activity-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        font-size: 0.9rem;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .card {
+        transition: all 0.3s ease;
+        border-radius: 12px;
+    }
+
+        .card:hover {
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
         }
 
-        if (englishInput) {
-            englishInput.addEventListener('input', function() {
-                this.value = toLatinDigits(this.value);
-            });
+    .btn-outline-primary:hover,
+    .btn-outline-success:hover,
+    .btn-outline-info:hover,
+    .btn-outline-warning:hover,
+    .btn-outline-secondary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .progress {
+        border-radius: 3px;
+    }
+
+    .progress-bar {
+        border-radius: 3px;
+    }
+
+    .user-avatar-large {
+        border: 3px solid rgba(66, 133, 244, 0.2);
+        box-shadow: 0 4px 12px rgba(66, 133, 244, 0.3);
+    }
+
+    @@media (max-width: 768px) {
+        .stat-value {
+            font-size: 1.5rem;
         }
-    });
-</script>
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.1rem;
+        }
+
+        #currentDateTime {
+            font-size: 1.2rem !important;
+        }
+    }
+</style>

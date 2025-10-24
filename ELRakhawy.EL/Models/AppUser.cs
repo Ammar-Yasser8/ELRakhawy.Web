@@ -25,10 +25,10 @@ namespace ELRakhawy.EL.Models
     }
     public enum UserRole
     {
-        Viewer,
-        Editor,
-        Added,
-        Clear,
-        SuperAdmin
+        Viewer,//0
+        Editor,//1
+        Added,//2
+        Clear,//3
+        SuperAdmin //4
     }
 }

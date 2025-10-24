@@ -47,5 +47,14 @@ namespace ELRakhawy.DAL.Implementaions
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
         }
+        public async Task DeleteAsync(int id)
+        {
+            var user = await GetByIdAsync(id);
+            if (user != null)
+            {
+                _context.Users.Remove(user);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }

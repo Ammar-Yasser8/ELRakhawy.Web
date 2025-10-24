@@ -1,6 +1,7 @@
 using Elrakhawy.DAL.Data;
 using ELRakhawy.DAL.Implementaions;
 using ELRakhawy.DAL.Persistence;
+using ELRakhawy.DAL.Services;
 using ELRakhawy.EL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -17,6 +18,15 @@ builder.Services.AddControllersWithViews().AddJsonOptions(options =>
 builder.Services.AddRazorPages();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenaricRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWOrk>();
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.Name = "ELRakhawy.Session";
+});
+builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<AuthService>();
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 // Add services to the container.
@@ -44,9 +54,9 @@ app.UseStaticFiles();
 app.UseRouting();
 
 app.UseAuthorization();
-
+app.UseSession();
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 
 app.Run();
