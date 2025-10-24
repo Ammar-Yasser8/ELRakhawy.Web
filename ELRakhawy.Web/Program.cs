@@ -1,5 +1,6 @@
 using Elrakhawy.DAL.Data;
 using ELRakhawy.DAL.Implementaions;
+using ELRakhawy.DAL.Persistence;
 using ELRakhawy.EL.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -23,7 +24,12 @@ builder.Services.AddControllersWithViews();
 #endregion
 
 var app = builder.Build();
-
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDBContext>();
+    context.Database.Migrate(); // apply migrations if needed
+    DbSeeder.SeedUsersAsync(context).Wait();
+}
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {

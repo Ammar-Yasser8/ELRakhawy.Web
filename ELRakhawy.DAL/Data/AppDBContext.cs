@@ -14,6 +14,7 @@ namespace Elrakhawy.DAL.Data
         {
         }
 
+        public DbSet<AppUser> Users { get; set; }
         public DbSet<Manufacturers> Manufacturers { get; set; }
         public DbSet<PackagingStyles> PackagingStyles { get; set; }
         public DbSet<FormStyle> FormStyles { get; set; }
