@@ -22,7 +22,7 @@ namespace ELRakhawy.Web.Controllers
             var userId = HttpContext.Session.GetString("UserId");
 
             if (string.IsNullOrEmpty(userId))
-                return RedirectToAction("denied", "Auth"); // ?? ??? ????????? ???? ??? ??????
+                return RedirectToAction("denied", "Auth"); 
 
             return View();
         }
@@ -31,6 +31,10 @@ namespace ELRakhawy.Web.Controllers
         // Display Public tables 
         public IActionResult PublicTables()
         {
+            var userId = HttpContext.Session.GetString("UserId");
+
+            if (string.IsNullOrEmpty(userId))
+                return RedirectToAction("denied", "Auth");
             return View();
         }
 
