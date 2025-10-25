@@ -23,7 +23,7 @@ namespace ELRakhawy.DAL.Persistence
                         FirstName = "Super",
                         LastName = "Admin",
                         Email = "superadmin@tax.com",
-                        PasswordHash = PasswordHasher.HashPassword("892001ammar"),
+                        PasswordHash = PasswordHasher.HashPassword("tax2025"),
                         Role = UserRole.SuperAdmin
                     },
                     new AppUser
@@ -31,7 +31,7 @@ namespace ELRakhawy.DAL.Persistence
                         FirstName = "Viewer",
                         LastName = "User",
                         Email = "viewer@tax.com",
-                        PasswordHash = PasswordHasher.HashPassword("892001ammar"),
+                        PasswordHash = PasswordHasher.HashPassword("tax2025"),
                         Role = UserRole.Viewer
                     },
                     new AppUser
@@ -39,7 +39,7 @@ namespace ELRakhawy.DAL.Persistence
                         FirstName = "Editor",
                         LastName = "User",
                         Email = "editor@tax.com",
-                        PasswordHash = PasswordHasher.HashPassword("892001ammar"),
+                        PasswordHash = PasswordHasher.HashPassword("tax2025"),
                         Role = UserRole.Editor
                     },
                     new AppUser
@@ -47,7 +47,7 @@ namespace ELRakhawy.DAL.Persistence
                         FirstName = "Added",
                         LastName = "User",
                         Email = "added@tax.com",
-                        PasswordHash = PasswordHasher.HashPassword("892001ammar"),
+                        PasswordHash = PasswordHasher.HashPassword("tax2025"),
                         Role = UserRole.Added
                     },
                     new AppUser
@@ -55,7 +55,7 @@ namespace ELRakhawy.DAL.Persistence
                         FirstName = "Clear",
                         LastName = "User",
                         Email = "clear@tax.com",
-                        PasswordHash = PasswordHasher.HashPassword("892001ammar"),
+                        PasswordHash = PasswordHasher.HashPassword("tax2025"),
                         Role = UserRole.Clear
                     }
                 };
