@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
+
 
 namespace ELRakhawy.Web.Controllers
 {
@@ -47,57 +50,71 @@ namespace ELRakhawy.Web.Controllers
             try
             {
                 if (!ModelState.IsValid)
-                {
                     return View(model);
-                }
 
                 var user = await _authService.LoginAsync(model.Email, model.Password);
-
                 if (user == null)
                 {
                     ModelState.AddModelError(string.Empty, "البريد الإلكتروني أو كلمة المرور غير صحيحة");
-                    _logger.LogWarning("فشل محاولة تسجيل دخول للبريد الإلكتروني: {Email} في {Timestamp}",
-                        model.Email, DateTime.UtcNow);
                     return View(model);
                 }
 
-                // ✅ أنشئ Claims للمستخدم
+                // 🔒 Check if user already has an active session
+                if (!string.IsNullOrEmpty(user.CurrentSessionToken))
+                {
+                    _logger.LogWarning("⚠️ محاولة تسجيل دخول مرفوضة - المستخدم {UserName} لديه جلسة نشطة بالفعل",
+                        user.FullName);
+
+                    ModelState.AddModelError(string.Empty,
+                        "لديك جلسة نشطة بالفعل على جهاز آخر. يرجى تسجيل الخروج أولاً أو الانتظار حتى انتهاء الجلسة.");
+
+                    return View(model);
+                }
+
+                // ✅ Generate new SessionToken
+                var sessionToken = Guid.NewGuid().ToString();
+
+                // ✅ Update in database
+                await _authService.UpdateUserSessionAsync(user.Id, sessionToken);
+
+                _logger.LogWarning("🔑 تسجيل دخول جديد - المستخدم: {UserId}, البريد: {Email}, Token: {Token}",
+                    user.Id, user.Email, sessionToken);
+
+                // ✅ Create Claims
                 var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.FullName),
             new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, user.Role.ToString()) // لو عندك Roles زي Admin/User
+            new Claim(ClaimTypes.Role, user.Role.ToString()),
+            new Claim("SessionToken", sessionToken)
         };
 
                 var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
                 var principal = new ClaimsPrincipal(identity);
 
-                // ✅ تسجيل الدخول باستخدام الـ Cookies
                 await HttpContext.SignInAsync(
                     CookieAuthenticationDefaults.AuthenticationScheme,
                     principal,
                     new AuthenticationProperties
                     {
-                        IsPersistent = true, // يخلي الكوكيز تفضل بعد غلق المتصفح (اختياري)
+                        IsPersistent = true,
                         ExpiresUtc = DateTime.UtcNow.AddHours(2)
                     });
 
-                // ✅ ممكن تحتفظ بالبيانات في الـ Session لو محتاجها في الـ UI فقط
                 HttpContext.Session.SetString("UserId", user.Id.ToString());
                 HttpContext.Session.SetString("UserName", user.FullName);
                 HttpContext.Session.SetString("UserRole", user.Role.ToString());
                 HttpContext.Session.SetString("UserEmail", user.Email);
 
-                _logger.LogInformation("المستخدم {UserName} ({Email}) قام بتسجيل الدخول بنجاح في {Timestamp}",
-                    user.FullName, user.Email, DateTime.UtcNow);
+                _logger.LogInformation("المستخدم {UserName} قام بتسجيل الدخول بنجاح في {Timestamp}",
+                    user.FullName, DateTime.UtcNow);
 
-                // ✅ بعد الدخول - حوّله مثلاً إلى الصفحة الرئيسية
                 return RedirectToAction("Index", "Home");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "خطأ في تسجيل الدخول للمستخدم {Email}", model.Email);
+                _logger.LogError(ex, "خطأ أثناء تسجيل الدخول للمستخدم {Email}", model.Email);
                 ModelState.AddModelError(string.Empty, "حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.");
                 return View(model);
             }
@@ -194,24 +211,47 @@ namespace ELRakhawy.Web.Controllers
                return View(model);
            }
        }
+        // GET: /Auth/Logout
+        [HttpGet]
+        public async Task<IActionResult> Logout(string? reason = null)
+        {
+            var userId = HttpContext.Session.GetString("UserId");
 
-       // POST: /Auth/Logout
-       [HttpPost]
-       [ValidateAntiForgeryToken]
-       public IActionResult Logout()
-       {
-           var userName = HttpContext.Session.GetString("UserName");
-           HttpContext.Session.Clear();
+            if (userId != null)
+            {
+                await _authService.UpdateUserSessionAsync(int.Parse(userId), null);
+            }
 
-           _logger.LogInformation("المستخدم {UserName} قام بتسجيل الخروج في {Timestamp}",
-               userName ?? "غير معروف", DateTime.UtcNow);
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
 
-           TempData["Message"] = "تم تسجيل الخروج بنجاح";
-           return RedirectToAction("Login");
-       }
+            if (reason == "timeout")
+                TempData["ErrorMessage"] = "تم تسجيل خروجك تلقائيًا بعد 20 دقيقة من عدم النشاط.";
 
-       // GET: /Auth/AccessDenied
-       [HttpGet]
+            return RedirectToAction("Login");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Logout()
+        {
+            var userId = HttpContext.Session.GetString("UserId");
+
+            if (userId != null)
+            {
+                await _authService.UpdateUserSessionAsync(int.Parse(userId), null); // حذف الـ Token
+            }
+
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            HttpContext.Session.Clear();
+
+            _logger.LogInformation("تم تسجيل الخروج بنجاح في {Timestamp}", DateTime.UtcNow);
+            return RedirectToAction("Login");
+        }
+
+
+        // GET: /Auth/AccessDenied
+        [HttpGet]
        public IActionResult AccessDenied()
        {
            return View();

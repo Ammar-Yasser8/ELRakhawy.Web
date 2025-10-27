@@ -1,6 +1,7 @@
 ﻿using ELRakhawy.DAL.Security;
 using ELRakhawy.EL.Interfaces;
 using ELRakhawy.EL.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -80,5 +81,15 @@ namespace ELRakhawy.DAL.Services
             await _userRepository.UpdateAsync(user);
             return true;
         }
+        public async Task UpdateUserSessionAsync(int userId, string? newToken)
+        {
+            var user = await _userRepository.GetByIdAsync(userId);
+            if (user != null)
+            {
+                user.CurrentSessionToken = newToken;
+                await _userRepository.UpdateAsync(user); // ⚠️ Does this save to DB?
+            }
+        }
+
     }
 }

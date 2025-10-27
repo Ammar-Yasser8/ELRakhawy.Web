@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System;
 using System.Text.Json;
+#region Builder Zone for configuration
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +17,6 @@ builder.Services.AddControllersWithViews().AddJsonOptions(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
 });
 
-#region Builder Zone for configuration
 builder.Services.AddRazorPages();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenaricRepository<>));
@@ -24,16 +24,16 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWOrk>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<AuthService>();
 
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-    options.Cookie.Name = "ELRakhawy.Session";
-});
-
 builder.Services.AddDbContext<AppDBContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+builder.Services.AddSession(builder =>
+{
+    builder.IdleTimeout = TimeSpan.FromMinutes(30);
+    builder.Cookie.HttpOnly = true;
+    builder.Cookie.IsEssential = true;
+    builder.Cookie.Name = "ELRakhawy.Session";
+});
 
 // ✅ أضف نظام الـ Authentication بالكوكيز
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -45,9 +45,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.SlidingExpiration = true;
     });
 
-#endregion
 
 var app = builder.Build();
+#endregion
 
 using (var scope = app.Services.CreateScope())
 {
@@ -67,12 +67,12 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseSession();
-
-// ✅ مهم جدًا يكون قبل Authorization
+// ✅ Correct Order:
+app.UseSession();  // ⚠️ Must be BEFORE Authentication
 app.UseAuthentication();
+app.UseMiddleware<SingleSessionMiddleware>();
 app.UseAuthorization();
-
+app.MapControllers();
 
 app.MapControllerRoute(
     name: "default",

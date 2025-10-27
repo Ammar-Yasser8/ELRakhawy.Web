@@ -21,7 +21,8 @@ namespace ELRakhawy.EL.Models
         [Required(ErrorMessage = "Password is required")]
         public string PasswordHash { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.Now;
-        public UserRole Role { get; set; } 
+        public UserRole Role { get; set; }
+        public string? CurrentSessionToken { get; set; }
     }
     public enum UserRole
     {

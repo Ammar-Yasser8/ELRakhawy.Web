@@ -1,6 +1,7 @@
 ﻿using ELRakhawy.DAL.Services;
 using ELRakhawy.EL.Interfaces;
 using ELRakhawy.EL.Models;
+using ELRakhawy.EL.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using System.ComponentModel.DataAnnotations;
 
@@ -19,12 +20,57 @@ namespace ELRakhawy.Web.Controllers
             _logger = logger;
         }
 
-        // GET: User/Index
-        public async Task<IActionResult> Index()
+        // GET: User/Groups
+        public async Task<IActionResult> Groups()
         {
             try
             {
                 var users = await _userRepository.GetAllAsync();
+
+                // Group users by role
+                var userGroups = users
+                    .GroupBy(u => u.Role)
+                    .OrderBy(g => g.Key)
+                    .Select(g => new UserRoleGroupViewModel
+                    {
+                        Role = g.Key,
+                        RoleName = GetRoleDisplayName(g.Key),
+                        Count = g.Count()
+                    })
+                    .ToList();
+
+                _logger.LogInformation("تم تحميل {GroupCount} مجموعات من المستخدمين", userGroups.Count);
+
+                return View(userGroups);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "خطأ في تحميل مجموعات المستخدمين");
+                TempData["ErrorMessage"] = "حدث خطأ أثناء تحميل مجموعات المستخدمين";
+                return View(new List<UserRoleGroupViewModel>());
+            }
+        }
+
+        // GET: User/Index
+        public async Task<IActionResult> Index(UserRole? role = null)
+        {
+            try
+            {
+                var users = await _userRepository.GetAllAsync();
+
+                // Filter by role if provided
+                if (role.HasValue)
+                {
+                    users = users.Where(u => u.Role == role.Value).ToList();
+                    ViewBag.FilteredRole = GetRoleDisplayName(role.Value);
+                    ViewBag.FilteredRoleValue = role.Value;
+                }
+
+                ViewBag.AllRoles = Enum.GetValues(typeof(UserRole))
+                    .Cast<UserRole>()
+                    .Select(r => new { Value = r, Text = GetRoleDisplayName(r) })
+                    .ToList();
+
                 return View(users);
             }
             catch (Exception ex)
@@ -35,6 +81,19 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
+        // Helper method to get Arabic role names
+        private string GetRoleDisplayName(UserRole role)
+        {
+            return role switch
+            {
+                UserRole.Viewer => "مشاهد",
+                UserRole.Editor => "محرر",
+                UserRole.Added => "مضاف",
+                UserRole.Clear => "مسؤول",
+                UserRole.SuperAdmin => "مدير عام",
+                _ => role.ToString()
+            };
+        }
         // GET: User/Details/{id}
         [HttpGet]
         public async Task<IActionResult> Details(int id)
@@ -303,7 +362,7 @@ namespace ELRakhawy.Web.Controllers
                 UserRole.Editor => "محرر",
                 UserRole.Viewer => "مشاهد",
                 UserRole.Added => "مضاف",
-                UserRole.Clear => "واضح",
+                UserRole.Clear => "مسؤول",
                 _ => "غير محدد"
             };
         }
