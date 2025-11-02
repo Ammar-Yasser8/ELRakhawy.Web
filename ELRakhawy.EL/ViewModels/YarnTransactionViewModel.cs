@@ -56,6 +56,7 @@ namespace ELRakhawy.EL.ViewModels
         [Display(Name = "التعبئة")]
         public int PackagingStyleId { get; set; }
         public string PackagingStyleName { get; set; }
+        
         public List<SelectListItem> PackagingStyles { get; set; } = new();
 
         [Display(Name = "رصيد الكمية")]

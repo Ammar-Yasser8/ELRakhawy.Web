@@ -7,6 +7,39 @@
 }
 
 <style>
+    /* === Flatpickr Arabic + Month right / Year left === */
+    .flatpickr-current-month {
+        display: flex !important;
+        flex-direction: row-reverse !important; /* place month to right, year left */
+        justify-content: space-between !important;
+        align-items: center;
+        width: 100%;
+    }
+
+    /* Month dropdown (names) on the right */
+    .flatpickr-monthDropdown-months {
+        order: 2 !important;
+        text-align: right !important;
+    }
+
+    /* Year input container on the left */
+    .numInputWrapper {
+        order: 1 !important;
+        text-align: left !important;
+    }
+
+    /* Ensure calendar uses RTL and Arabic typography */
+    .flatpickr-calendar {
+        direction: rtl !important;
+    }
+
+    /* Arabic day style when selected */
+    .flatpickr-day.selected, .flatpickr-day.today {
+        background: #198754 !important;
+        border-color: #198754 !important;
+        color: #fff !important;
+    }
+
     /* Table styling for Arabic numbers */
     .table .arabic-cell {
         direction: rtl;
@@ -288,7 +321,7 @@
                             <tbody>
                                 @foreach (var item in Model.Results)
                                 {
-                                    <tr>
+                                    <tr data-id="@item.Id">
                                         <td>
                                             @if (!string.IsNullOrEmpty(item.InternalId))
                                             {
@@ -378,301 +411,5 @@
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ar.js"></script>
-
-    <script>
-        $(document).ready(function() {
-            console.log('🔍 Yarn Transaction Search with Arabic Calendar');
-            console.log('👤 User: Ammar-Yasser8 | Time: 2025-10-11 12:38:59');
-
-            // ✅ Arabic/Latin conversion functions
-            function toArabicDigits(str) {
-                if (!str) return str;
-                return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-            }
-
-            function toLatinDigits(str) {
-                if (!str) return str;
-                return str.toString().replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-            }
-
-            // ✅ Initialize Select2 with Arabic numbers
-            $('.form-select').select2({
-                theme: 'bootstrap-5',
-                width: '100%',
-                dir: 'rtl',
-                language: {
-                    noResults: () => "لا توجد نتائج",
-                    searching: () => "جاري البحث..."
-                },
-                templateResult: function(data) {
-                    if (!data.id) return data.text;
-                    var text = data.text;
-                    if (text && /\d/.test(text)) {
-                        text = toArabicDigits(text);
-                    }
-                    return $('<span>' + text + '</span>');
-                },
-                templateSelection: function(data) {
-                    var text = data.text;
-                    if (text && /\d/.test(text)) {
-                        text = toArabicDigits(text);
-                    }
-                    return text;
-                },
-                matcher: function(params, data) {
-                    if ($.trim(params.term) === '') return data;
-                    if (typeof data.text === 'undefined') return null;
-
-                    const normalizeArabic = (str) => {
-                        if (!str) return '';
-                        return str.replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي');
-                    };
-
-                    let searchTerm = toLatinDigits(params.term.toLowerCase().trim());
-                    let optionText = toLatinDigits(data.text.toLowerCase().trim());
-
-                    searchTerm = normalizeArabic(searchTerm);
-                    optionText = normalizeArabic(optionText);
-
-                    if (optionText.includes(searchTerm)) {
-                        return data;
-                    }
-                    return null;
-                }
-            });
-
-            // ✅ Initialize Flatpickr for FromDate
-            const fromDateInput = document.getElementById('FromDate');
-            const fpFrom = flatpickr(fromDateInput, {
-                dateFormat: 'Y-m-d',
-                locale: {
-                    ...flatpickr.l10ns.ar,
-                    firstDayOfWeek: 6
-                },
-                allowInput: false,
-                disableMobile: true,
-                defaultDate: fromDateInput.value || new Date(),
-                onChange: function(selectedDates, dateStr, instance) {
-                    fromDateInput.setAttribute('data-latin-date', dateStr);
-                    fromDateInput.value = toArabicDigits(dateStr);
-                    updateCalendarArabic();
-                },
-                onReady: function(selectedDates, dateStr, instance) {
-                    if (dateStr) {
-                        fromDateInput.setAttribute('data-latin-date', dateStr);
-                        fromDateInput.value = toArabicDigits(dateStr);
-                    }
-                    updateCalendarArabic();
-                },
-                onMonthChange: updateCalendarArabic,
-                onYearChange: updateCalendarArabic
-            });
-
-            // ✅ Initialize Flatpickr for ToDate
-            const toDateInput = document.getElementById('ToDate');
-            const fpTo = flatpickr(toDateInput, {
-                dateFormat: 'Y-m-d',
-                locale: {
-                    ...flatpickr.l10ns.ar,
-                    firstDayOfWeek: 6
-                },
-                allowInput: false,
-                disableMobile: true,
-                defaultDate: toDateInput.value || new Date(),
-                onChange: function(selectedDates, dateStr, instance) {
-                    toDateInput.setAttribute('data-latin-date', dateStr);
-                    toDateInput.value = toArabicDigits(dateStr);
-                    updateCalendarArabic();
-                },
-                onReady: function(selectedDates, dateStr, instance) {
-                    if (dateStr) {
-                        toDateInput.setAttribute('data-latin-date', dateStr);
-                        toDateInput.value = toArabicDigits(dateStr);
-                    }
-                    updateCalendarArabic();
-                },
-                onMonthChange: updateCalendarArabic,
-                onYearChange: updateCalendarArabic
-            });
-
-            // Update calendar display to Arabic
-            function updateCalendarArabic() {
-                setTimeout(() => {
-                    $('.flatpickr-day').each(function() {
-                        const text = $(this).text();
-                        if (text && /\d/.test(text)) {
-                            $(this).text(toArabicDigits(text));
-                        }
-                    });
-                }, 0);
-            }
-
-            // Calendar button handlers
-            $('#fromCalendarBtn').on('click', () => fpFrom.open());
-            $('#toCalendarBtn').on('click', () => fpTo.open());
-
-            // Convert existing dates to Arabic
-            if (fromDateInput.value) {
-                const latinDate = fromDateInput.value;
-                fromDateInput.setAttribute('data-latin-date', latinDate);
-                fromDateInput.value = toArabicDigits(latinDate);
-            }
-            if (toDateInput.value) {
-                const latinDate = toDateInput.value;
-                toDateInput.setAttribute('data-latin-date', latinDate);
-                toDateInput.value = toArabicDigits(latinDate);
-            }
-
-            // ✅ Clear button functionality
-            $(document).on('click', '.btn-clear', function() {
-                const targetId = $(this).data('target');
-                $('#' + targetId).val('').trigger('change').focus();
-            });
-
-            // Show/hide clear buttons
-            $(document).on('input change', '#InternalId, #ExternalId', function() {
-                const $clearBtn = $(this).siblings('.btn-clear');
-                if ($(this).val().trim()) {
-                    $clearBtn.show();
-                } else {
-                    $clearBtn.hide();
-                }
-            });
-
-            // Initial hide for empty fields
-            $('#InternalId, #ExternalId').each(function() {
-                const $clearBtn = $(this).siblings('.btn-clear');
-                if (!$(this).val().trim()) {
-                    $clearBtn.hide();
-                }
-            });
-
-            // ✅ Form submission - convert to Latin
-            $('#searchForm').on('submit', function(e) {
-                console.log('🔄 Form submission - converting to Latin');
-
-                // Convert dates back to Latin
-                const fromLatin = $('#FromDate').attr('data-latin-date') || toLatinDigits($('#FromDate').val());
-                const toLatin = $('#ToDate').attr('data-latin-date') || toLatinDigits($('#ToDate').val());
-
-                $('#FromDate').val(fromLatin);
-                $('#ToDate').val(toLatin);
-
-                // Convert other Arabic inputs
-                $('#InternalId, #ExternalId').each(function() {
-                    const latinValue = toLatinDigits($(this).val());
-                    $(this).val(latinValue);
-                });
-
-                console.log('✅ Form ready for submission');
-            });
-
-            // ✅ Convert display elements to Arabic
-            function convertDisplayToArabic() {
-                $('.arabic-display').each(function() {
-                    if (!$(this).is('input, textarea, select')) {
-                        const originalText = $(this).text();
-                        const arabicText = toArabicDigits(originalText);
-                        $(this).text(arabicText);
-                    }
-                });
-
-                $('.arabic-cell').each(function() {
-                    const originalText = $(this).text();
-                    const arabicText = toArabicDigits(originalText);
-                    $(this).text(arabicText);
-                });
-            }
-
-            // ✅ Quick date functions
-            window.setToday = function() {
-                const today = new Date().toISOString().split('T')[0];
-                fromDateInput.setAttribute('data-latin-date', today);
-                toDateInput.setAttribute('data-latin-date', today);
-                fromDateInput.value = toArabicDigits(today);
-                toDateInput.value = toArabicDigits(today);
-                fpFrom.setDate(today);
-                fpTo.setDate(today);
-                console.log('✅ Set to today:', today);
-            };
-
-            window.setThisWeek = function() {
-                const today = new Date();
-                const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
-                const lastDay = new Date();
-                const firstStr = firstDay.toISOString().split('T')[0];
-                const lastStr = lastDay.toISOString().split('T')[0];
-
-                fromDateInput.setAttribute('data-latin-date', firstStr);
-                toDateInput.setAttribute('data-latin-date', lastStr);
-                fromDateInput.value = toArabicDigits(firstStr);
-                toDateInput.value = toArabicDigits(lastStr);
-                fpFrom.setDate(firstStr);
-                fpTo.setDate(lastStr);
-                console.log('✅ Set to this week');
-            };
-
-            window.setThisMonth = function() {
-                const today = new Date();
-                const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
-                const lastDay = new Date();
-                const firstStr = firstDay.toISOString().split('T')[0];
-                const lastStr = lastDay.toISOString().split('T')[0];
-
-                fromDateInput.setAttribute('data-latin-date', firstStr);
-                toDateInput.setAttribute('data-latin-date', lastStr);
-                fromDateInput.value = toArabicDigits(firstStr);
-                toDateInput.value = toArabicDigits(lastStr);
-                fpFrom.setDate(firstStr);
-                fpTo.setDate(lastStr);
-                console.log('✅ Set to this month');
-            };
-
-            // ✅ Reset function
-            window.resetForm = function() {
-                $('#searchForm')[0].reset();
-                $('.form-select').val('').trigger('change');
-
-                const today = new Date();
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(today.getDate() - 30);
-                const todayStr = today.toISOString().split('T')[0];
-                const thirtyStr = thirtyDaysAgo.toISOString().split('T')[0];
-
-                fromDateInput.setAttribute('data-latin-date', thirtyStr);
-                toDateInput.setAttribute('data-latin-date', todayStr);
-                fromDateInput.value = toArabicDigits(thirtyStr);
-                toDateInput.value = toArabicDigits(todayStr);
-                fpFrom.setDate(thirtyStr);
-                fpTo.setDate(todayStr);
-
-                $('.btn-clear').hide();
-                console.log('✅ Form reset');
-            };
-
-            // ✅ Initialize
-            convertDisplayToArabic();
-
-            // Set default dates (last 30 days)
-            const today = new Date();
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(today.getDate() - 30);
-
-            const todayStr = today.toISOString().split('T')[0];
-            const thirtyStr = thirtyDaysAgo.toISOString().split('T')[0];
-
-            if (!fromDateInput.value) {
-                fromDateInput.setAttribute('data-latin-date', thirtyStr);
-                fromDateInput.value = toArabicDigits(thirtyStr);
-                fpFrom.setDate(thirtyStr);
-            }
-            if (!toDateInput.value) {
-                toDateInput.setAttribute('data-latin-date', todayStr);
-                toDateInput.value = toArabicDigits(todayStr);
-                fpTo.setDate(todayStr);
-            }
-
-            console.log('✅ Search form ready with Arabic calendar!');
-        });
-    </script>
+    <script src="~/js/yarntransactionSearch.js"></script>
 }

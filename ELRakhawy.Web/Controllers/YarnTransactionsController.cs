@@ -86,7 +86,6 @@ namespace ELRakhawy.Web.Controllers
                 ModelState.Remove("PackagingStyleName");
                 ModelState.Remove("TransactionId");
                 ModelState.Remove("OriginYarnName");
-                ModelState.Remove("StakeholderTypeId");
                 ModelState.Remove("Date");
 
                 if (!ModelState.IsValid)
@@ -124,7 +123,7 @@ namespace ELRakhawy.Web.Controllers
                     Outbound = model.IsInbound ? 0 : model.Quantity,
                     Count = model.Count,
                     StakeholderId = model.StakeholderId,
-                    StakeholderTypeId = null,
+                    StakeholderTypeId = model.StakeholderTypeId,
                     PackagingStyleId = model.PackagingStyleId,
                     Date = model.Date,
                     Comment = model.Comment?.Trim()
@@ -154,7 +153,13 @@ namespace ELRakhawy.Web.Controllers
                     "Ammar-Yasser8", "2025-09-04 17:09:12");
 
                 TempData["Success"] = $"تم تسجيل {(model.IsInbound ? "وارد" : "صادر")} الغزل بنجاح - رقم الإذن: {transaction.TransactionId}";
-                return RedirectToAction("Index", "YarnItems");
+                var newViewModel = new YarnTransactionViewModel
+                {
+                    IsInbound = model.IsInbound,
+                    Date = DateTime.Now,
+                    AvailableItems = GetActiveYarnItems()
+                };
+                return View("TransactionForm", newViewModel);
             }
             catch (Exception ex)
             {
@@ -166,58 +171,54 @@ namespace ELRakhawy.Web.Controllers
             }
         }
         // Get: YarnTransactions/Edit/5
-        // Keep your GET Edit action exactly as is:
         public IActionResult Edit(int id)
         {
             try
             {
                 var transaction = _unitOfWork.Repository<YarnTransaction>()
                     .GetOne(t => t.Id == id, includeEntities: "YarnItem,Stakeholder,PackagingStyle");
+
                 if (transaction == null)
                 {
                     TempData["Error"] = "المعاملة غير موجودة!";
                     return RedirectToAction("Index", "YarnItems");
                 }
+
                 var viewModel = new YarnTransactionViewModel
                 {
                     Id = transaction.Id,
                     TransactionId = transaction.TransactionId,
                     InternalId = transaction.InternalId,
                     ExternalId = transaction.ExternalId,
-                    YarnItemId = transaction.YarnItemId,
-                    YarnItemName = transaction.YarnItem.Item,
+                    YarnItemId = transaction.YarnItemId,               // ✅ will select the correct Yarn Item
                     Quantity = transaction.Inbound > 0 ? transaction.Inbound : transaction.Outbound,
                     IsInbound = transaction.Inbound > 0,
                     Count = transaction.Count,
-                    StakeholderId = transaction.StakeholderId,
-                    StakeholderName = transaction.Stakeholder.Name,
-                    PackagingStyleId = transaction.PackagingStyleId,
-                    PackagingStyleName = transaction.PackagingStyle.StyleName,
+                    StakeholderId = transaction.StakeholderId,         // ✅ will select the correct Stakeholder
+                    PackagingStyleId = transaction.PackagingStyleId,   // ✅ will select the correct Packaging Style
                     Date = transaction.Date,
                     Comment = transaction.Comment,
-                    AvailableItems = GetActiveYarnItems()
+                    AvailableItems = GetActiveYarnItems(),
+
+                    
                 };
-                _logger.LogInformation("Yarn transaction edit form loaded for TransactionId {TransactionId} by {User} at {Time}",
-                    transaction.TransactionId, "Ammar-Yasser8", "2025-09-04 17:09:12");
+
                 return View("TransactionForm", viewModel);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading yarn transaction edit form by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-09-04 17:09:12");
                 TempData["Error"] = "حدث خطأ أثناء تحميل صفحة التعديل";
                 return RedirectToAction("Index", "YarnItems");
             }
         }
 
-        // Keep your POST Edit action exactly as is:
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(YarnTransactionViewModel model)
         {
             try
             {
-                // ✅ إزالة الحقول اللي السيرفر بيحسبها
+                // إزالة الحقول اللي السيرفر بيحسبها
                 ModelState.Remove("YarnItemName");
                 ModelState.Remove("StakeholderName");
                 ModelState.Remove("StakeholderTypeName");
@@ -225,7 +226,6 @@ namespace ELRakhawy.Web.Controllers
                 ModelState.Remove("TransactionId");
                 ModelState.Remove("OriginYarnName");
                 ModelState.Remove("StakeholderTypeId");
-                ModelState.Remove("Date");
 
                 if (!ModelState.IsValid)
                 {
@@ -233,7 +233,7 @@ namespace ELRakhawy.Web.Controllers
                     return View("TransactionForm", model);
                 }
 
-                // ✅ جلب المعاملة القديمة
+                // 🔹 جلب المعاملة الأصلية من قاعدة البيانات (مع التتبع)
                 var oldTransaction = _unitOfWork.Repository<YarnTransaction>()
                     .GetOne(t => t.Id == model.Id);
 
@@ -243,26 +243,37 @@ namespace ELRakhawy.Web.Controllers
                     return RedirectToAction("Index", "YarnItems");
                 }
 
-                // ✅ جلب آخر معاملة سابقة لهذا العنصر
-                var previousLatest = _unitOfWork.Repository<YarnTransaction>()
-                    .GetAll(t => t.YarnItemId == model.YarnItemId && t.Id != model.Id)
+                // 🔹 حفظ القيم القديمة قبل التعديل
+                var oldInbound = oldTransaction.Inbound;
+                var oldOutbound = oldTransaction.Outbound;
+                var oldCount = oldTransaction.Count;
+                var oldIsInbound = oldTransaction.Inbound > 0;
+                var oldYarnItemId = oldTransaction.YarnItemId;
+
+                // 🔹 جلب آخر معاملة سابقة لهذا الصنف (قبل المعاملة الحالية)
+                var previousTransaction = _unitOfWork.Repository<YarnTransaction>()
+                    .GetAll(t => t.YarnItemId == model.YarnItemId &&
+                                 t.Date < oldTransaction.Date ||
+                                 (t.Date == oldTransaction.Date && t.Id < model.Id))
                     .OrderByDescending(t => t.Date)
                     .ThenByDescending(t => t.Id)
                     .FirstOrDefault();
 
-                var currentQuantityBalance = previousLatest?.QuantityBalance ?? 0;
-                var currentCountBalance = previousLatest?.CountBalance ?? 0;
+                // 🔹 الرصيد قبل المعاملة الحالية (من المعاملة السابقة)
+                var balanceBeforeCurrent = previousTransaction?.QuantityBalance ?? 0;
+                var countBalanceBeforeCurrent = previousTransaction?.CountBalance ?? 0;
 
-                // ✅ تحقق الرصيد لو العملية Outbound
-                if (!model.IsInbound && model.Quantity > currentQuantityBalance)
+                // 🔹 تحقق من الرصيد في حالة الصادر الجديد
+                var availableQuantity = balanceBeforeCurrent;
+                if (!model.IsInbound && model.Quantity > availableQuantity)
                 {
                     ModelState.AddModelError("Quantity",
-                        $"الكمية المطلوبة ({model.Quantity:N3}) أكبر من الرصيد المتاح ({currentQuantityBalance:N3})");
+                        $"الكمية المطلوبة ({model.Quantity:N3}) أكبر من الرصيد المتاح ({availableQuantity:N3})");
                     model.AvailableItems = GetActiveYarnItems();
                     return View("TransactionForm", model);
                 }
 
-                // ✅ تحديث نفس السجل (مش إضافة واحد جديد)
+                // 🔹 تحديث القيم مباشرة على الكائن المُتتبع
                 oldTransaction.InternalId = model.InternalId?.Trim();
                 oldTransaction.ExternalId = model.ExternalId?.Trim();
                 oldTransaction.YarnItemId = model.YarnItemId;
@@ -274,13 +285,11 @@ namespace ELRakhawy.Web.Controllers
                 oldTransaction.Date = model.Date;
                 oldTransaction.Comment = model.Comment?.Trim();
 
-                // ✅ إعادة احتساب الرصيد بناءً على أحدث قيم
-                oldTransaction.QuantityBalance = currentQuantityBalance + (oldTransaction.Inbound - oldTransaction.Outbound);
+                // 🔹 إعادة احتساب الرصيد بناءً على القيم الجديدة
+                oldTransaction.QuantityBalance = balanceBeforeCurrent + (oldTransaction.Inbound - oldTransaction.Outbound);
+                oldTransaction.CountBalance = countBalanceBeforeCurrent + (model.IsInbound ? oldTransaction.Count : -oldTransaction.Count);
 
-                var countInbound = oldTransaction.Inbound > 0 ? oldTransaction.Count : 0;
-                var countOutbound = oldTransaction.Outbound > 0 ? oldTransaction.Count : 0;
-                oldTransaction.CountBalance = currentCountBalance + countInbound - countOutbound;
-
+                // ✅ استدعاء Update بشكل صريح ثم الحفظ
                 _unitOfWork.Repository<YarnTransaction>().Update(oldTransaction);
                 _unitOfWork.Complete();
 
@@ -289,14 +298,13 @@ namespace ELRakhawy.Web.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error editing yarn transaction by {User} at {Time}",
-                    "Ammar-Yasser8", "2025-09-04 17:09:12");
+                _logger.LogError(ex, "خطأ أثناء تعديل معاملة الغزل بواسطة {User} في {Time}",
+                    "Ammar-Yasser8", DateTime.Now);
                 ModelState.AddModelError("", "حدث خطأ أثناء تعديل المعاملة");
                 model.AvailableItems = GetActiveYarnItems();
                 return View("TransactionForm", model);
             }
         }
-
 
         public IActionResult Search()
         {
@@ -304,6 +312,7 @@ namespace ELRakhawy.Web.Controllers
             {
                 var viewModel = new YarnTransactionSearchViewModel
                 {
+
                     FromDate = DateTime.Today.AddDays(-30), // Default to last 30 days
                     ToDate = DateTime.Today,
                     AvailableItems = GetActiveYarnItems(),
@@ -342,6 +351,7 @@ namespace ELRakhawy.Web.Controllers
                 _logger.LogInformation("Enhanced yarn transaction search with Arabic/Latin conversion initiated by {User} at {Time} with criteria: {@SearchCriteria}",
                     currentUser, currentTime, new
                     {
+                        model.TransactionId,
                         model.FromDate,
                         model.ToDate,
                         model.InternalId,
@@ -868,13 +878,14 @@ namespace ELRakhawy.Web.Controllers
                     .Take(pageSize)
                     .Select(t => new
                     {
+                        Id = t.Id,
                         TransactionId = t.TransactionId ?? "غير محدد",
                         InternalId = t.InternalId,
                         ExternalId = t.ExternalId,
                         Quantity = t.Inbound > 0 ? t.Inbound : (t.Outbound > 0 ? t.Outbound : 0),
                         IsInbound = t.Inbound > 0,
                         Count = t.Count,
-                        StakeholderTypeName = t.StakeholderType?.Type ?? "غير محدد",
+                        StakeholderType = t.StakeholderType?.Type ?? "غير محدد", // Make sure this is included
                         StakeholderName = t.Stakeholder?.Name ?? "غير محدد",
                         PackagingStyleName = t.PackagingStyle?.StyleName ?? "غير محدد",
                         QuantityBalance = t.QuantityBalance,
@@ -1006,138 +1017,150 @@ namespace ELRakhawy.Web.Controllers
         {
             try
             {
-                var allStakeholders = _unitOfWork.Repository<StakeholdersInfo>()
-                    .GetAll(includeEntities: "StakeholderInfoTypes")
-                    .ToList();
-
-                if (!allStakeholders.Any())
-                {
-                    _logger.LogWarning("No stakeholders found in database at {Time} by {User}",
-                        "2025-08-12 02:13:55", "Ammar-Yasser8");
-                    return Json(new { error = "No stakeholders found", data = new List<object>() });
-                }
-
-                var activeStakeholders = allStakeholders.Where(s => s.Status).ToList();
-                if (!activeStakeholders.Any())
-                {
-                    _logger.LogWarning("No active stakeholders found at {Time} by {User}",
-                        "2025-08-12 02:13:55", "Ammar-Yasser8");
-                    return Json(new { error = "No active stakeholders found", data = new List<object>() });
-                }
-
-                var stakeholdersWithType = activeStakeholders
-                    .Where(s => s.StakeholderInfoTypes != null &&
-                               s.StakeholderInfoTypes.Any(st => st.StakeholderTypeId == typeId))
+                var stakeholders = _unitOfWork.Repository<StakeholdersInfo>()
+                    .GetAll(includeEntities: "StakeholderInfoTypes.StakeholderType")
+                    .Where(s => s.Status) // Only Active
+                    .Where(s => s.StakeholderInfoTypes.Any(t => t.StakeholderTypeId == typeId))
                     .Select(s => new
                     {
                         id = s.Id,
-                        name = s.Name
+                        name = s.Name,
+                        typeName = s.StakeholderInfoTypes
+                                    .Where(t => t.StakeholderTypeId == typeId)
+                                    .Select(t => t.StakeholderType.Type)
+                                    .FirstOrDefault()
                     })
                     .OrderBy(s => s.name)
                     .ToList();
 
-                if (!stakeholdersWithType.Any())
+                if (!stakeholders.Any())
                 {
-                    _logger.LogWarning(
-                        "No stakeholders found for type {TypeId}. User: {User}, Time: {Time}",
-                        typeId, "Ammar-Yasser8", "2025-08-12 02:13:55");
-
-                    return Json(new
-                    {
-                        error = "No stakeholders found for selected type",
-                        data = new List<object>()
-                    });
+                    return Json(new { error = "No stakeholders found for selected type", data = new List<object>() });
                 }
 
-                return Json(new { success = true, data = stakeholdersWithType });
+                return Json(new { success = true, data = stakeholders });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "Error getting stakeholders for type {TypeId}. User: {User}, Time: {Time}",
-                    typeId, "Ammar-Yasser8", "2025-08-12 02:13:55");
-
-                return Json(new
-                {
-                    error = "An error occurred while fetching stakeholders",
-                    data = new List<object>()
-                });
+                _logger.LogError(ex, $"Error getting stakeholders for type {typeId}");
+                return Json(new { error = "An error occurred while fetching stakeholders", data = new List<object>() });
             }
         }
 
+        // Helper method to get stakeholder types
         private List<SelectListItem> GetStakeholderTypes()
         {
             try
             {
-                _logger.LogInformation(
-                    "Getting stakeholder types for yarn transactions at {Time} by {User}",
-                    "2025-08-12 02:13:55", "Ammar-Yasser8");
-
-                var allTypes = _unitOfWork.Repository<StakeholderType>()
+                return _unitOfWork.Repository<StakeholderType>()
                     .GetAll()
-                    .ToList();
-
-                // Filter for yarn-related stakeholder types
-                var searchTerm = "تاجر غزل"; // Yarn trader
-                var filteredTypes = allTypes
-                    .Where(st => st.Type?.IndexOf(searchTerm, StringComparison.CurrentCultureIgnoreCase) >= 0)
                     .Select(st => new SelectListItem
                     {
                         Value = st.Id.ToString(),
                         Text = st.Type
                     })
-                    .OrderBy(i => i.Text)
+                    .OrderBy(s => s.Text)
                     .ToList();
-
-                // If no yarn-specific types found, include general trader types
-                if (!filteredTypes.Any())
-                {
-                    var generalSearchTerm = "تاجر";
-                    filteredTypes = allTypes
-                        .Where(st => st.Type?.IndexOf(generalSearchTerm, StringComparison.CurrentCultureIgnoreCase) >= 0)
-                        .Select(st => new SelectListItem
-                        {
-                            Value = st.Id.ToString(),
-                            Text = st.Type
-                        })
-                        .OrderBy(i => i.Text)
-                        .ToList();
-                }
-
-                _logger.LogInformation(
-                    "Found {Count} stakeholder types for yarn transactions",
-                    filteredTypes.Count);
-
-                return filteredTypes;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "Error in GetStakeholderTypes for yarn transactions at {Time} by {User}",
-                    "2025-08-12 02:13:55", "Ammar-Yasser8");
-
-                return new List<SelectListItem>
-            {
-                new SelectListItem
-                {
-                    Value = "",
-                    Text = "حدث خطأ أثناء تحميل أنواع التجار"
-                }
-            };
+                _logger.LogError(ex, "Error getting stakeholder types by {User} at {Time}",
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+                return new List<SelectListItem>();
             }
         }
-
-
+        // API: GET - Get stakeholder type for selected stakeholder
         [HttpGet]
-        public JsonResult GetStakeholdersByForm(string formName)
+        public JsonResult GetStakeholderType(int stakeholderId)
         {
             try
             {
                 _logger.LogInformation(
-                    "Getting stakeholders for form {FormName} at {Time} by {User}",
-                    formName, "2025-08-12 02:13:55", "Ammar-Yasser8");
+                    "Getting stakeholder type for stakeholder {StakeholderId} at {Time} by {User}",
+                    stakeholderId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
 
-                if (string.IsNullOrEmpty(formName))
+                if (stakeholderId <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        error = "معرف الجهة غير صحيح",
+                        data = new { stakeholderTypeId = 0, stakeholderTypeName = "" }
+                    });
+                }
+
+                // Get stakeholder with their types
+                var stakeholder = _unitOfWork.Repository<StakeholdersInfo>()
+                    .GetOne(s => s.Id == stakeholderId, includeEntities: "StakeholderInfoTypes.StakeholderType");
+
+                if (stakeholder == null)
+                {
+                    _logger.LogWarning(
+                        "Stakeholder not found for ID {StakeholderId} at {Time} by {User}",
+                        stakeholderId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
+                    return Json(new
+                    {
+                        success = false,
+                        error = "الجهة غير موجودة",
+                        data = new { stakeholderTypeId = 0, stakeholderTypeName = "" }
+                    });
+                }
+
+                // Get the first stakeholder type (assuming one primary type per stakeholder)
+                var stakeholderType = stakeholder.StakeholderInfoTypes?.FirstOrDefault()?.StakeholderType;
+
+                if (stakeholderType == null)
+                {
+                    _logger.LogWarning(
+                        "No stakeholder type found for stakeholder {StakeholderId} at {Time} by {User}",
+                        stakeholderId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
+                    return Json(new
+                    {
+                        success = false,
+                        error = "لم يتم العثور على نوع الجهة",
+                        data = new { stakeholderTypeId = 0, stakeholderTypeName = "" }
+                    });
+                }
+
+                _logger.LogInformation(
+                    "Found stakeholder type {TypeId}: {TypeName} for stakeholder {StakeholderId} at {Time} by {User}",
+                    stakeholderType.Id, stakeholderType.Type, stakeholderId,
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
+                return Json(new
+                {
+                    success = true,
+                    data = new
+                    {
+                        stakeholderTypeId = stakeholderType.Id,
+                        stakeholderTypeName = stakeholderType.Type,
+                        stakeholderName = stakeholder.Name
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Error getting stakeholder type for stakeholder {StakeholderId} at {Time} by {User}",
+                    stakeholderId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
+                return Json(new
+                {
+                    success = false,
+                    error = "حدث خطأ أثناء تحميل نوع الجهة",
+                    data = new { stakeholderTypeId = 0, stakeholderTypeName = "" }
+                });
+            }
+        }
+
+        [HttpGet]
+        public JsonResult GetStackholderTypeByForm(string fromName)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(fromName))
                 {
                     return Json(new
                     {
@@ -1150,14 +1173,10 @@ namespace ELRakhawy.Web.Controllers
                 // Find the form style by name
                 var formStyle = _unitOfWork.Repository<FormStyle>()
                     .GetAll()
-                    .FirstOrDefault(f => f.FormName == formName);
+                    .FirstOrDefault(f => f.FormName == fromName);
 
                 if (formStyle == null)
                 {
-                    _logger.LogWarning(
-                        "Form style not found for {FormName} at {Time} by {User}",
-                        formName, "2025-08-12 02:13:55", "Ammar-Yasser8");
-
                     return Json(new
                     {
                         success = false,
@@ -1166,51 +1185,108 @@ namespace ELRakhawy.Web.Controllers
                     });
                 }
 
-                // Find allowed stakeholder type IDs for this form
-                var allowedTypeIds = _unitOfWork.Repository<StakeholderType>()
+                // ✅ Return Id + Name directly (NO second request needed)
+                var allowedTypes = _unitOfWork.Repository<StakeholderType>()
                     .GetAll(includeEntities: "StakeholderTypeForms")
                     .Where(st => st.StakeholderTypeForms.Any(f => f.FormId == formStyle.Id))
-                    .Select(st => st.Id)
+                    .Select(st => new { id = st.Id, name = st.Type })
                     .ToList();
 
-                // Get active stakeholders having one of the allowed types
+                if (!allowedTypes.Any())
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        error = "لا توجد أنواع جهات مرتبطة بهذا النموذج",
+                        data = new List<object>()
+                    });
+                }
+
+                return Json(new { success = true, data = allowedTypes });
+            }
+            catch
+            {
+                return Json(new
+                {
+                    success = false,
+                    error = "حدث خطأ أثناء تحميل أنواع الجهات للنموذج",
+                    data = new List<object>()
+                });
+            }
+        }
+
+        // Get stakeholders by stakeholder type ID
+        [HttpGet]
+        public JsonResult GetStackholderByGetType(int typeId)
+        {
+            try
+            {
+                _logger.LogInformation(
+                    "Getting stakeholders for type {TypeId} at {Time} by {User}",
+                    typeId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
+                if (typeId <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        error = "معرف نوع الجهة غير صحيح",
+                        data = new List<object>()
+                    });
+                }
+
+                // Get active stakeholders that have the specified type
                 var stakeholders = _unitOfWork.Repository<StakeholdersInfo>()
                     .GetAll(includeEntities: "StakeholderInfoTypes")
-                    .Where(s => s.Status && s.StakeholderInfoTypes.Any(st => allowedTypeIds.Contains(st.StakeholderTypeId)))
-                    .Select(s => new { id = s.Id, name = s.Name })
+                    .Where(s => s.Status &&
+                               s.StakeholderInfoTypes.Any(st => st.StakeholderTypeId == typeId))
+                    .Select(s => new {
+                        id = s.Id,
+                        name = s.Name
+                    })
                     .OrderBy(s => s.name)
                     .ToList();
 
                 if (!stakeholders.Any())
                 {
                     _logger.LogInformation(
-                        "No stakeholders found for form {FormName} at {Time} by {User}",
-                        formName, "2025-08-12 02:13:55", "Ammar-Yasser8");
+                        "No stakeholders found for type {TypeId} at {Time} by {User}",
+                        typeId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
                     return Json(new
                     {
                         success = false,
-                        error = "لا توجد جهات نشطة لهذا النموذج",
+                        error = "لا توجد جهات نشطة لهذا النوع",
                         data = new List<object>()
                     });
                 }
 
-                return Json(new { success = true, data = stakeholders });
+                _logger.LogInformation(
+                    "Found {Count} stakeholders for type {TypeId} at {Time} by {User}",
+                    stakeholders.Count, typeId, DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+
+                return Json(new
+                {
+                    success = true,
+                    data = stakeholders
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Error getting stakeholders for form {FormName} by {User} at {Time}",
-                    formName, "Ammar-Yasser8", "2025-08-12 02:13:55");
+                    "Error getting stakeholders for type {TypeId} by {User} at {Time}",
+                    typeId, "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
 
                 return Json(new
                 {
                     success = false,
-                    error = "حدث خطأ أثناء تحميل الجهات للنموذج",
+                    error = "حدث خطأ أثناء تحميل الجهات لهذا النوع",
                     data = new List<object>()
                 });
             }
         }
 
+       
 
 
         // API: GET - Get packaging styles by form type
@@ -1642,7 +1718,6 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
-
         private string GenerateTransactionId()
         {
             try
@@ -1679,8 +1754,6 @@ namespace ELRakhawy.Web.Controllers
                 return $"YT-{DateTime.Now:yyyyMMdd}-0001";
             }
         }
-
-
 
         // GET: YarnTransactions/ResetPackagingBalance
         public IActionResult ResetPackagingBalance()

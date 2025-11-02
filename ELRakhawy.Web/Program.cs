@@ -35,16 +35,19 @@ builder.Services.AddSession(builder =>
     builder.Cookie.Name = "ELRakhawy.Session";
 });
 
-// ✅ أضف نظام الـ Authentication بالكوكيز
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
-        options.LoginPath = "/Auth/Login"; // لو المستخدم مش داخل هيتحول هنا
-        options.AccessDeniedPath = "/Auth/Denied"; // لو معندوش صلاحية
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(60); // مدة الجلسة
+        options.LoginPath = "/Auth/Login";
+        options.AccessDeniedPath = "/Auth/Denied";
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(20); // مدة الجلسة
         options.SlidingExpiration = true;
-    });
+        options.Cookie.IsEssential = true;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SameSite = SameSiteMode.Strict;
 
+        // Cookie will expire when browser closes (session cookie behavior)
+    });
 
 var app = builder.Build();
 #endregion

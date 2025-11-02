@@ -8,9 +8,6 @@ using Microsoft.Extensions.Logging;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
-
-
-
 public class SingleSessionMiddleware
 {
     private readonly RequestDelegate _next;

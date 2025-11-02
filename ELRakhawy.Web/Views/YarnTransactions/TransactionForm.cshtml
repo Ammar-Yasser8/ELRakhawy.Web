@@ -1,10 +1,13 @@
 ﻿@using ELRakhawy.EL.ViewModels
 @model YarnTransactionViewModel
 @{
+
     ViewData["Title"] = Model.IsInbound ? "اضافة وارد غزل" : "اضافة صادر غزل";
     var currentTime = "2025-08-12 02:19:03";
     var currentUser = "Ammar-Yasser8";
     var formName = Model.IsInbound ? "اضافة وارد غزل" : "اضافة صادر غزل";
+
+    var isEdit = Model.Id>0;
 }
 
 <script>
@@ -53,7 +56,10 @@
             </h5>
         </div>
         <div class="card-body">
-            <form id="yarnTransactionForm" action="~/YarnTransactions/SaveTransaction" method="post">
+            <form id="yarnTransactionForm"
+                  asp-controller="YarnTransactions"
+                  asp-action="@(isEdit ? "Edit" : "SaveTransaction")"
+                  method="post">
                 @Html.AntiForgeryToken()
                 <input type="hidden" id="IsInbound" name="IsInbound" value="@Model.IsInbound.ToString().ToLower()" />
                 <input type="hidden" id="YarnItemName" name="YarnItemName" />
@@ -131,23 +137,30 @@
                     </div>
                 </div>
 
-                <!-- 3. Stakeholder Section -->
+                <!-- 3. Stakeholder Section - UPDATED -->
                 <div class="col-12 mb-4">
                     <h6 class="text-primary border-bottom pb-2">
                         <i class="fas fa-users me-2"></i>٣. بيانات الجهة
                     </h6>
                     <div class="row">
-                        <input type="hidden" id="StakeholderTypeId" name="StakeholderTypeId" value="@Model.StakeholderTypeId" />
+                        <!-- Stakeholder Type Selection -->
+                        <div class="col-md-4 mb-3">
+                            <label for="StakeholderTypeId" class="form-label required">
+                                <i class="fas fa-layer-group text-info me-1"></i>نوع الجهة
+                            </label>
+                            <select id="StakeholderTypeId" name="StakeholderTypeId" class="form-select form-select-sm">
+                                <option value="">-- اختر نوع الجهة --</option>
+                            </select>
+                            <span class="text-danger" data-valmsg-for="StakeholderTypeId"></span>
+                        </div>
+
+                        <!-- Stakeholder Selection (depends on type) -->
                         <div class="col-md-4 mb-3">
                             <label for="StakeholderId" class="form-label required">
                                 <i class="fas fa-building text-success me-1"></i>الجهة
                             </label>
-                            <select id="StakeholderId" name="StakeholderId" class="form-select form-select-sm">
-                                <option value="">-- اختر الجهة --</option>
-                                @foreach (var stakeholder in Model.Stakeholders)
-                                {
-                                    <option value="@stakeholder.Value">@stakeholder.Text</option>
-                                }
+                            <select id="StakeholderId" name="StakeholderId" class="form-select form-select-sm" disabled>
+                                <option value="">-- اختر نوع الجهة أولاً --</option>
                             </select>
                             <span class="text-danger" data-valmsg-for="StakeholderId"></span>
                         </div>
@@ -173,6 +186,7 @@
                             </select>
                             <span class="text-danger" data-valmsg-for="PackagingStyleId"></span>
                         </div>
+                        <!--Date-->
                         <div class="col-md-4 mb-3">
                             <label for="Date" class="form-label required">
                                 <i class="fas fa-calendar-alt text-warning me-1"></i>تاريخ المعاملة
@@ -189,10 +203,7 @@
                                 </button>
                             </div>
                             <span class="text-danger" data-valmsg-for="Date"></span>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i>
-                                صيغة التاريخ المطلوبة: yyyy-MM-dd (مثال: ٢٠٢٥-١٠-١١)
-                            </small>
+                           
                         </div>
                     </div>
                 </div>
@@ -216,10 +227,7 @@
                                 </button>
                             </div>
                             <span class="text-danger" data-valmsg-for="Quantity"></span>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i>
-                                الكمية الإجمالية للمعاملة
-                            </small>
+                           
                         </div>
                         <div class="col-md-4 mb-3">
                             <label for="Count" class="form-label required">
@@ -234,10 +242,7 @@
                                 </button>
                             </div>
                             <span class="text-danger" data-valmsg-for="Count"></span>
-                            <small class="form-text text-muted">
-                                <i class="fas fa-info-circle"></i>
-                                عدد وحدات التعبئة (شكارة، صندوق، إلخ)
-                            </small>
+                            
                         </div>
                     </div>
                     <div class="row">
@@ -250,7 +255,6 @@
                         </div>
                     </div>
                 </div>
-
                 <!-- 6. Comment Section -->
                 <div class="col-12 mb-4">
                     <h6 class="text-primary border-bottom pb-2">
@@ -267,18 +271,7 @@
                         </button>
                     </div>
                     <span class="text-danger" data-valmsg-for="Comment"></span>
-                    <div class="form-text">
-                        <small class="text-muted">
-                            <i class="fas fa-lightbulb me-1"></i>يمكنك إضافة تفاصيل عن جودة الغزل، المصدر، أو أي ملاحظات مهمة
-                        </small>
-                    </div>
-                    <div class="form-text text-end">
-                        <small class="text-muted">
-                            <span id="commentCharCount">٠</span> حرف
-                        </small>
-                    </div>
                 </div>
-
                 <!-- Action Buttons -->
                 <div class="row mt-4">
                     <div class="col-12">
@@ -291,10 +284,6 @@
                             </button>
                             <button type="button" class="btn btn-outline-primary btn-sm" id="resetBtn">
                                 <i class="fas fa-undo me-1"></i>إعادة تعيين
-                            </button>
-                            <button type="submit" class="btn @(Model.IsInbound ? "btn-success" : "btn-warning") text-white btn-sm" id="saveBtn">
-                                <i class="fas fa-save me-1"></i>
-                                حفظ @(Model.IsInbound ? "الوارد" : "الصادر")
                             </button>
                         </div>
                     </div>
@@ -934,6 +923,16 @@
                     $('#Count').removeClass('is-invalid');
                 }
 
+                // NEW: Validate stakeholder type
+                if (!$('#StakeholderTypeId').val()) {
+                    errors.push('يجب اختيار نوع الجهة');
+                    $('#StakeholderTypeId').next('.select2-container').addClass('is-invalid');
+                    isValid = false;
+                } else {
+                    $('#StakeholderTypeId').next('.select2-container').removeClass('is-invalid');
+                }
+
+                // Validate stakeholder
                 if (!$('#StakeholderId').val()) {
                     errors.push('يجب اختيار الجهة');
                     $('#StakeholderId').next('.select2-container').addClass('is-invalid');
@@ -950,13 +949,21 @@
                     $('#PackagingStyleId').next('.select2-container').removeClass('is-invalid');
                 }
 
-                if (!$('#Date').val()) {
-                    errors.push('يجب تحديد تاريخ المعاملة');
-                    $('#Date').addClass('is-invalid');
-                    isValid = false;
-                } else {
-                    $('#Date').removeClass('is-invalid');
+                // Date validation and default
+                var dateVal = $('#Date').val();
+                var dateLatin = $('#Date').attr('data-latin-date') || toLatinDigits(dateVal || '');
+                if (!dateLatin || !/^\d{4}-\d{2}-\d{2}$/.test(dateLatin)) {
+                    // Set today's date in yyyy-MM-dd format
+                    var today = new Date();
+                    var yyyy = today.getFullYear();
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    var todayStr = yyyy + '-' + mm + '-' + dd;
+                    $('#Date').val(toArabicDigits(todayStr));
+                    $('#Date').attr('data-latin-date', todayStr);
+                    dateLatin = todayStr;
                 }
+                $('#Date').removeClass('is-invalid');
 
                 if (!IS_INBOUND && quantity > 0 && count > 0 && window.currentPackagingBreakdown) {
                     let selectedPackagingId = $('#PackagingStyleId').val();
@@ -1031,18 +1038,17 @@
             function submitForm() {
                 let quantityLatin = toLatinDigits($('#Quantity').val() || '0');
                 let countLatin = toLatinDigits($('#Count').val() || '0');
-                
-                // Get the stored Latin date from data attribute
                 let dateLatin = $('#Date').attr('data-latin-date') || toLatinDigits($('#Date').val() || '');
 
+                // Always ensure date is in correct format, fallback to today if not
                 if (!dateLatin || !/^\d{4}-\d{2}-\d{2}$/.test(dateLatin)) {
-                    Swal.fire({
-                        title: 'خطأ في التاريخ',
-                        text: 'تنسيق التاريخ غير صحيح',
-                        icon: 'error',
-                        confirmButtonColor: '#dc3545'
-                    });
-                    return false;
+                    var today = new Date();
+                    var yyyy = today.getFullYear();
+                    var mm = String(today.getMonth() + 1).padStart(2, '0');
+                    var dd = String(today.getDate()).padStart(2, '0');
+                    dateLatin = yyyy + '-' + mm + '-' + dd;
+                    $('#Date').val(toArabicDigits(dateLatin));
+                    $('#Date').attr('data-latin-date', dateLatin);
                 }
 
                 $('#Quantity').val(quantityLatin);
@@ -1070,16 +1076,38 @@
                 fetchYarnItemBalance(parseInt(selectedItemId));
             });
 
-            // Stakeholder change
+            // ✅ NEW: Stakeholder Type change handler
+            $('#StakeholderTypeId').on('change', function () {
+            var selectedTypeId = $(this).val();
+            var selectedTypeName = $(this).find('option:selected').text();
+            $('#StakeholderTypeName').val(selectedTypeName);
+
+            // Clear and disable stakeholder dropdown
+            var $stakeholderSelect = $('#StakeholderId');
+            $stakeholderSelect.empty()
+                .append('<option value="">-- اختر الجهة --</option>')
+                .prop('disabled', true)
+                .trigger('change');
+
+            // Clear stakeholder name
+            $('#StakeholderName').val('');
+
+            if (selectedTypeId) {
+                // Fetch stakeholders for this type
+                fetchStakeholdersByType(parseInt(selectedTypeId));
+            } else {
+                $stakeholderSelect.prop('disabled', true)
+                    .empty()
+                    .append('<option value="">-- اختر نوع الجهة أولاً --</option>')
+                    .trigger('change');
+            }
+        });
+            // ✅ UPDATED: Stakeholder change handler
             $('#StakeholderId').on('change', function () {
-                var $opt = $(this).find('option:selected');
-                var selectedText = $opt.text();
-                $('#StakeholderName').val(selectedText);
-                var typeId = $opt.data('type-id');
-                if (typeId) {
-                    $('#StakeholderTypeId').val(typeId);
-                }
-            });
+            var selectedText = $(this).find('option:selected').text();
+            $('#StakeholderName').val(selectedText);
+        });
+
 
             // Reset button
             $('#resetBtn').on('click', function() {
@@ -1115,7 +1143,7 @@
             });
 
             // Load stakeholders and packaging
-            fetchStakeholdersByForm(FORM_NAME);
+            fetchStakeholderTypesByForm(FORM_NAME);
             fetchPackagingStyles(FORM_NAME);
 
             var initialYarnItemId = $('#YarnItemId').val();
@@ -1123,38 +1151,98 @@
                 fetchYarnItemBalance(parseInt(initialYarnItemId));
             }
 
-            // Helper functions
-            function fetchStakeholdersByForm(formName) {
-                $.ajax({
-                    url: '/YarnTransactions/GetStakeholdersByForm',
-                    type: 'GET',
-                    data: { formName: formName },
-                    success: function(response) {
-                        var $select = $('#StakeholderId');
-                        $select.empty().append('<option value="">-- اختر الجهة --</option>');
+           function fetchStakeholderTypesByForm(formName) {
+            $.ajax({
+                url: '/YarnTransactions/GetStackholderTypeByForm',
+                type: 'GET',
+                data: { fromName: formName },
+                beforeSend: function () {
+                    $('#StakeholderTypeId')
+                        .prop('disabled', true)
+                        .empty()
+                        .append('<option value="">جاري التحميل...</option>');
+                },
+                success: function (response) {
+                    var $select = $('#StakeholderTypeId');
+                    $select.empty().append('<option value="">-- اختر نوع الجهة --</option>');
 
-                        var stakeholders = (response && response.data) || [];
-                        if (response && response.success && stakeholders.length > 0) {
-                            stakeholders.forEach(function(item) {
-                                // Convert numbers in name to Arabic
-                                var displayName = item.name;
-                                if (displayName && /\d/.test(displayName)) {
-                                    displayName = toArabicDigits(displayName);
-                                }
-                                var opt = new Option(displayName, item.id);
-                                if (item.typeId) {
-                                    $(opt).attr('data-type-id', item.typeId);
-                                }
-                                $select.append(opt);
-                            });
-                        }
-                        $select.trigger('change');
-                    },
-                    error: function() {
-                        console.error('Error loading stakeholders');
+                    if (response?.success && response.data?.length > 0) {
+
+                        response.data.forEach(function (item) {
+                            var displayName = item.name;
+                            if (displayName && /\d/.test(displayName)) {
+                                displayName = toArabicDigits(displayName);
+                            }
+
+                            $select.append(new Option(displayName, item.id));
+                        });
+
+                        $select.prop('disabled', false);
+                    } else {
+                        $select.append('<option value="">لا توجد أنواع جهات متاحة</option>');
+                        $select.prop('disabled', false);
                     }
-                });
+                },
+                error: function () {
+                    $('#StakeholderTypeId')
+                        .empty()
+                        .append('<option value="">خطأ في تحميل أنواع الجهات</option>')
+                        .prop('disabled', false);
+                }
+            });
+        }
+
+        // ✅ NEW: Function to fetch stakeholders by type ID
+            function fetchStakeholdersByType(typeId) {
+            if (!typeId || typeId <= 0) {
+                return;
             }
+
+            $.ajax({
+                url: '/YarnTransactions/GetStackholderByGetType',
+                type: 'GET',
+                data: { typeId: typeId },
+                beforeSend: function() {
+                    var $select = $('#StakeholderId');
+                    $select.prop('disabled', true)
+                        .empty()
+                        .append('<option value="">جاري التحميل...</option>');
+                },
+                success: function(response) {
+                    var $select = $('#StakeholderId');
+                    $select.empty().append('<option value="">-- اختر الجهة --</option>');
+
+                    if (response && response.success && response.data && response.data.length > 0) {
+                        response.data.forEach(function(stakeholder) {
+                            var displayName = stakeholder.name;
+                            if (displayName && /\d/.test(displayName)) {
+                                displayName = toArabicDigits(displayName);
+                            }
+                            $select.append(new Option(displayName, stakeholder.id));
+                        });
+                        $select.prop('disabled', false);
+
+                        console.log('✅ Loaded ' + response.data.length + ' stakeholders for type ' + typeId);
+                    } else {
+                        $select.append('<option value="">لا توجد جهات نشطة لهذا النوع</option>');
+                        $select.prop('disabled', true);
+
+                        if (response && response.error) {
+                            console.warn('Stakeholders warning:', response.error);
+                        }
+                    }
+
+                    $select.trigger('change');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading stakeholders:', error);
+                    var $select = $('#StakeholderId');
+                    $select.empty()
+                        .append('<option value="">خطأ في تحميل الجهات</option>')
+                        .prop('disabled', false);
+                }
+            });
+        }
 
             function fetchPackagingStyles(formName) {
                 $.ajax({
@@ -1239,6 +1327,81 @@
     </script>
 
     <style>
+        /* Make the card larger */
+        .card {
+            border-radius: 0.75rem;
+        }
+
+        .card-body {
+            padding: 1.5rem 1.75rem;
+        }
+
+        .card-header {
+            padding: 1rem 1.25rem;
+        }
+
+        /* Increase font sizes across the form */
+        body,
+        .form-control,
+        .form-select,
+        .input-group-text,
+        .form-label,
+        small,
+        .form-text,
+        .alert,
+        .btn,
+        h6.border-bottom {
+            font-size: 1rem !important;
+        }
+
+        /* Headings more prominent */
+        .card-body.rounded h4 {
+            font-size: 1.35rem !important;
+        }
+
+        h6.border-bottom {
+            font-size: 1.1rem !important;
+            font-weight: 700;
+        }
+
+        /* Buttons bigger */
+        .btn-sm {
+            padding: 0.45rem 0.9rem !important;
+            font-size: 1rem !important;
+            border-radius: 0.45rem;
+        }
+
+        /* Input bigger */
+        .form-control-sm, .form-select-sm {
+            font-size: 1rem !important;
+            height: calc(2em + 0.75rem + 2px) !important;
+            padding: 0.45rem 0.75rem !important;
+        }
+
+        /* Textarea bigger */
+        textarea.form-control-sm {
+            font-size: 1rem !important;
+            padding: 0.6rem 0.75rem !important;
+        }
+
+        /* Display areas larger */
+        #currentBalanceDisplay,
+        #unitWeightDisplay {
+            font-size: 1rem !important;
+            padding: 0.5rem 0.75rem !important;
+        }
+
+        /* Select2 Larger */
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: calc(2em + 0.75rem) !important;
+            font-size: 1rem !important;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection__rendered {
+            line-height: 2.2rem !important;
+            padding: 0.45rem 0.75rem !important;
+        }
+        /* Optimized Compact Form Styling */
         .yarn-form-container {
             max-width: 900px;
             margin: 0 auto;
@@ -1259,6 +1422,69 @@
             height: calc(1.5em + 0.5rem + 2px);
         }
 
+        /* Compact spacing between form groups */
+        .mb-3 {
+            margin-bottom: 0.5rem !important;
+        }
+
+        .mb-4 {
+            margin-bottom: 0.75rem !important;
+        }
+
+        /* Form labels - smaller and more compact */
+        .form-label {
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 0.2rem;
+            line-height: 1.2;
+        }
+
+            .form-label i {
+                font-size: 0.75rem;
+            }
+
+        /* Section headers - more compact */
+        h6.border-bottom {
+            font-size: 0.9rem;
+            padding-bottom: 0.4rem;
+            margin-bottom: 0.6rem;
+            font-weight: 700;
+        }
+
+            h6.border-bottom i {
+                font-size: 0.85rem;
+            }
+
+        /* Required asterisk */
+        .required::after {
+            content: " *";
+            color: #dc3545;
+            font-size: 0.75rem;
+        }
+
+        /* Card styling - comfortable but not too large */
+        .card {
+            border-radius: 0.5rem;
+        }
+
+        .card-body {
+            padding: 1rem 1.25rem;
+        }
+
+        .card-header {
+            padding: 0.65rem 1rem;
+        }
+
+            .card-header h5 {
+                font-size: 1rem;
+                margin: 0;
+                font-weight: 600;
+            }
+
+                .card-header h5 i {
+                    font-size: 0.9rem;
+                }
+
         /* Clear button styling */
         .btn-clear, .btn-clear-textarea {
             padding: 0.25rem 0.5rem;
@@ -1270,10 +1496,10 @@
             height: calc(1.5em + 0.5rem + 2px);
         }
 
-        .btn-clear:hover, .btn-clear-textarea:hover {
-            background: #e9ecef;
-            color: #dc3545;
-        }
+            .btn-clear:hover, .btn-clear-textarea:hover {
+                background: #e9ecef;
+                color: #dc3545;
+            }
 
         .btn-clear-textarea {
             position: absolute;
@@ -1283,7 +1509,7 @@
             border: 1px solid #ced4da;
             border-radius: 0.25rem;
             padding: 0.25rem 0.5rem;
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             height: auto;
         }
 
@@ -1291,33 +1517,7 @@
             position: relative;
         }
 
-        .form-label {
-            font-weight: 600;
-            font-size: 0.85rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .required::after {
-            content: " *";
-            color: #dc3545;
-        }
-
-        /* Compact sections */
-        .mb-4 {
-            margin-bottom: 1rem !important;
-        }
-
-        .mb-3 {
-            margin-bottom: 0.75rem !important;
-        }
-
-        h6.border-bottom {
-            font-size: 0.95rem;
-            padding-bottom: 0.5rem;
-            margin-bottom: 0.75rem;
-        }
-
-        /* Select2 styling */
+        /* Select2 styling - compact */
         .select2-container--bootstrap-5 .select2-selection {
             min-height: calc(1.5em + 0.5rem + 2px);
             font-size: 0.875rem;
@@ -1329,7 +1529,7 @@
         }
 
         .select2-container--bootstrap-5 .select2-selection__arrow {
-            height: calc(1.5em + 0.5rem + 2px);
+            height: calc(1.5e + 0.5rem + 2px);
         }
 
         /* Date picker button */
@@ -1343,11 +1543,12 @@
             align-items: center;
             padding: 0.25rem 0.5rem;
             min-height: calc(1.5em + 0.5rem + 2px);
+            font-size: 0.875rem;
         }
 
-        #currentBalanceDisplay .fs-6 {
-            font-size: 0.95rem !important;
-        }
+            #currentBalanceDisplay .fs-6 {
+                font-size: 0.9rem !important;
+            }
 
         /* Validation styling */
         .is-invalid {
@@ -1356,50 +1557,59 @@
 
         .invalid-feedback {
             display: block;
-            margin-top: 0.25rem;
-            font-size: 0.8rem;
+            margin-top: 0.2rem;
+            font-size: 0.75rem;
         }
 
         /* Button sizing */
         .btn-sm {
-            padding: 0.25rem 0.5rem;
-            font-size: 0.875rem;
-        }
-
-        /* Card styling - more compact */
-        .card-body {
-            padding: 1rem;
-        }
-
-        .card-header {
-            padding: 0.75rem 1rem;
-        }
-
-        .card-header h5 {
-            font-size: 1rem;
-            margin: 0;
+            padding: 0.25rem 0.65rem;
+            font-size: 0.85rem;
         }
 
         /* Input group text */
         .input-group-text {
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             padding: 0.25rem 0.5rem;
         }
 
-        /* Form text and small elements */
+        /* Form text and small elements - more compact */
         .form-text {
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
+            font-size: 0.7rem;
+            margin-top: 0.15rem;
+            line-height: 1.3;
         }
 
+            .form-text i {
+                font-size: 0.65rem;
+            }
+
         small {
-            font-size: 0.8rem;
+            font-size: 0.75rem;
+            line-height: 1.3;
         }
 
         /* Alert compact */
         .alert {
-            padding: 0.5rem 1rem;
-            font-size: 0.875rem;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+        }
+
+            .alert i {
+                font-size: 0.8rem;
+            }
+
+        /* Badge sizing */
+        .badge {
+            font-size: 0.7rem;
+            padding: 0.25rem 0.45rem;
+        }
+
+        /* Packaging help text */
+        .packaging-help {
+            font-size: 0.7rem;
+            margin-top: 0.15rem;
         }
 
         /* Flatpickr Arabic styling */
@@ -1412,27 +1622,125 @@
             direction: rtl;
         }
 
+        /* Row gutters - reduce spacing */
+        .row {
+            --bs-gutter-x: 1rem;
+        }
+
+        /* Section dividers - less space */
+        .col-12.mb-4 {
+            margin-bottom: 0.75rem !important;
+        }
+
+        /* Textarea compact */
+        textarea.form-control-sm {
+            font-size: 0.875rem;
+            padding: 0.35rem 0.5rem;
+            line-height: 1.4;
+        }
+
+        /* Action buttons spacing */
+        .row.mt-4 {
+            margin-top: 1rem !important;
+        }
+
+        .d-flex.gap-2 {
+            gap: 0.4rem !important;
+        }
+
+        /* Header card - more compact */
+        .card.mb-4 {
+            margin-bottom: 0.75rem !important;
+        }
+
+        .card-body.rounded h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .card-body.rounded p {
+            font-size: 0.85rem;
+        }
+
+        /* Validation summary */
+        #validationSummary {
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+            #validationSummary ul {
+                margin-bottom: 0;
+                padding-left: 1.25rem;
+            }
+
+            #validationSummary li {
+                font-size: 0.8rem;
+                margin-bottom: 0.2rem;
+            }
+
+        /* Unit weight display */
+        #unitWeightDisplay {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        /* Character count */
+        #commentCharCount {
+            font-size: 0.7rem;
+        }
+
         /* Responsive */
         @@media (max-width: 768px) {
             .yarn-form-container {
                 max-width: 100%;
             }
-            
+
             .col-md-4, .col-md-6, .col-md-8 {
                 max-width: 100%;
             }
+
+            .form-label {
+                font-size: 0.75rem;
+            }
+
+            h6.border-bottom {
+                font-size: 0.85rem;
+            }
+
+            .card-body {
+                padding: 0.75rem 1rem;
+            }
+
+            .row {
+                --bs-gutter-x: 0.75rem;
+            }
         }
 
-        /* Badge sizing */
-        .badge {
-            font-size: 0.75rem;
-            padding: 0.25rem 0.5rem;
+        /* Fine-tune spacing between sections */
+        .col-12 > .row {
+            row-gap: 0.5rem;
         }
 
-        /* Packaging help text */
-        .packaging-help {
-            font-size: 0.75rem;
-            margin-top: 0.25rem;
+        /* Optimize icon sizes for better visual balance */
+        .fas, .far {
+            vertical-align: middle;
+        }
+
+        /* Input focus states - subtle */
+        .form-control:focus,
+        .form-select:focus {
+            box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.15);
+        }
+
+        /* Better visual hierarchy */
+        .text-primary {
+            font-weight: 600;
+        }
+
+        /* Compact alert dismissible button */
+        .alert .btn-close {
+            padding: 0.35rem;
+            font-size: 0.7rem;
         }
     </style>
-    }
+   }
