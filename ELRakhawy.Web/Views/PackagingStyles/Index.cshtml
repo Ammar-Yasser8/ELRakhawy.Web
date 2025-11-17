@@ -3,6 +3,23 @@
     var currentTime = "2025-08-16 20:01:16";
     var currentUser = "Ammar-Yasser8";
 }
+<style>
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+
+        .table-responsive table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            word-wrap: break-word !important;
+        }
+
+        .table-responsive th,
+        .table-responsive td {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+</style>
 
 <!-- Enhanced Navigation Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-4">
@@ -151,6 +168,21 @@
                     </table>
                 </div>
             </div>
+            <style>
+                table-responsive {
+                    width: 100%;
+                    table-layout: fixed; /* forces cells to shrink instead of expanding */
+                    word-wrap: break-word;
+                    overflow-x: hidden !important;
+                }
+
+                .table-responsive th,
+                .table-responsive td {
+                    white-space: normal !important;
+                    word-break: break-word !important;
+                }
+
+            </style>
         </div>
     </div>
 
@@ -179,7 +211,28 @@
         let currentSortColumn = -1;
         let currentSortDirection = "none";
 
-        // ===== COLUMN TOGGLE =====
+             // ===== COLUMN TOGGLE =====
+        // Add "Display All" and "Hide All" options first
+        const displayAllLi = document.createElement("li");
+        displayAllLi.innerHTML = `
+            <button class="dropdown-item" id="displayAllColumns">
+                <i class="fas fa-eye text-success me-2"></i>إظهار جميع الأعمدة
+            </button>`;
+        toggleMenu.appendChild(displayAllLi);
+
+        const hideAllLi = document.createElement("li");
+        hideAllLi.innerHTML = `
+            <button class="dropdown-item" id="hideAllColumns">
+                <i class="fas fa-eye-slash text-danger me-2"></i>إخفاء جميع الأعمدة
+            </button>`;
+        toggleMenu.appendChild(hideAllLi);
+
+        // Add separator
+        const separatorLi = document.createElement("li");
+        separatorLi.innerHTML = `<hr class="dropdown-divider">`;
+        toggleMenu.appendChild(separatorLi);
+
+        // Add individual column toggles
         headers.forEach((th, index) => {
             const li = document.createElement("li");
             li.innerHTML = `
@@ -190,6 +243,7 @@
             toggleMenu.appendChild(li);
         });
 
+        // Handle individual column toggle changes
         toggleMenu.addEventListener("change", e => {
             if (!e.target.classList.contains("column-toggle")) return;
             const index = e.target.dataset.index;
@@ -197,6 +251,37 @@
             table.querySelectorAll("tr").forEach(row => {
                 const cell = row.querySelectorAll("th, td")[index];
                 if (cell) cell.style.display = visible ? "" : "none";
+            });
+        });
+
+        // Handle "Display All" button click
+        document.getElementById("displayAllColumns").addEventListener("click", e => {
+            e.preventDefault();
+            const columnToggles = toggleMenu.querySelectorAll(".column-toggle");
+            columnToggles.forEach((checkbox, index) => {
+                checkbox.checked = true;
+                // Show the column
+                table.querySelectorAll("tr").forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[index];
+                    if (cell) cell.style.display = "";
+                });
+            });
+        });
+
+        // Handle "Hide All" button click
+        document.getElementById("hideAllColumns").addEventListener("click", e => {
+            e.preventDefault();
+            const columnToggles = toggleMenu.querySelectorAll(".column-toggle");
+            columnToggles.forEach((checkbox, index) => {
+                // Skip the actions column (last column) to keep it always visible
+                if (index === columnToggles.length - 1) return;
+
+                checkbox.checked = false;
+                // Hide the column
+                table.querySelectorAll("tr").forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[index];
+                    if (cell) cell.style.display = "none";
+                });
             });
         });
 
@@ -414,7 +499,7 @@
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js"></script>
 
     <script>
-          // Updated Export to Excel function - respects hidden rows and columns with RTL
+        // Enhanced Export to Excel function with proper Arabic layout and RTL support
         function exportToExcel() {
             const table = document.getElementById('packagingStylesTable');
             const wsData = [];
@@ -429,7 +514,11 @@
                 if (th.style.display === "none") return; // skip hidden columns
 
                 visibleColumnIndices.push(index);
-                headers.push(th.textContent.trim().replace(/\s+/g, ' '));
+                // Clean header text and ensure proper Arabic formatting
+                let headerText = th.textContent.trim().replace(/\s+/g, ' ');
+                // Remove any icons or extra whitespace
+                headerText = headerText.replace(/[▲▼]/g, '').trim();
+                headers.push(headerText);
             });
             wsData.push(headers);
 
@@ -447,29 +536,188 @@
                     if (!col) return;
 
                     let text = col.textContent.trim().replace(/\s+/g, ' ');
-                    // Remove "لا يوجد وصف" text for cleaner export
-                    if (text === 'لا يوجد وصف') text = '';
+
+                    // Clean up Arabic-specific placeholder texts
+                    if (text === '-' || text === '-' || text === '-') {
+                        text = '';
+                    }
+
+                    // Handle badge content (remove extra spacing from multiple badges)
+                    if (col.querySelector('.badge')) {
+                        const badges = col.querySelectorAll('.badge');
+                        if (badges.length > 0) {
+                            text = Array.from(badges).map(badge =>
+                                badge.textContent.trim().replace(/\s+/g, ' ')
+                            ).filter(t => t).join('، ');
+                        }
+                    }
+
                     rowData.push(text);
                 });
 
-                wsData.push(rowData);
+                if (rowData.some(cell => cell.length > 0)) { // Only add non-empty rows
+                    wsData.push(rowData);
+                }
             });
 
-            // Generate Excel with RTL layout
+            if (wsData.length <= 1) {
+                if (typeof showNotification === 'function') {
+                    showNotification('لا توجد بيانات للتصدير', 'warning');
+                }
+                return;
+            }
+
+            // Generate Excel workbook with RTL support
             const wb = XLSX.utils.book_new();
             const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-            // Set RTL for Excel
+            // Enhanced RTL configuration for worksheet
             ws['!rtl'] = true;
 
-            // Set column widths
-            const colWidths = visibleColumnIndices.map(() => ({ wch: 25 }));
+            // Set worksheet RTL view
+            if (!ws['!views']) ws['!views'] = [{}];
+            ws['!views'][0] = { rightToLeft: true };
+
+            // Set workbook RTL view
+            if (!wb.Workbook) wb.Workbook = {};
+            if (!wb.Workbook.Views) wb.Workbook.Views = [{}];
+            wb.Workbook.Views[0] = { RTL: true };
+
+            // Set proper column widths based on content and Arabic text requirements
+            const colWidths = visibleColumnIndices.map((_, colIndex) => {
+                let maxWidth = 15; // Minimum width
+
+                // Calculate width based on header
+                if (headers[colIndex]) {
+                    maxWidth = Math.max(maxWidth, headers[colIndex].length * 1.2);
+                }
+
+                // Calculate width based on content
+                for (let rowIndex = 1; rowIndex < wsData.length; rowIndex++) {
+                    if (wsData[rowIndex] && wsData[rowIndex][colIndex]) {
+                        const cellLength = wsData[rowIndex][colIndex].toString().length;
+                        maxWidth = Math.max(maxWidth, cellLength * 1.1);
+                    }
+                }
+
+                // Cap maximum width for readability
+                maxWidth = Math.min(maxWidth, 50);
+
+                return { wch: maxWidth };
+            });
             ws['!cols'] = colWidths;
 
+            // Apply RTL alignment and styling to all cells
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let row = range.s.r; row <= range.e.r; row++) {
+                for (let col = range.s.c; col <= range.e.c; col++) {
+                    const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                    if (!ws[cellAddress]) continue;
+
+                    // Initialize cell style if it doesn't exist
+                    if (!ws[cellAddress].s) ws[cellAddress].s = {};
+
+                    // Set RTL alignment with proper reading order
+                    ws[cellAddress].s.alignment = {
+                        horizontal: 'right',
+                        vertical: 'center',
+                        readingOrder: 2, // RTL reading order (0=context, 1=LTR, 2=RTL)
+                        wrapText: true
+                    };
+
+                    // Header row styling with enhanced RTL support
+                    if (row === 0) {
+                        ws[cellAddress].s.font = {
+                            bold: true,
+                            size: 12,
+                            name: 'Arial',
+                            charset: 178 // Arabic charset
+                        };
+                        ws[cellAddress].s.fill = {
+                            patternType: 'solid',
+                            fgColor: { rgb: 'F8F9FA' }
+                        };
+                        ws[cellAddress].s.border = {
+                            top: { style: 'medium', color: { rgb: '000000' } },
+                            bottom: { style: 'medium', color: { rgb: '000000' } },
+                            left: { style: 'thin', color: { rgb: '000000' } },
+                            right: { style: 'thin', color: { rgb: '000000' } }
+                        };
+                        // Ensure header text alignment is explicitly right
+                        ws[cellAddress].s.alignment.horizontal = 'right';
+                    } else {
+                        // Data row styling with Arabic font support
+                        ws[cellAddress].s.font = {
+                            size: 11,
+                            name: 'Arial',
+                            charset: 178 // Arabic charset
+                        };
+                        ws[cellAddress].s.border = {
+                            top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                            bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                            left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                            right: { style: 'thin', color: { rgb: 'CCCCCC' } }
+                        };
+                    }
+                }
+            }
+
+            // Add worksheet with Arabic name and RTL support
             XLSX.utils.book_append_sheet(wb, ws, "أنماط التعبئة");
 
-            const currentDate = new Date().toLocaleDateString('ar-EG');
-            XLSX.writeFile(wb, `packaging_styles_${currentDate.replace(/\//g, '-')}.xlsx`);
+            // Set workbook properties with RTL and Arabic language support
+            wb.Props = {
+                Title: 'أنماط التعبئة',
+                Subject: 'تقرير أنماط التعبئة',
+                Author: 'نظام إدارة المخازن',
+                CreatedDate: new Date(),
+                Language: 'ar-SA', // Arabic language
+                Company: 'ELRakhawy System'
+            };
+
+            // Generate filename with current date in Arabic format
+            const now = new Date();
+            const arabicDate = now.toLocaleDateString('ar-EG', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+
+            // Create safe filename (replace Arabic date separators)
+            const safeDate = arabicDate.replace(/[\/\s]/g, '-');
+            const timestamp = now.getHours().toString().padStart(2, '0') +
+                            now.getMinutes().toString().padStart(2, '0');
+
+            const filename = `packaging_styles_${safeDate}_${timestamp}.xlsx`;
+
+            try {
+                // Write file with enhanced RTL and Arabic options
+                XLSX.writeFile(wb, filename, {
+                    bookType: 'xlsx',
+                    type: 'binary',
+                    cellStyles: true,
+                    compression: true,
+                    Props: wb.Props
+                });
+
+                if (typeof showNotification === 'function') {
+                    showNotification('تم تصدير البيانات إلى Excel بنجاح مع دعم RTL', 'success');
+                }
+
+                console.log('Excel file exported successfully with RTL support:', {
+                    filename: filename,
+                    rows: wsData.length,
+                    columns: headers.length,
+                    rtlEnabled: true,
+                    time: new Date().toISOString()
+                });
+
+            } catch (error) {
+                console.error('Excel export error:', error);
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء تصدير البيانات', 'error');
+                }
+            }
         }
 
                    // Updated Print function - displays only the table in a clean design
@@ -629,28 +877,33 @@
             });
 
             // Convert numbers to Arabic by default during keypress
-            $(document).on("keypress", "#searchByName, #searchByForms, #searchByComment, #styleName, #styleComment", function(e) {
+                        $(document).on("keypress", "#searchByName, #searchByForms, #searchByComment, #styleName, #styleComment", function(e) {
                 // Convert English digits to Arabic immediately
                 if (e.which >= 48 && e.which <= 57) { // 0-9
                     e.preventDefault();
                     let digit = String.fromCharCode(e.which);
 
-                    // Get current input value to determine if we should use Arabic or English
+                    // Get current input value and selection range
                     let currentValue = e.target.value;
-                    let cursorPos = e.target.selectionStart || 0;
+                    let selectionStart = e.target.selectionStart || 0;
+                    let selectionEnd = e.target.selectionEnd || 0;
 
                     // Create temporary value to test what the result would be
-                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
+                    // If there's a selection, replace it with the digit, otherwise insert at cursor
+                    let tempValue = currentValue.slice(0, selectionStart) + digit + currentValue.slice(selectionEnd);
 
                     // Determine if we should use Arabic numbers
                     let useArabicNumbers = shouldUseArabicNumbers(tempValue);
                     let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
 
                     let input = e.target;
-                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
+                    // Replace selected text (or insert at cursor if no selection) with converted digit
+                    let newValue = currentValue.slice(0, selectionStart) + convertedDigit + currentValue.slice(selectionEnd);
                     input.value = newValue;
 
-                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+                    // Set cursor position after the inserted digit
+                    let newCursorPos = selectionStart + 1;
+                    input.setSelectionRange(newCursorPos, newCursorPos);
 
                     // Trigger appropriate events
                     if ($(input).attr('id').startsWith('search')) {
@@ -913,13 +1166,13 @@
                                 <i class="fas fa-link me-1"></i>${form.name}
                             </span>`
                           ).join(' ')
-                        : '<span class="text-muted fst-italic"><i class="fas fa-unlink me-1"></i>لا توجد واجهات مرتبطة</span>';
+                        : '<span class="text-muted fst-italic"><i class="fas fa-unlink me-1"></i>-</span>';
 
                     const commentHtml = style.comment
                         ? `<span title="${style.comment}" class="comment-text">
                             ${style.comment.length > 50 ? style.comment.substring(0, 47) + '...' : style.comment}
                            </span>`
-                        : '<span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i>لا يوجد بيان</span>';
+                        : '<span class="text-muted fst-italic"><i class="fas fa-info-circle me-1"></i>-</span>';
 
                     const row = `
                         <tr data-id="${style.id}" class="packaging-style-row">
@@ -1282,17 +1535,93 @@
                 });
             });
 
-            // Refresh data
+                       // Enhanced refresh data with proper async handling
             $('#refreshData').click(function() {
                 const btn = $(this);
                 const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+                const originalIcon = '<i class="fas fa-sync-alt me-1"></i>';
 
-                loadPackagingStyles();
+                // Disable button and show loading state
+                btn.prop('disabled', true)
+                   .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
 
-                setTimeout(() => {
-                    btn.prop('disabled', false).html(originalText);
-                }, 1000);
+                // Create a promise to handle the refresh operation
+                const refreshPromise = new Promise((resolve, reject) => {
+                    $.ajax({
+                        url: '/api/PackagingStyles',
+                        method: 'GET',
+                        timeout: 30000, // 30 second timeout
+                        success: function(response) {
+                            if (response.success) {
+                                packagingStylesData = response.data;
+                                renderPackagingStyles(packagingStylesData);
+                                updateCounts(packagingStylesData.length);
+
+                                // Clear any existing search filters
+                                $('#searchByName, #searchByForms, #searchByComment')
+                                    .val('')
+                                    .removeClass('border-primary');
+                                performSearch();
+
+                                resolve(response);
+                            } else {
+                                reject(new Error(response.message || 'فشل في تحديث البيانات'));
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            let errorMessage = 'حدث خطأ أثناء تحديث البيانات';
+
+                            if (status === 'timeout') {
+                                errorMessage = 'انتهت مهلة الاتصال - يرجى المحاولة مرة أخرى';
+                            } else if (xhr.responseJSON && xhr.responseJSON.message) {
+                                errorMessage = xhr.responseJSON.message;
+                            } else if (status === 'error' && xhr.status === 0) {
+                                errorMessage = 'لا يوجد اتصال بالشبكة';
+                            }
+
+                            reject(new Error(errorMessage));
+                        }
+                    });
+                });
+
+                // Handle the refresh result
+                refreshPromise
+                    .then((response) => {
+                        // Success feedback
+                        showNotification('تم تحديث البيانات بنجاح', 'success');
+
+                        // Optional: Add refresh animation to the icon
+                        btn.find('i').addClass('fa-spin');
+                        setTimeout(() => {
+                            btn.find('i').removeClass('fa-spin');
+                        }, 500);
+
+                        console.log('Data refreshed successfully:', {
+                            count: packagingStylesData.length,
+                            time: new Date().toISOString(),
+                            user: CURRENT_USER
+                        });
+                    })
+                    .catch((error) => {
+                        // Error feedback
+                        showNotification(error.message, 'error');
+                        console.error('Refresh failed:', {
+                            error: error.message,
+                            time: new Date().toISOString(),
+                            user: CURRENT_USER
+                        });
+                    })
+                    .finally(() => {
+                        // Always restore button state
+                        btn.prop('disabled', false).html(originalText);
+
+                        // Re-enable sorting if it was active
+                        if (currentSortColumn !== -1) {
+                            setTimeout(() => {
+                                sortTable(currentSortColumn, currentSortDirection);
+                            }, 100);
+                        }
+                    });
             });
 
             // Keyboard shortcuts

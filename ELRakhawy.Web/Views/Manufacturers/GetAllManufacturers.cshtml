@@ -18,7 +18,7 @@ table {
     word-wrap: break-word;
 }
 
-    </style>
+</style>
 <!-- Enhanced Navigation Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-4">
     <div class="card border-0 shadow-sm">
@@ -168,7 +168,7 @@ table {
                             else
                             {
                                 <span class="text-muted fst-italic">
-                                    <i class="fas fa-info-circle me-1"></i>لا يوجد وصف
+                                    <i class="fas fa-info-circle me-1"></i>-
                                 </span>
                             }
                         </td>
@@ -388,33 +388,123 @@ table {
             const headers = table.querySelectorAll('thead tr:first-child th');
             const columnToggleMenu = document.getElementById('columnToggleMenu');
 
-            // Initialize column toggle menu
+            // Add Show All / Hide All buttons with proper icons
+            const controlsLi = document.createElement("li");
+            controlsLi.innerHTML = `
+                <div class="dropdown-item-text pb-2 mb-2">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-sm btn-success flex-fill" id="showAllColumns" title="إظهار جميع الأعمدة">
+                            <i class="fas fa-eye me-1"></i>
+                            <span class="d-none d-sm-inline">إظهار الكل</span>
+                        </button>
+                        <button class="btn btn-sm btn-danger flex-fill" id="hideAllColumns" title="إخفاء جميع الأعمدة">
+                            <i class="fas fa-eye-slash me-1"></i>
+                            <span class="d-none d-sm-inline">إخفاء الكل</span>
+                        </button>
+                    </div>
+                </div>`;
+            columnToggleMenu.appendChild(controlsLi);
+
+            // Add separator
+            const separatorLi = document.createElement("li");
+            separatorLi.innerHTML = `<hr class="dropdown-divider">`;
+            columnToggleMenu.appendChild(separatorLi);
+
+            // Add individual column toggles with icons
             headers.forEach((th, index) => {
                 if (index === headers.length - 1) return; // Skip actions column
 
                 const title = th.textContent.trim().replace(/\s+/g, ' ');
                 const li = document.createElement("li");
                 li.innerHTML = `
-                    <label class="dropdown-item">
+                    <label class="dropdown-item d-flex align-items-center">
                         <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
-                        ${title}
+                        <i class="fas fa-eye text-success me-2 column-icon"></i>
+                        <span>${title}</span>
                     </label>`;
                 columnToggleMenu.appendChild(li);
             });
 
-            // Handle column visibility toggle
+            // Handle Show All Columns
+            document.getElementById('showAllColumns').addEventListener('click', function(e) {
+                e.preventDefault();
+                const checkboxes = columnToggleMenu.querySelectorAll('.column-toggle');
+                checkboxes.forEach(checkbox => {
+                    if (!checkbox.checked) {
+                        checkbox.checked = true;
+                        const colIndex = parseInt(checkbox.getAttribute("data-index"));
+
+                        // Show the column
+                        table.querySelectorAll("tr").forEach(row => {
+                            const cell = row.querySelectorAll("th, td")[colIndex];
+                            if (cell) {
+                                cell.style.display = "";
+                            }
+                        });
+
+                        // Update icon to "eye" (visible)
+                        const label = checkbox.closest('label');
+                        const icon = label.querySelector('.column-icon');
+                        if (icon) {
+                            icon.className = 'fas fa-eye text-success me-2 column-icon';
+                        }
+                    }
+                });
+            });
+
+            // Handle Hide All Columns
+            document.getElementById('hideAllColumns').addEventListener('click', function(e) {
+                e.preventDefault();
+                const checkboxes = columnToggleMenu.querySelectorAll('.column-toggle');
+                checkboxes.forEach(checkbox => {
+                    if (checkbox.checked) {
+                        checkbox.checked = false;
+                        const colIndex = parseInt(checkbox.getAttribute("data-index"));
+
+                        // Hide the column
+                        table.querySelectorAll("tr").forEach(row => {
+                            const cell = row.querySelectorAll("th, td")[colIndex];
+                            if (cell) {
+                                cell.style.display = "none";
+                            }
+                        });
+
+                        // Update icon to "eye-slash" (hidden)
+                        const label = checkbox.closest('label');
+                        const icon = label.querySelector('.column-icon');
+                        if (icon) {
+                            icon.className = 'fas fa-eye-slash text-danger me-2 column-icon';
+                        }
+                    }
+                });
+            });
+
+            // Handle individual column visibility toggle
             columnToggleMenu.addEventListener("change", function (e) {
                 if (!e.target.classList.contains("column-toggle")) return;
 
-                const colIndex = parseInt(e.target.getAttribute("data-index"));
-                const isVisible = e.target.checked;
+                const checkbox = e.target;
+                const colIndex = parseInt(checkbox.getAttribute("data-index"));
+                const isVisible = checkbox.checked;
 
+                // Toggle column visibility
                 table.querySelectorAll("tr").forEach(row => {
                     const cell = row.querySelectorAll("th, td")[colIndex];
                     if (cell) {
                         cell.style.display = isVisible ? "" : "none";
                     }
                 });
+
+                // Update icon
+                const label = checkbox.closest('label');
+                const icon = label.querySelector('.column-icon');
+                if (icon) {
+                    if (isVisible) {
+                        icon.className = 'fas fa-eye text-success me-2 column-icon';
+                    } else {
+                        icon.className = 'fas fa-eye-slash text-danger me-2 column-icon';
+                    }
+                }
             });
 
             // Sorting functionality
@@ -485,170 +575,384 @@ table {
                 });
             });
         });
-
-        // Updated Export to Excel function - respects hidden rows and columns with RTL
+                // Updated exportToExcel with robust stakeholder-types handling (comma/Arabic-comma separated)
         function exportToExcel() {
-            const table = document.getElementById('manufacturersTable');
-            const wsData = [];
+            try {
+                const table = document.getElementById('stakeholdersTable');
+                if (!table) throw new Error('Table with id "stakeholdersTable" not found');
 
-            // Header row (only visible columns, skip actions)
-            const headerCells = table.querySelectorAll('thead tr:first-child th');
-            const headers = [];
-            const visibleColumnIndices = [];
+                const wsData = [];
 
-            headerCells.forEach((th, index) => {
-                if (index === headerCells.length - 1) return; // skip actions column
-                if (th.style.display === "none") return; // skip hidden columns
+                // --- HEADERS & VISIBLE COLUMNS ---
+                const headerCells = table.querySelectorAll('thead tr:first-child th');
+                const headers = [];
+                const visibleColumnIndices = [];
+                headerCells.forEach((th, index) => {
+                    // skip last actions column (if your table follows that pattern)
+                    if (index === headerCells.length - 1) return;
+                    if (th.style.display === "none") return; // skip hidden columns
 
-                visibleColumnIndices.push(index);
-                headers.push(th.textContent.trim().replace(/\s+/g, ' '));
-            });
-            wsData.push(headers);
+                    visibleColumnIndices.push(index);
 
-            // Body rows (only visible rows and columns)
-            const rows = table.querySelectorAll('tbody tr');
-            rows.forEach(row => {
-                // Skip hidden rows
-                if (row.style.display === "none" || row.offsetParent === null) return;
-
-                const cols = row.querySelectorAll('td');
-                const rowData = [];
-
-                visibleColumnIndices.forEach(index => {
-                    const col = cols[index];
-                    if (!col) return;
-
-                    let text = col.textContent.trim().replace(/\s+/g, ' ');
-                    // Remove "لا يوجد وصف" text for cleaner export
-                    if (text === 'لا يوجد وصف') text = '';
-                    rowData.push(text);
+                    let headerText = th.textContent.trim().replace(/\s+/g, ' ');
+                    headerText = headerText.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                    headers.push(headerText);
                 });
 
-                wsData.push(rowData);
-            });
+                if (headers.length === 0) {
+                    throw new Error('No visible columns to export');
+                }
 
-            // Generate Excel with RTL layout
-            const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.aoa_to_sheet(wsData);
+                wsData.push(headers);
 
-            // Set RTL for Excel
-            ws['!rtl'] = true;
+                // Try to detect which visible column is the "types" column by class or header name
+                // We map visibleColumnIndices index -> original table column index
+                const headerNameIndexMap = {};
+                visibleColumnIndices.forEach((origIdx, i) => {
+                    const headerText = headers[i] || '';
+                    headerNameIndexMap[origIdx] = headerText;
+                });
 
-            // Set column widths
-            const colWidths = visibleColumnIndices.map(() => ({wch: 25}));
-            ws['!cols'] = colWidths;
+                // --- ROWS ---
+                const rows = table.querySelectorAll('tbody tr.stakeholder-row');
+                let exportedRowCount = 0;
 
-            XLSX.utils.book_append_sheet(wb, ws, "المصنعين");
+                rows.forEach(row => {
+                    const computedStyle = window.getComputedStyle(row);
+                    if (row.style.display === "none" ||
+                        computedStyle.display === "none" ||
+                        computedStyle.visibility === "hidden") return;
 
-            const currentDate = new Date().toLocaleDateString('ar-EG');
-            XLSX.writeFile(wb, `manufacturers_${currentDate.replace(/\//g, '-')}.xlsx`);
+                    const cols = row.querySelectorAll('td');
+                    const rowData = [];
+
+                    visibleColumnIndices.forEach((colIndex) => {
+                        const col = cols[colIndex];
+                        if (!col) {
+                            rowData.push('');
+                            return;
+                        }
+
+                        let text = '';
+
+                        // Determine if this column is the "types" column:
+                        // 1) explicit class .stakeholder-type
+                        // 2) header contains 'نوع' or 'النوع' etc
+                        const headerText = headerNameIndexMap[colIndex] || '';
+                        const isTypesColumn = col.classList.contains('stakeholder-type') ||
+                                               /نوع|النوع|الأنواع/i.test(headerText) ||
+                                               colIndex === 1; // keep your original heuristic as last resort
+
+                        if (isTypesColumn) {
+                            // 1) Preferred: extract from badges/badge-like spans
+                            const badgeSelector = '.badge, span[class*="badge"], .type-badge, .stakeholder-type-item';
+                            const badgeNodes = col.querySelectorAll(badgeSelector);
+
+                            const collected = [];
+
+                            if (badgeNodes.length > 0) {
+                                badgeNodes.forEach(badge => {
+                                    // build text from non-icon child nodes / text nodes
+                                    let part = '';
+
+                                    badge.childNodes.forEach(node => {
+                                        if (node.nodeType === Node.TEXT_NODE) {
+                                            part += node.textContent + ' ';
+                                        } else if (node.nodeType === Node.ELEMENT_NODE) {
+                                            const el = node;
+                                            const tag = el.tagName.toLowerCase();
+                                            const cls = (el.className || '').toString();
+
+                                            // skip typical icon elements
+                                            if (tag === 'i' || /(^|\s)fa($|\s)|(^|\s)fas($|\s)|(^|\s)far($|\s)|(^|\s)fab($|\s)/i.test(cls)) {
+                                                return;
+                                            }
+
+                                            part += el.textContent + ' ';
+                                        }
+                                    });
+
+                                    part = (part || badge.textContent || '').toString().trim();
+                                    if (part) collected.push(part);
+                                });
+                            } else {
+                                // 2) Fallback: parse cell text heuristically
+                                let raw = col.textContent || '';
+                                raw = raw.replace(/[\u{1F300}-\u{1F9FF}]/gu, ''); // remove emoji
+                                raw = raw.replace(/fa-[a-z-]+/gi, ''); // remove fa- tokens
+                                raw = raw.replace(/[★✩✪✫✬✭✮✯✰☆✦✧✨]/g, ''); // remove common symbols
+
+                                raw = raw.trim();
+
+                                if (raw) {
+                                    // Split on common separators (Arabic comma, english comma, slash, pipe, newline, multiple spaces)
+                                    const parts = raw.split(/\s*(?:،|,|\/|\||;|\n)+\s*|\s{2,}/).map(s => s.trim()).filter(Boolean);
+                                    // If above yields single chunk but contains spaces, try splitting by heuristics (e.g., multiple words that likely are separate types)
+                                    if (parts.length === 1 && parts[0].includes(' ') && parts[0].length > 30) {
+                                        // If too long, split by word boundaries and attempt to cluster by capitals/keywords is complex;
+                                        // simple split on ' - ' or ' / ' already handled — keep single chunk then.
+                                    }
+                                    collected.push(...parts);
+                                }
+                            }
+
+                            // Clean, dedupe and normalize collected parts
+                            const cleaned = Array.from(new Set(
+                                collected
+                                    .map(s => s.replace(/\s+/g, ' ').trim())
+                                    .map(s => s.replace(/^[:\-–—\s]+|[:\-–—\s]+$/g, '')) // trim stray punctuation
+                                    .filter(Boolean)
+                            ));
+
+                            text = cleaned.join('، '); // Arabic comma + space
+                        }
+                        // PHONE column detection
+                        else if (col.classList.contains('stakeholder-phone') || /هاتف|تواصل/i.test(headerText)) {
+                            const phoneElements = col.querySelectorAll('span[dir="ltr"], .phone, .phones');
+                            if (phoneElements.length > 0) {
+                                const phones = Array.from(phoneElements)
+                                    .map(el => el.textContent.trim())
+                                    .filter(p => p && p !== '-');
+                                text = phones.join('، ');
+                            } else {
+                                text = col.textContent.trim().replace(/\s+/g, ' ');
+                            }
+                        }
+                        // STATUS column detection
+                        else if (col.classList.contains('stakeholder-status') || /حالة|نشط|غير نشط/i.test(headerText)) {
+                            const statusToggle = col.querySelector('.status-toggle, input[type="checkbox"]');
+                            if (statusToggle && typeof statusToggle.checked !== 'undefined') {
+                                text = statusToggle.checked ? 'نشط' : 'غير نشط';
+                            } else {
+                                text = col.textContent.trim();
+                            }
+                        }
+                        // COMMENT column detection
+                        else if (col.classList.contains('stakeholder-comment') || /ملاحظات|تعليق/i.test(headerText)) {
+                            const commentSpan = col.querySelector('.comment-text');
+                            text = commentSpan ? (commentSpan.getAttribute('title') || commentSpan.textContent.trim()) : col.textContent.trim();
+                        }
+                        // DEFAULT
+                        else {
+                            const cellClone = col.cloneNode(true);
+                            const icons = cellClone.querySelectorAll('i, [class*="fa-"], .fa, .fas, .far, .fab, .fal, .fad');
+                            icons.forEach(icon => icon.remove());
+                            text = cellClone.textContent.trim().replace(/\s+/g, ' ');
+                        }
+
+                        // Normalize some placeholder strings to empty
+                        if (['لا يوجد وصف', '-', '', 'لا يوجد نوع', 'لا يوجد', 'لا توجد واجهات مرتبطة'].includes(text)) {
+                            text = '';
+                        }
+
+                        text = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').replace(/fa-[a-z-]+/gi, '').replace(/\s+/g, ' ').trim();
+
+                        rowData.push(text);
+                    });
+
+                    if (rowData.some(cell => cell !== '')) {
+                        wsData.push(rowData);
+                        exportedRowCount++;
+                    }
+                });
+
+                if (exportedRowCount === 0) {
+                    showNotification('لا توجد بيانات للتصدير', 'warning');
+                    return;
+                }
+
+                // --- EXCEL CREATION (unchanged, copied from your original) ---
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                if (!ws['!views']) ws['!views'] = [];
+                ws['!views'][0] = { rightToLeft: true };
+
+                // Dynamic column widths
+                const colWidths = headers.map((header, index) => {
+                    const maxLength = Math.max(
+                        header.length,
+                        ...wsData.slice(1).map(row => (row[index] || '').toString().length)
+                    );
+                    let width = Math.max(maxLength + 2, 15);
+                    if (header.includes('نوع') || header.includes('الأنواع')) width = Math.max(width, 30);
+                    else if (header.includes('هاتف') || header.includes('تواصل')) width = Math.max(width, 20);
+                    else if (header.includes('ملاحظات') || header.includes('تعليق')) width = Math.max(width, 35);
+                    return { wch: Math.min(width, 70) };
+                });
+                ws['!cols'] = colWidths;
+
+                // Basic header styling (can keep from original)
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const address = XLSX.utils.encode_col(C) + "1";
+                    if (!ws[address]) continue;
+                    ws[address].s = {
+                        font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                        fill: { fgColor: { rgb: "2E7D32" } },
+                        alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                        border: {
+                            top: { style: "thin", color: { rgb: "000000" } },
+                            bottom: { style: "thin", color: { rgb: "000000" } },
+                            left: { style: "thin", color: { rgb: "000000" } },
+                            right: { style: "thin", color: { rgb: "000000" } }
+                        }
+                    };
+                }
+
+                // Data cells styling + alignment
+                for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                    for (let C = range.s.c; C <= range.e.c; ++C) {
+                        const address = XLSX.utils.encode_cell({ r: R, c: C });
+                        if (!ws[address]) continue;
+                        ws[address].s = ws[address].s || {};
+                        ws[address].s.border = {
+                            top: { style: "thin", color: { rgb: "CCCCCC" } },
+                            bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                            left: { style: "thin", color: { rgb: "CCCCCC" } },
+                            right: { style: "thin", color: { rgb: "CCCCCC" } }
+                        };
+                        ws[address].s.alignment = { horizontal: "right", vertical: "center", wrapText: true };
+                        if (R % 2 === 0) ws[address].s.fill = { fgColor: { rgb: "F8F9FA" } };
+                    }
+                }
+
+                XLSX.utils.book_append_sheet(wb, ws, "قائمة الجهات المعنية");
+                if (!wb.Workbook) wb.Workbook = {};
+                wb.Workbook.Views = [{ RTL: true }];
+                wb.Props = {
+                    Title: "قائمة الجهات المعنية",
+                    Subject: "تصدير بيانات الجهات المعنية",
+                    Author: "نظام إدارة الجهات المعنية",
+                    Creator: "Ammar-Yasser8",
+                    CreatedDate: new Date()
+                };
+
+                const now = new Date();
+                const filename = `stakeholders_${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}.xlsx`;
+
+                XLSX.writeFile(wb, filename);
+
+                const arabicRowCount = exportedRowCount.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                showNotification(`تم تصدير ${arabicRowCount} جهة بنجاح إلى ملف Excel`, 'success');
+
+                console.log('Excel export completed:', {
+                    rowsExported: exportedRowCount,
+                    filename: filename,
+                    timestamp: new Date().toISOString(),
+                    user: 'Ammar-Yasser8'
+                });
+
+            } catch (error) {
+                console.error('Export error:', error);
+                showNotification('حدث خطأ أثناء التصدير. يرجى المحاولة مرة أخرى.', 'error');
+            }
         }
 
-          function printTable() {
+        function printTable() {
             try {
-                    const printContent = document.createElement('div');
-                    printContent.id = 'printSection';
-                    printContent.style.direction = 'rtl';
-                    printContent.style.padding = '20px';
+                const printContent = document.createElement('div');
+                printContent.id = 'printSection';
+                printContent.style.direction = 'rtl';
+                printContent.style.padding = '20px';
 
-                    const title = document.createElement('h2');
-                    title.textContent = 'قائمة المصنعين';
-                    title.style.textAlign = 'center';
-                    title.style.marginBottom = '10px';
-                    title.style.color = '#333';
-                    title.style.fontFamily = 'Arial, sans-serif';
-                    printContent.appendChild(title);
+                const title = document.createElement('h2');
+                title.textContent = 'قائمة المصنعين';
+                title.style.textAlign = 'center';
+                title.style.marginBottom = '10px';
+                title.style.color = '#333';
+                title.style.fontFamily = 'Arial, sans-serif';
+                printContent.appendChild(title);
 
-                    const dateP = document.createElement('p');
-                    dateP.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
-                    dateP.style.textAlign = 'center';
-                    dateP.style.marginBottom = '20px';
-                    dateP.style.color = '#666';
-                    dateP.style.fontSize = '14px';
-                    printContent.appendChild(dateP);
+                const dateP = document.createElement('p');
+                dateP.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
+                dateP.style.textAlign = 'center';
+                dateP.style.marginBottom = '20px';
+                dateP.style.color = '#666';
+                dateP.style.fontSize = '14px';
+                printContent.appendChild(dateP);
 
-                    const headerCells = document.querySelectorAll('#manufacturersTable thead tr:first-child th');
-                    const visibleHeaders = [];
-                    const visibleIndices = [];
+                const headerCells = document.querySelectorAll('#manufacturersTable thead tr:first-child th');
+                const visibleHeaders = [];
+                const visibleIndices = [];
 
-                    headerCells.forEach((th, index) => {
-                        if (index === headerCells.length - 1) return;
-                        if (th.style.display === "none") return;
-                        visibleHeaders.push(th.textContent.trim().replace(/\s+/g, ' '));
-                        visibleIndices.push(index);
-                    });
+                headerCells.forEach((th, index) => {
+                    if (index === headerCells.length - 1) return;
+                    if (th.style.display === "none") return;
+                    visibleHeaders.push(th.textContent.trim().replace(/\s+/g, ' '));
+                    visibleIndices.push(index);
+                });
 
-                    const allRows = document.querySelectorAll('.manufacturer-row');
-                    const visibleRows = Array.from(allRows).filter(row => {
-                        const computedStyle = window.getComputedStyle(row);
-                        return row.style.display !== 'none' &&
-                               computedStyle.display !== 'none' &&
-                               computedStyle.visibility !== 'hidden';
-                    });
+                const allRows = document.querySelectorAll('.manufacturer-row');
+                const visibleRows = Array.from(allRows).filter(row => {
+                    const computedStyle = window.getComputedStyle(row);
+                    return row.style.display !== 'none' &&
+                           computedStyle.display !== 'none' &&
+                           computedStyle.visibility !== 'hidden';
+                });
 
-                    const table = document.createElement('table');
-                    table.className = 'print-table';
-                    table.style.width = '100%';
-                    table.style.borderCollapse = 'collapse';
-                    table.style.direction = 'rtl';
-                    table.style.fontFamily = 'Arial, sans-serif';
-                    table.style.fontSize = '12px';
+                const table = document.createElement('table');
+                table.className = 'print-table';
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                table.style.direction = 'rtl';
+                table.style.fontFamily = 'Arial, sans-serif';
+                table.style.fontSize = '12px';
 
-                    const thead = document.createElement('thead');
-                    const headerRow = document.createElement('tr');
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
 
-                    visibleHeaders.forEach(headerText => {
-                        const th = document.createElement('th');
-                        th.textContent = headerText;
-                        th.style.border = '1px solid #000';
-                        th.style.padding = '10px';
-                        th.style.backgroundColor = '#f0f0f0';
-                        th.style.fontWeight = 'bold';
-                        th.style.textAlign = 'right';
-                        headerRow.appendChild(th);
-                    });
+                visibleHeaders.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    th.style.border = '1px solid #000';
+                    th.style.padding = '10px';
+                    th.style.backgroundColor = '#f0f0f0';
+                    th.style.fontWeight = 'bold';
+                    th.style.textAlign = 'right';
+                    headerRow.appendChild(th);
+                });
 
-                    thead.appendChild(headerRow);
-                    table.appendChild(thead);
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
 
-                    const tbody = document.createElement('tbody');
+                const tbody = document.createElement('tbody');
 
-                    if (visibleRows.length === 0) {
-                        const row = document.createElement('tr');
-                        const cell = document.createElement('td');
-                        cell.textContent = 'لا توجد بيانات للعرض';
-                        cell.colSpan = visibleHeaders.length || 1;
-                        cell.style.textAlign = 'center';
-                        cell.style.padding = '20px';
-                        cell.style.border = '1px solid #000';
-                        row.appendChild(cell);
-                        tbody.appendChild(row);
-                    } else {
-                        visibleRows.forEach((row, rowIndex) => {
-                            const dataRow = document.createElement('tr');
-                            const cells = row.querySelectorAll('td');
+                if (visibleRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.textContent = 'لا توجد بيانات للعرض';
+                    cell.colSpan = visibleHeaders.length || 1;
+                    cell.style.textAlign = 'center';
+                    cell.style.padding = '20px';
+                    cell.style.border = '1px solid #000';
+                    row.appendChild(cell);
+                    tbody.appendChild(row);
+                } else {
+                    visibleRows.forEach((row, rowIndex) => {
+                        const dataRow = document.createElement('tr');
+                        const cells = row.querySelectorAll('td');
 
-                            visibleIndices.forEach(index => {
-                                const cell = cells[index];
-                                if (!cell) return;
+                        visibleIndices.forEach(index => {
+                            const cell = cells[index];
+                            if (!cell) return;
 
-                                const td = document.createElement('td');
-                                let text = cell.textContent.trim().replace(/\s+/g, ' ');
-                                if (text === 'لا يوجد وصف') text = '';
-                                td.textContent = text;
-                                td.style.border = '1px solid #000';
-                                td.style.padding = '8px';
-                                td.style.textAlign = 'right';
+                            const td = document.createElement('td');
+                            let text = cell.textContent.trim().replace(/\s+/g, ' ');
+                            if (text === 'لا يوجد وصف') text = '';
+                            td.textContent = text;
+                            td.style.border = '1px solid #000';
+                            td.style.padding = '8px';
+                            td.style.textAlign = 'right';
 
-                                if (rowIndex % 2 === 1) {
-                                    td.style.backgroundColor = '#f9f9f9';
-                                }
+                            if (rowIndex % 2 === 1) {
+                                td.style.backgroundColor = '#f9f9f9';
+                            }
 
-                                dataRow.appendChild(td);
-                            });
-
-                            tbody.appendChild(dataRow);
+                            dataRow.appendChild(td);
                         });
+
+                        tbody.appendChild(dataRow);
+                    });
                 }
 
                 table.appendChild(tbody);
@@ -673,13 +977,10 @@ table {
                         }
                     }, 100);
                 }, 100);
-                }
-                catch (error) {
-                    console.error('خطأ أثناء الطباعة:', error);
-                    alert('حدث خطأ أثناء محاولة الطباعة. يرجى المحاولة مرة أخرى.');
-                }
-
-
+            } catch (error) {
+                console.error('خطأ أثناء الطباعة:', error);
+                alert('حدث خطأ أثناء محاولة الطباعة. يرجى المحاولة مرة أخرى.');
+            }
         }
     </script>
 
@@ -758,36 +1059,42 @@ table {
             });
 
             // Enhanced number key conversion - always converts to Arabic by default
-            $(document).on("keypress", "#searchByName, #searchByComment, #manufacturerName, #manufacturerDescription", function(e) {
-                // Convert English digits to Arabic immediately
-                if (e.which >= 48 && e.which <= 57) { // 0-9
-                    e.preventDefault();
-                    let digit = String.fromCharCode(e.which);
+        $(document).on("keypress", "#searchByName, #searchByComment, #manufacturerName, #manufacturerDescription", function(e) {
+            // Convert English digits to Arabic immediately
+            if (e.which >= 48 && e.which <= 57) { // 0-9
+                e.preventDefault();
+                let digit = String.fromCharCode(e.which);
 
-                    // Get current input value to determine if we should use Arabic or English
-                    let currentValue = e.target.value;
-                    let cursorPos = e.target.selectionStart || 0;
+                let input = e.target;
+                let currentValue = input.value;
+                let selectionStart = input.selectionStart || 0;
+                let selectionEnd = input.selectionEnd || 0;
 
-                    // Create temporary value to test what the result would be
-                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
+                // Remove selected text if any (this handles select all + type scenario)
+                let beforeSelection = currentValue.slice(0, selectionStart);
+                let afterSelection = currentValue.slice(selectionEnd);
 
-                    // Determine if we should use Arabic numbers
-                    let useArabicNumbers = shouldUseArabicNumbers(tempValue);
-                    let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
+                // Create temporary value to test what the result would be
+                let tempValue = beforeSelection + digit + afterSelection;
 
-                    let input = e.target;
-                    let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
-                    input.value = newValue;
+                // Determine if we should use Arabic numbers
+                let useArabicNumbers = shouldUseArabicNumbers(tempValue);
+                let convertedDigit = useArabicNumbers ? toArabicDigits(digit) : digit;
 
-                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+                // Build new value with converted digit
+                let newValue = beforeSelection + convertedDigit + afterSelection;
+                input.value = newValue;
 
-                    // Trigger appropriate events
-                    if ($(input).attr('id').startsWith('search')) {
-                        $(input).trigger('input');
-                    }
+                // Set cursor position after the inserted digit
+                let newCursorPos = selectionStart + 1;
+                input.setSelectionRange(newCursorPos, newCursorPos);
+
+                // Trigger appropriate events
+                if ($(input).attr('id').startsWith('search')) {
+                    $(input).trigger('input');
                 }
-            });
-
+            }
+        });
             // Initialize components
             const toastElement = document.getElementById('notificationToast');
             const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
@@ -1170,17 +1477,15 @@ table {
                 });
             }
 
-            // Enhanced refresh data with Arabic counter update
+                       // Enhanced refresh data with Arabic counter update
             $('#refreshData').click(function() {
                 const btn = $(this);
                 const originalText = btn.html();
                 btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
 
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+                // Immediate reload without delay
+                location.reload();
             });
-
             // Enhanced initial count setup with Arabic numbers
             function updateInitialCounts() {
                 const currentTotal = $('.manufacturer-row').length;

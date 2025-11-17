@@ -76,6 +76,30 @@
         </button>
     </div>
 </form>
+<script>
+    // Convert English numbers → Arabic numbers
+    function toArabicNumbers(str) {
+        return str.replace(/\d/g, d => "٠١٢٣٤٥٦٧٨٩"[d]);
+    }
+
+    function convertArabicInstant() {
+        // Convert all text nodes inside the page (labels, static text, options…)
+        document.querySelectorAll("body *:not(input):not(textarea)").forEach(el => {
+            if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+                el.textContent = toArabicNumbers(el.textContent);
+            }
+        });
+
+        // Convert numbers inside user input in real time
+        document.querySelectorAll("input[type='text'], textarea").forEach(input => {
+            input.addEventListener("input", function () {
+                this.value = toArabicNumbers(this.value);
+            });
+        });
+    }
+
+    document.addEventListener("DOMContentLoaded", convertArabicInstant);
+</script>
 
 <script>
     // Remove the auto-conversion script that interferes with checkboxes

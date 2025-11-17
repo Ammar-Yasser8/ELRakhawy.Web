@@ -3,6 +3,23 @@
     var currentTime = "2025-08-19 19:06:16";
     var currentUser = "Ammar-Yasser8";
 }
+<style>
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+
+        .table-responsive table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            word-wrap: break-word !important;
+        }
+
+        .table-responsive th,
+        .table-responsive td {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+</style>
 
 <!-- Enhanced Navigation Breadcrumb -->
 <nav aria-label="breadcrumb" class="mb-4">
@@ -437,227 +454,624 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    const table = document.getElementById('stakeholdersTable');
-    const tbody = table.querySelector('tbody');
-    const headers = table.querySelectorAll('thead tr:first-child th');
-    const columnToggleMenu = document.getElementById('columnToggleMenu');
-    
-    // Initialize column toggle menu
-    headers.forEach((th, index) => {
-        if (index === headers.length - 1) return; // Skip actions column
-        
-        const title = th.textContent.trim().replace(/\s+/g, ' ');
-        const li = document.createElement("li");
-        li.innerHTML = `
-            <label class="dropdown-item">
-                <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
-                ${title}
-            </label>`;
-        columnToggleMenu.appendChild(li);
-    });
-
-    // Handle column visibility toggle
-    columnToggleMenu.addEventListener("change", function (e) {
-        if (!e.target.classList.contains("column-toggle")) return;
-
-        const colIndex = parseInt(e.target.getAttribute("data-index"));
-        const isVisible = e.target.checked;
-
-        table.querySelectorAll("tr").forEach(row => {
-            const cell = row.querySelectorAll("th, td")[colIndex];
-            if (cell) {
-                cell.style.display = isVisible ? "" : "none";
-            }
-        });
-    });
-
-    // Sorting functionality
-    let sortDirection = {};
-    
-    document.querySelectorAll('.sortable').forEach(header => {
-        const column = parseInt(header.getAttribute('data-column'));
-        sortDirection[column] = 'none';
-        
-        header.addEventListener('click', function() {
-            // Get all rows
-            const rows = Array.from(tbody.querySelectorAll('tr.stakeholder-row'));
-            
-            if (rows.length === 0) return;
-            
-            // Determine sort direction
-            if (sortDirection[column] === 'none' || sortDirection[column] === 'desc') {
-                sortDirection[column] = 'asc';
-            } else {
-                sortDirection[column] = 'desc';
-            }
-            
-            // Update all headers to show unsorted state
-            document.querySelectorAll('.sortable').forEach(h => {
-                h.classList.remove('asc', 'desc');
-                const icon = h.querySelector('.sort-icon');
-                icon.className = 'fas fa-sort sort-icon text-muted';
-            });
-            
-            // Hide all sort indicators
-            document.querySelectorAll('.sort-indicator').forEach(indicator => {
-                indicator.style.display = 'none';
-            });
-            
-            // Update current header
-            header.classList.add(sortDirection[column]);
-            const icon = header.querySelector('.sort-icon');
-            const sortIndicator = document.getElementById('sortIndicator' + column);
-            const sortBadgeIcon = sortIndicator.querySelector('i');
-            
-            if (sortDirection[column] === 'asc') {
-                icon.className = 'fas fa-sort-up sort-icon';
-                sortBadgeIcon.className = 'fas fa-sort-amount-up';
-                sortIndicator.querySelector('.badge').classList.remove('bg-danger');
-                sortIndicator.querySelector('.badge').classList.add('bg-success');
-            } else {
-                icon.className = 'fas fa-sort-down sort-icon';
-                sortBadgeIcon.className = 'fas fa-sort-amount-down';
-                sortIndicator.querySelector('.badge').classList.remove('bg-success');
-                sortIndicator.querySelector('.badge').classList.add('bg-danger');
-            }
-            
-            // Show current sort indicator
-            sortIndicator.style.display = 'block';
-            
-            // Sort rows
-            rows.sort((a, b) => {
-                const aCell = a.querySelectorAll('td')[column];
-                const bCell = b.querySelectorAll('td')[column];
-                
-                let aValue = aCell.textContent.trim();
-                let bValue = bCell.textContent.trim();
-                
-                // Handle empty or "no data" values
-                if (aValue.includes('لا يوجد') || aValue.includes('غير محدد') || aValue === '-' || aValue === '') aValue = '';
-                if (bValue.includes('لا يوجد') || bValue.includes('غير محدد') || bValue === '-' || bValue === '') bValue = '';
-                
-                // Try to parse as numbers
-                const aNum = parseFloat(aValue);
-                const bNum = parseFloat(bValue);
-                
-                let comparison = 0;
-                
-                if (!isNaN(aNum) && !isNaN(bNum)) {
-                    // Both are numbers
-                    comparison = aNum - bNum;
-                } else {
-                    // String comparison (case-insensitive)
-                    comparison = aValue.localeCompare(bValue, 'ar');
-                }
-                
-                return sortDirection[column] === 'asc' ? comparison : -comparison;
-            });
-            
-            // Re-append sorted rows
-            rows.forEach(row => tbody.appendChild(row));
-        });
-    });
-});
-
-// Helper functions
-function getCleanCellText(cell) {
-    if (!cell) return '';
-    
-    let text = cell.textContent.trim().replace(/\s+/g, ' ');
-    
-    // Remove "no data" indicators
-    if (text.includes('لا يوجد') || text.includes('غير محدد') || text === '-') {
-        return '';
-    }
-    
-    return text;
-}
-
-function isColumnVisible(table, colIndex) {
-    const firstRowCells = table.querySelectorAll('thead tr:first-child th');
-    if (firstRowCells[colIndex]) {
-        return firstRowCells[colIndex].style.display !== 'none';
-    }
-    return false;
-}
-
-function isRowVisible(row) {
-    return row.style.display !== 'none' && row.offsetParent !== null;
-}
-
-// Export to Excel function - FIXED
-function exportToExcel() {
-    try {
+    document.addEventListener("DOMContentLoaded", function () {
         const table = document.getElementById('stakeholdersTable');
-        const wsData = [];
+        const tbody = table.querySelector('tbody');
+        const headers = table.querySelectorAll('thead tr:first-child th');
+        const columnToggleMenu = document.getElementById('columnToggleMenu');
 
-        // Get visible column indices (skip actions column)
-        const headerCells = table.querySelectorAll('thead tr:first-child th');
-        const visibleColumnIndices = [];
-        const headers = [];
-        
-        headerCells.forEach((th, index) => {
-            // Skip actions column (last column)
-            if (index === headerCells.length - 1) return;
-            
-            // Only include visible columns
-            if (isColumnVisible(table, index)) {
-                visibleColumnIndices.push(index);
-                headers.push(th.textContent.trim().replace(/\s+/g, ' '));
+        // Add Show All / Hide All buttons with proper icons
+        const controlsLi = document.createElement("li");
+        controlsLi.innerHTML = `
+            <div class="dropdown-item-text pb-2 mb-2">
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-success flex-fill" id="showAllColumns" title="إظهار جميع الأعمدة">
+                        <i class="fas fa-eye me-1"></i>
+                        <span class="d-none d-sm-inline">إظهار الكل</span>
+                    </button>
+                    <button class="btn btn-sm btn-danger flex-fill" id="hideAllColumns" title="إخفاء جميع الأعمدة">
+                        <i class="fas fa-eye-slash me-1"></i>
+                        <span class="d-none d-sm-inline">إخفاء الكل</span>
+                    </button>
+                </div>
+            </div>`;
+        columnToggleMenu.appendChild(controlsLi);
+
+        // Add separator
+        const separatorLi = document.createElement("li");
+        separatorLi.innerHTML = `<hr class="dropdown-divider">`;
+        columnToggleMenu.appendChild(separatorLi);
+
+        // Add individual column toggles with icons
+        headers.forEach((th, index) => {
+            if (index === headers.length - 1) return; // Skip actions column
+
+            const title = th.textContent.trim().replace(/\s+/g, ' ');
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <label class="dropdown-item d-flex align-items-center">
+                    <input type="checkbox" class="me-2 column-toggle" data-index="${index}" checked>
+                    <i class="fas fa-eye text-success me-2 column-icon"></i>
+                    <span>${title}</span>
+                </label>`;
+            columnToggleMenu.appendChild(li);
+        });
+
+        // Handle Show All Columns
+        document.getElementById('showAllColumns').addEventListener('click', function(e) {
+            e.preventDefault();
+            const checkboxes = columnToggleMenu.querySelectorAll('.column-toggle');
+            checkboxes.forEach(checkbox => {
+                if (!checkbox.checked) {
+                    checkbox.checked = true;
+                    const colIndex = parseInt(checkbox.getAttribute("data-index"));
+
+                    // Show the column
+                    table.querySelectorAll("tr").forEach(row => {
+                        const cell = row.querySelectorAll("th, td")[colIndex];
+                        if (cell) {
+                            cell.style.display = "";
+                        }
+                    });
+
+                    // Update icon to "eye" (visible)
+                    const label = checkbox.closest('label');
+                    const icon = label.querySelector('.column-icon');
+                    if (icon) {
+                        icon.className = 'fas fa-eye text-success me-2 column-icon';
+                    }
+                }
+            });
+        });
+
+        // Handle Hide All Columns
+        document.getElementById('hideAllColumns').addEventListener('click', function(e) {
+            e.preventDefault();
+            const checkboxes = columnToggleMenu.querySelectorAll('.column-toggle');
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    checkbox.checked = false;
+                    const colIndex = parseInt(checkbox.getAttribute("data-index"));
+
+                    // Hide the column
+                    table.querySelectorAll("tr").forEach(row => {
+                        const cell = row.querySelectorAll("th, td")[colIndex];
+                        if (cell) {
+                            cell.style.display = "none";
+                        }
+                    });
+
+                    // Update icon to "eye-slash" (hidden)
+                    const label = checkbox.closest('label');
+                    const icon = label.querySelector('.column-icon');
+                    if (icon) {
+                        icon.className = 'fas fa-eye-slash text-danger me-2 column-icon';
+                    }
+                }
+            });
+        });
+
+        // Handle individual column visibility toggle
+        columnToggleMenu.addEventListener("change", function (e) {
+            if (!e.target.classList.contains("column-toggle")) return;
+
+            const checkbox = e.target;
+            const colIndex = parseInt(checkbox.getAttribute("data-index"));
+            const isVisible = checkbox.checked;
+
+            // Toggle column visibility
+            table.querySelectorAll("tr").forEach(row => {
+                const cell = row.querySelectorAll("th, td")[colIndex];
+                if (cell) {
+                    cell.style.display = isVisible ? "" : "none";
+                }
+            });
+
+            // Update icon
+            const label = checkbox.closest('label');
+            const icon = label.querySelector('.column-icon');
+            if (icon) {
+                if (isVisible) {
+                    icon.className = 'fas fa-eye text-success me-2 column-icon';
+                } else {
+                    icon.className = 'fas fa-eye-slash text-danger me-2 column-icon';
+                }
             }
         });
-        
-        wsData.push(headers);
 
-        // Get only VISIBLE rows
-        const allRows = table.querySelectorAll('tbody tr.stakeholder-row');
-        
-        allRows.forEach(row => {
-            // Skip hidden rows
-            if (!isRowVisible(row)) return;
-            
-            const cols = row.querySelectorAll('td');
-            const rowData = [];
-            
-            // Only include data from visible columns
-            visibleColumnIndices.forEach(colIndex => {
-                const cell = cols[colIndex];
-                const text = getCleanCellText(cell);
-                rowData.push(text);
+        // Sorting functionality
+        let sortDirection = {};
+
+        document.querySelectorAll('.sortable').forEach(header => {
+            const column = parseInt(header.getAttribute('data-column'));
+            sortDirection[column] = 'none';
+
+            header.addEventListener('click', function() {
+                // Get all rows
+                const rows = Array.from(tbody.querySelectorAll('tr.stakeholder-row'));
+
+                if (rows.length === 0) return;
+
+                // Determine sort direction
+                if (sortDirection[column] === 'none' || sortDirection[column] === 'desc') {
+                    sortDirection[column] = 'asc';
+                } else {
+                    sortDirection[column] = 'desc';
+                }
+
+                // Update all headers to show unsorted state
+                document.querySelectorAll('.sortable').forEach(h => {
+                    h.classList.remove('asc', 'desc');
+                    const icon = h.querySelector('.sort-icon');
+                    icon.className = 'fas fa-sort sort-icon text-muted';
+                });
+
+                // Hide all sort indicators
+                document.querySelectorAll('.sort-indicator').forEach(indicator => {
+                    indicator.style.display = 'none';
+                });
+
+                // Update current header
+                header.classList.add(sortDirection[column]);
+                const icon = header.querySelector('.sort-icon');
+                const sortIndicator = document.getElementById('sortIndicator' + column);
+                const sortBadgeIcon = sortIndicator.querySelector('i');
+
+                if (sortDirection[column] === 'asc') {
+                    icon.className = 'fas fa-sort-up sort-icon';
+                    sortBadgeIcon.className = 'fas fa-sort-amount-up';
+                    sortIndicator.querySelector('.badge').classList.remove('bg-danger');
+                    sortIndicator.querySelector('.badge').classList.add('bg-success');
+                } else {
+                    icon.className = 'fas fa-sort-down sort-icon';
+                    sortBadgeIcon.className = 'fas fa-sort-amount-down';
+                    sortIndicator.querySelector('.badge').classList.remove('bg-success');
+                    sortIndicator.querySelector('.badge').classList.add('bg-danger');
+                }
+
+                // Show current sort indicator
+                sortIndicator.style.display = 'block';
+
+                // Sort rows
+                rows.sort((a, b) => {
+                    const aCell = a.querySelectorAll('td')[column];
+                    const bCell = b.querySelectorAll('td')[column];
+
+                    let aValue = aCell.textContent.trim();
+                    let bValue = bCell.textContent.trim();
+
+                    // Handle empty or "no data" values
+                    if (aValue.includes('لا يوجد') || aValue.includes('غير محدد') || aValue === '-' || aValue === '') aValue = '';
+                    if (bValue.includes('لا يوجد') || bValue.includes('غير محدد') || bValue === '-' || bValue === '') bValue = '';
+
+                    // Try to parse as numbers
+                    const aNum = parseFloat(aValue);
+                    const bNum = parseFloat(aValue);
+
+                    let comparison = 0;
+
+                    if (!isNaN(aNum) && !isNaN(bNum)) {
+                        // Both are numbers
+                        comparison = aNum - bNum;
+                    } else {
+                        // String comparison (case-insensitive)
+                        comparison = aValue.localeCompare(bValue, 'ar');
+                    }
+
+                    return sortDirection[column] === 'asc' ? comparison : -comparison;
+                });
+
+                // Re-append sorted rows
+                rows.forEach(row => tbody.appendChild(row));
             });
-            
-            wsData.push(rowData);
         });
+    });
 
-        // Generate Excel file
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        ws['!rtl'] = true;
+    // Helper functions
+    function getCleanCellText(cell) {
+        if (!cell) return '';
 
-        // Set column widths
-        const colWidths = headers.map(() => ({ wch: 20 }));
-        ws['!cols'] = colWidths;
+        let text = cell.textContent.trim().replace(/\s+/g, ' ');
 
-        XLSX.utils.book_append_sheet(wb, ws, "الجهات");
-        
-        const currentDate = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(wb, `الجهات_${currentDate}.xlsx`);
-
-        // Show success notification
-        if (typeof showNotification === 'function') {
-            showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+        // Remove "no data" indicators
+        if (text.includes('لا يوجد') || text.includes('غير محدد') || text === '-') {
+            return '';
         }
 
-    } catch (error) {
-        console.error('Error printing table:', error);
-        if (typeof showNotification === 'function') {
-            showNotification('حدث خطأ أثناء الطباعة', 'error');
+        return text;
+    }
+
+    function isColumnVisible(table, colIndex) {
+        const firstRowCells = table.querySelectorAll('thead tr:first-child th');
+        if (firstRowCells[colIndex]) {
+            return firstRowCells[colIndex].style.display !== 'none';
+        }
+        return false;
+    }
+
+    function isRowVisible(row) {
+        return row.style.display !== 'none' && row.offsetParent !== null;
+    }
+
+        // COMPLETELY FIXED exportToExcel with proper badge separation
+    function exportToExcel() {
+        try {
+            const table = document.getElementById('stakeholdersTable');
+            if (!table) throw new Error('Table with id "stakeholdersTable" not found');
+
+            const wsData = [];
+
+            // --- HEADERS & VISIBLE COLUMNS ---
+            const headerCells = table.querySelectorAll('thead tr:first-child th');
+            const headers = [];
+            const visibleColumnIndices = [];
+
+            headerCells.forEach((th, index) => {
+                if (index === headerCells.length - 1) return; // skip actions column
+                if (th.style.display === "none") return; // skip hidden columns
+
+                visibleColumnIndices.push(index);
+                let headerText = th.textContent.trim().replace(/\s+/g, ' ');
+                headerText = headerText.replace(/[\u{1F300}-\u{1F9FF}]/gu, '').trim();
+                headers.push(headerText);
+            });
+
+            if (headers.length === 0) {
+                throw new Error('No visible columns to export');
+            }
+
+            wsData.push(headers);
+
+            // --- ENHANCED TYPE EXTRACTION FUNCTION ---
+            function extractTypesFromCell(col) {
+                console.log('=== ANALYZING TYPES CELL ===');
+                console.log('Cell HTML:', col.innerHTML);
+
+                const types = [];
+
+                // Method 1: Look for individual badge elements
+                const badges = col.querySelectorAll('.badge, span.badge, .stakeholder-type-badge, [class*="badge"]');
+                console.log('Found badges:', badges.length);
+
+                if (badges.length > 0) {
+                    badges.forEach((badge, index) => {
+                        console.log(`\n--- Badge ${index + 1} ---`);
+                        console.log('Badge HTML:', badge.outerHTML);
+
+                        // Create a clean copy of the badge
+                        const badgeClone = badge.cloneNode(true);
+
+                        // Remove all icon elements completely
+                        const iconsToRemove = badgeClone.querySelectorAll('i, .fa, .fas, .far, .fab, .fal, .fad, [class*="fa-"], .icon');
+                        iconsToRemove.forEach(icon => {
+                            console.log('Removing icon:', icon.outerHTML);
+                            icon.remove();
+                        });
+
+                        // Get clean text from the badge
+                        let badgeText = badgeClone.textContent || '';
+                        console.log('Raw badge text:', `"${badgeText}"`);
+
+                        // Clean up the text
+                        badgeText = badgeText
+                            .replace(/[\u{1F300}-\u{1F9FF}]/gu, '') // Remove emojis
+                            .replace(/[★✩✪✫✬✭✮✯✰☆✦✧✨⭐]/g, '') // Remove star symbols
+                            .replace(/\s+/g, ' ') // Normalize whitespace
+                            .trim();
+
+                        console.log('Cleaned badge text:', `"${badgeText}"`);
+
+                        if (badgeText && badgeText.length > 0) {
+                            types.push(badgeText);
+                        }
+                    });
+                }
+
+                // Method 2: If no badges found, try alternative selectors
+                if (types.length === 0) {
+                    console.log('\nNo badges found, trying alternative methods...');
+
+                    // Look for spans that might contain type information
+                    const spans = col.querySelectorAll('span');
+                    console.log('Found spans:', spans.length);
+
+                    spans.forEach((span, index) => {
+                        // Skip if it's clearly an icon or empty
+                        if (span.classList.contains('fa') ||
+                            span.classList.contains('fas') ||
+                            span.classList.contains('far') ||
+                            span.classList.contains('fab') ||
+                            span.innerHTML.includes('<i ')) {
+                            return;
+                        }
+
+                        const spanText = span.textContent.trim();
+                        console.log(`Span ${index + 1} text:`, `"${spanText}"`);
+
+                        if (spanText && spanText.length > 2 && !spanText.includes('fa-')) {
+                            types.push(spanText);
+                        }
+                    });
+                }
+
+                // Method 3: If still no types, try parsing the entire cell text
+                if (types.length === 0) {
+                    console.log('\nNo spans worked, trying full cell parsing...');
+
+                    // Get all text content but remove icons first
+                    const cellClone = col.cloneNode(true);
+                    const allIcons = cellClone.querySelectorAll('i, .fa, .fas, .far, .fab, [class*="fa-"]');
+                    allIcons.forEach(icon => icon.remove());
+
+                    let fullText = cellClone.textContent || '';
+                    console.log('Full cell text after icon removal:', `"${fullText}"`);
+
+                    // Clean up the text
+                    fullText = fullText
+                        .replace(/[★✩✪✫✬✭✮✯✰☆✦✧✨⭐]/g, '') // Remove stars
+                        .replace(/\s+/g, ' ') // Normalize whitespace
+                        .trim();
+
+                    if (fullText) {
+                        // Try to split by common patterns that might separate types
+                        let possibleTypes = [];
+
+                        // Split by existing Arabic commas first
+                        if (fullText.includes('،')) {
+                            possibleTypes = fullText.split('،').map(t => t.trim()).filter(Boolean);
+                        }
+                        // Split by English commas
+                        else if (fullText.includes(',')) {
+                            possibleTypes = fullText.split(',').map(t => t.trim()).filter(Boolean);
+                        }
+                        // If no commas, try to identify word boundaries that might indicate separate types
+                        else {
+                            // This is a heuristic approach - split when we see potential type endings + beginnings
+                            const words = fullText.split(/\s+/);
+                            let currentType = '';
+
+                            for (let i = 0; i < words.length; i++) {
+                                const word = words[i];
+                                currentType += word + ' ';
+
+                                // Check if this might be the end of a type (common Arabic business type patterns)
+                                const isLikelyTypeEnd = /^(تاجر|مصنع|شركة|مؤسسة|مكتب|معمل|محل|متجر|مطعم|مقهى|صيدلية|عيادة|مستشفى|مدرسة|جامعة|معهد)$/i.test(word) ||
+                                                      /ين$|ون$|ة$|ات$/.test(word);
+
+                                // Check if next word might be start of new type
+                                const nextWord = words[i + 1];
+                                const isNextTypeStart = nextWord && /^(تاجر|مصنع|شركة|مؤسسة|مكتب|معمل|محل|متجر|مطعم|مقهى|صيدلية|عيادة|مستشفى|مدرسة|جامعة|معهد)/i.test(nextWord);
+
+                                if (isLikelyTypeEnd && isNextTypeStart) {
+                                    possibleTypes.push(currentType.trim());
+                                    currentType = '';
+                                }
+                            }
+
+                            // Add any remaining text as a type
+                            if (currentType.trim()) {
+                                possibleTypes.push(currentType.trim());
+                            }
+
+                            // If heuristic didn't work well (only one type but seems long), fall back to original text
+                            if (possibleTypes.length === 1 && possibleTypes[0].length > 50) {
+                                possibleTypes = [fullText];
+                            }
+                        }
+
+                        console.log('Possible types found:', possibleTypes);
+                        types.push(...possibleTypes.filter(Boolean));
+                    }
+                }
+
+                // Remove duplicates and clean final results
+                const uniqueTypes = [...new Set(types.map(t =>
+                    t.replace(/\s+/g, ' ')
+                     .trim()
+                     .replace(/^[:\-–—\s]+|[:\-–—\s]+$/g, '')
+                ))].filter(Boolean);
+
+                console.log('Final extracted types:', uniqueTypes);
+                console.log('=== END CELL ANALYSIS ===\n');
+
+                return uniqueTypes;
+            }
+
+            // --- ROWS ---
+            const rows = table.querySelectorAll('tbody tr.stakeholder-row');
+            let exportedRowCount = 0;
+
+            rows.forEach((row, rowIndex) => {
+                console.log(`\n=== PROCESSING ROW ${rowIndex + 1} ===`);
+
+                const computedStyle = window.getComputedStyle(row);
+                if (row.style.display === "none" ||
+                    computedStyle.display === "none" ||
+                    computedStyle.visibility === "hidden") {
+                    console.log('Row is hidden, skipping...');
+                    return;
+                }
+
+                const cols = row.querySelectorAll('td');
+                const rowData = [];
+
+                visibleColumnIndices.forEach((colIndex, visibleIndex) => {
+                    const col = cols[colIndex];
+                    if (!col) {
+                        rowData.push('');
+                        return;
+                    }
+
+                    let text = '';
+                    const headerText = headers[visibleIndex] || '';
+
+                    console.log(`Processing column ${colIndex} (${headerText})...`);
+
+                    // Determine if this is the types column
+                    const isTypesColumn = col.classList.contains('stakeholder-type') ||
+                                         /نوع|النوع|الأنواع/i.test(headerText) ||
+                                         colIndex === 1;
+
+                    if (isTypesColumn) {
+                        console.log('This is identified as the TYPES column');
+                        const extractedTypes = extractTypesFromCell(col);
+                        text = extractedTypes.join('، '); // Join with Arabic comma
+                        console.log('Final types text:', `"${text}"`);
+                    }
+                    // Handle other column types as before
+                    else if (col.classList.contains('stakeholder-phone') || /هاتف|تواصل/i.test(headerText)) {
+                        const phoneElements = col.querySelectorAll('span[dir="ltr"], .phone, .phones');
+                        if (phoneElements.length > 0) {
+                            const phones = Array.from(phoneElements)
+                                .map(el => el.textContent.trim())
+                                .filter(p => p && p !== '-');
+                            text = phones.join('، ');
+                        } else {
+                            text = col.textContent.trim().replace(/\s+/g, ' ');
+                        }
+                    }
+                    else if (col.classList.contains('stakeholder-status') || /حالة|نشط|غير نشط/i.test(headerText)) {
+                        const statusToggle = col.querySelector('.status-toggle, input[type="checkbox"]');
+                        if (statusToggle && typeof statusToggle.checked !== 'undefined') {
+                            text = statusToggle.checked ? 'نشط' : 'غير نشط';
+                        } else {
+                            text = col.textContent.trim();
+                        }
+                    }
+                    else if (col.classList.contains('stakeholder-comment') || /ملاحظات|تعليق/i.test(headerText)) {
+                        const commentSpan = col.querySelector('.comment-text');
+                        text = commentSpan ? (commentSpan.getAttribute('title') || commentSpan.textContent.trim()) : col.textContent.trim();
+                    }
+                    else {
+                        const cellClone = col.cloneNode(true);
+                        const icons = cellClone.querySelectorAll('i, [class*="fa-"], .fa, .fas, .far, .fab, .fal, .fad');
+                        icons.forEach(icon => icon.remove());
+                        text = cellClone.textContent.trim().replace(/\s+/g, ' ');
+                    }
+
+                    // Clean up common placeholder text
+                    if (['لا يوجد وصف', '-', '', 'لا يوجد نوع', 'لا يوجد', 'لا توجد واجهات مرتبطة'].includes(text)) {
+                        text = '';
+                    }
+
+                    text = text.replace(/[\u{1F300}-\u{1F9FF}]/gu, '')
+                              .replace(/fa-[a-z-]+/gi, '')
+                              .replace(/\s+/g, ' ')
+                              .trim();
+
+                    rowData.push(text);
+                });
+
+                if (rowData.some(cell => cell !== '')) {
+                    wsData.push(rowData);
+                    exportedRowCount++;
+                }
+            });
+
+            if (exportedRowCount === 0) {
+                showNotification('لا توجد بيانات للتصدير', 'warning');
+                return;
+            }
+
+            // --- EXCEL CREATION (keeping your existing styling) ---
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+            if (!ws['!views']) ws['!views'] = [];
+            ws['!views'][0] = { rightToLeft: true };
+
+            const colWidths = headers.map((header, index) => {
+                const maxLength = Math.max(
+                    header.length,
+                    ...wsData.slice(1).map(row => (row[index] || '').toString().length)
+                );
+                let width = Math.max(maxLength + 2, 15);
+                if (header.includes('نوع') || header.includes('الأنواع')) width = Math.max(width, 35);
+                else if (header.includes('هاتف') || header.includes('تواصل')) width = Math.max(width, 20);
+                else if (header.includes('ملاحظات') || header.includes('تعليق')) width = Math.max(width, 35);
+                return { wch: Math.min(width, 70) };
+            });
+            ws['!cols'] = colWidths;
+
+            // Header styling
+            const range = XLSX.utils.decode_range(ws['!ref']);
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const address = XLSX.utils.encode_col(C) + "1";
+                if (!ws[address]) continue;
+                ws[address].s = {
+                    font: { bold: true, sz: 12, color: { rgb: "FFFFFF" } },
+                    fill: { fgColor: { rgb: "2E7D32" } },
+                    alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                    border: {
+                        top: { style: "thin", color: { rgb: "000000" } },
+                        bottom: { style: "thin", color: { rgb: "000000" } },
+                        left: { style: "thin", color: { rgb: "000000" } },
+                        right: { style: "thin", color: { rgb: "000000" } }
+                    }
+                };
+            }
+
+            // Data cell styling
+            for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const address = XLSX.utils.encode_cell({ r: R, c: C });
+                    if (!ws[address]) continue;
+                    ws[address].s = ws[address].s || {};
+                    ws[address].s.border = {
+                        top: { style: "thin", color: { rgb: "CCCCCC" } },
+                        bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                        left: { style: "thin", color: { rgb: "CCCCCC" } },
+                        right: { style: "thin", color: { rgb: "CCCCCC" } }
+                    };
+                    ws[address].s.alignment = { horizontal: "right", vertical: "center", wrapText: true };
+                    if (R % 2 === 0) ws[address].s.fill = { fgColor: { rgb: "F8F9FA" } };
+                }
+            }
+
+            XLSX.utils.book_append_sheet(wb, ws, "قائمة الجهات المعنية");
+
+            if (!wb.Workbook) wb.Workbook = {};
+            wb.Workbook.Views = [{ RTL: true }];
+            wb.Props = {
+                Title: "قائمة الجهات المعنية",
+                Subject: "تصدير بيانات الجهات المعنية",
+                Author: "نظام إدارة الجهات المعنية",
+                Creator: "Ammar-Yasser8",
+                CreatedDate: new Date()
+            };
+
+            const now = new Date();
+            const filename = `stakeholders_${now.getFullYear()}-${(now.getMonth()+1).toString().padStart(2,'0')}-${now.getDate().toString().padStart(2,'0')}_${now.getHours().toString().padStart(2,'0')}-${now.getMinutes().toString().padStart(2,'0')}.xlsx`;
+
+            XLSX.writeFile(wb, filename);
+
+            const arabicRowCount = exportedRowCount.toString().replace(/\d/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+            showNotification(`تم تصدير ${arabicRowCount} جهة بنجاح إلى ملف Excel`, 'success');
+
+            console.log('Excel export completed:', {
+                rowsExported: exportedRowCount,
+                filename: filename,
+                timestamp: new Date().toISOString(),
+                user: 'Ammar-Yasser8'
+            });
+
+        } catch (error) {
+            console.error('Export error:', error);
+            showNotification('حدث خطأ أثناء التصدير. يرجى المحاولة مرة أخرى.', 'error');
         }
     }
-}
 
-       // Print function - FIXED
+    // Helper function for notifications
+    function showNotification(message, type = 'info') {
+        if (typeof Notification !== 'undefined' && Notification.show) {
+            Notification.show(message, type);
+        } else {
+            console.log(`${type.toUpperCase()}: ${message}`);
+            alert(message);
+        }
+    }
+
+            // Print function - FIXED
     function printTable() {
         try {
             const table = document.getElementById('stakeholdersTable');
@@ -734,8 +1148,35 @@ function exportToExcel() {
 
                 visibleColumnIndices.forEach(colIndex => {
                     const td = document.createElement('td');
-                    const text = getCleanCellText(cols[colIndex]);
-                    td.textContent = text || '-';
+
+                    // Special handling for phone number column (index 4)
+                    if (colIndex === 4) {
+                        const phoneCell = cols[colIndex];
+                        const phoneElements = phoneCell.querySelectorAll('[dir="ltr"]');
+
+                        if (phoneElements.length > 0) {
+                            // Extract phone numbers and format them for print
+                            const phoneNumbers = Array.from(phoneElements)
+                                .map(el => el.textContent.trim())
+                                .filter(phone => phone && phone !== '-');
+
+                            if (phoneNumbers.length > 0) {
+                                // Join multiple phone numbers with commas for print
+                                td.textContent = phoneNumbers.join(' ، ');
+                                td.style.direction = 'ltr';
+                                td.style.textAlign = 'left';
+                            } else {
+                                td.textContent = '-';
+                            }
+                        } else {
+                            const text = getCleanCellText(cols[colIndex]);
+                            td.textContent = text || '-';
+                        }
+                    } else {
+                        const text = getCleanCellText(cols[colIndex]);
+                        td.textContent = text || '-';
+                    }
+
                     tr.appendChild(td);
                 });
 
@@ -909,986 +1350,879 @@ function exportToExcel() {
 @section Scripts {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-              <!-- Export and Print Functions -->
-      
-
+    <!-- Export and Print Functions -->
     <script>
-                $(document).ready(function() {
-            const CURRENT_TIME = '2025-10-09 21:59:46';
-            const CURRENT_USER = 'Ammar-Yasser8';
+        $(document).ready(function() {
+            // ========================================
+            // CONSTANTS & CONFIGURATION
+            // ========================================
+            const CONFIG = {
+                CURRENT_TIME: '2025-11-17 10:14:41',
+                CURRENT_USER: 'Ammar-Yasser8',
+                SEARCH_DELAY: 200,
+                TOAST_DELAY: 4000,
+                ALERT_DISMISS_DELAY: 5000,
+                COMMENT_MAX_LENGTH: 1000,
+                COMMENT_DISPLAY_LENGTH: 60
+            };
 
-            console.log('Enhanced stakeholders info with modal Arabic numbers loaded:', {
-                time: CURRENT_TIME,
-                user: CURRENT_USER
-            });
+            // ========================================
+            // STATE MANAGEMENT
+            // ========================================
+            const State = {
+                stakeholdersData: [],
+                currentDetailsId: null,
+                searchTimeout: null
+            };
 
-            // ==================== ARABIC NUMBER CONVERSION FUNCTIONS ====================
+            // ========================================
+            // MODAL INSTANCES
+            // ========================================
+            const Modals = {
+                stakeholder: null,
+                delete: new bootstrap.Modal(document.getElementById('deleteModal')),
+                details: new bootstrap.Modal(document.getElementById('detailsModal')),
+                toast: new bootstrap.Toast(document.getElementById('notificationToast'), {
+                    delay: CONFIG.TOAST_DELAY
+                })
+            };
 
-            function toArabicDigits(str) {
-                if (typeof str !== 'string' && typeof str !== 'number') return str;
-                return str.toString().replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-            }
+            // ========================================
+            // UTILITY: ARABIC NUMBER CONVERSION - FIXED
+            // ========================================
+            const NumberConverter = {
+                arabicDigits: '٠١٢٣٤٥٦٧٨٩',
+                latinDigits: '0123456789',
 
-            function toLatinDigits(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-            }
+                toArabic(str) {
+                    if (typeof str !== 'string' && typeof str !== 'number') return str;
+                    return str.toString().replace(/[0-9]/g, d => this.arabicDigits[d]);
+                },
 
-            function containsArabicText(str) {
-                if (!str) return false;
-                return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str);
-            }
+                toLatin(str) {
+                    if (typeof str !== 'string') return str;
+                    return str.replace(/[٠-٩]/g, d => this.latinDigits[this.arabicDigits.indexOf(d)]);
+                },
 
-            function getAppropriateNumberFormat(text) {
-                if (!text || typeof text !== 'string') return 'arabic';
-                if (containsArabicText(text)) return 'arabic';
-                if (/^[a-zA-Z0-9\s\-_@@.]+$/.test(text)) return 'latin';
-                return 'arabic';
-            }
+                containsArabicText(str) {
+                    if (!str) return false;
+                    return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str);
+                },
 
-            function applyAppropriateNumberFormat(text, context = '') {
-                if (!text) return text;
-                const combinedContext = context + ' ' + ($('#Name').val() || '') + ' ' + ($('#Comment').val() || '');
-                const format = getAppropriateNumberFormat(combinedContext);
-                return format === 'arabic' ? toArabicDigits(text) : toLatinDigits(text);
-            }
+                isOnlyEnglishAndNumbers(str) {
+                    if (!str || typeof str !== 'string') return false;
+                    return /^[a-zA-Z0-9\s\-_@@.]+$/.test(str);
+                },
 
-            // ==================== MODAL HANDLING FUNCTIONS ====================
+                // FIXED: Better format detection
+                getAppropriateFormat(text, contextText = '') {
+                    if (!text || typeof text !== 'string') return 'arabic';
 
-            function initializeModalContent() {
-                console.log('Initializing modal content with Arabic detection');
+                    const combined = contextText + ' ' + text;
 
-                // Setup auto-formatting for form inputs (excluding phone numbers)
-                $('#modalBody input[type="text"], #modalBody textarea').not('[name="ContactNumber"]').on('input blur keyup', function() {
-                    const $this = $(this);
-                    setTimeout(() => {
-                        updateElementDisplay($this[0]);
-                        updateAllCounters();
-                    }, 50);
-                });
+                    // If contains Arabic characters, use Arabic numbers
+                    if (this.containsArabicText(combined)) return 'arabic';
 
-                // Setup direct number key conversion for immediate Arabic conversion (excluding phone field)
-                $('#modalBody input[type="text"], #modalBody textarea').not('[name="ContactNumber"]').on('keypress', function(e) {
-                    if (e.which >= 48 && e.which <= 57) { // 0-9 keys
-                        const nameText = $('#Name').val() || '';
-                        const commentText = $('#Comment').val() || '';
-                        const combinedText = nameText + ' ' + commentText;
+                    // If only English and numbers, use Latin numbers
+                    if (this.isOnlyEnglishAndNumbers(combined)) return 'latin';
 
-                        if (getAppropriateNumberFormat(combinedText) === 'arabic') {
-                            e.preventDefault();
-                            let digit = String.fromCharCode(e.which);
-                            let arabicDigit = toArabicDigits(digit);
+                    // Default to Arabic for mixed or unclear content
+                    return 'arabic';
+                },
 
-                            let input = e.target;
-                            let cursorPos = input.selectionStart || 0;
-                            let currentValue = input.value;
+                // FIXED: Apply format without changing existing content unnecessarily
+                applyFormatSmart(text, context = '') {
+                    if (!text) return text;
 
-                            let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
-                            input.value = newValue;
-                            input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+                    const format = this.getAppropriateFormat(text, context);
 
-                            $(input).trigger('input');
-                        }
+                    // Only convert if there's a clear format preference
+                    if (format === 'arabic') {
+                        return this.toArabic(text);
+                    } else if (format === 'latin') {
+                        return this.toLatin(text);
                     }
-                });
 
-                updateAllCounters();
-                setupModalFormSubmission();
-            }
+                    return text; // Return unchanged if format is unclear
+                },
 
-            function updateElementDisplay(element) {
-                const $element = $(element);
-                let text = $element.val() || $element.text();
-
-                if (!text || $element.attr('name') === 'ContactNumber') return;
-
-                const formattedText = applyAppropriateNumberFormat(text, text);
-
-                if ($element.is('input, textarea, select')) {
-                    if ($element.val() !== formattedText) {
-                        const cursorPos = element.selectionStart || 0;
-                        $element.val(formattedText);
-                        try {
-                            element.setSelectionRange(cursorPos, cursorPos);
-                        } catch (ex) {
-                            $element.focus();
-                        }
-                    }
-                } else {
-                    if ($element.text() !== formattedText) {
-                        $element.text(formattedText);
-                    }
+                // FIXED: Get appropriate digit for new input
+                getAppropriateDigit(digit, context = '') {
+                    const format = this.getAppropriateFormat('', context);
+                    return format === 'arabic' ? this.toArabic(digit) : digit;
                 }
-            }
-
-            function updateAllCounters() {
-                updateCharCounter();
-                updateTypeCounter();
-                updateValidationCounter();
-            }
-
-            function updateCharCounter() {
-                const $comment = $('#Comment');
-                if ($comment.length === 0) return;
-
-                const maxLength = 1000;
-                const currentLength = $comment.val().length;
-                const commentText = $comment.val();
-                const nameText = $('#Name').val() || '';
-
-                const combinedText = nameText + ' ' + commentText;
-                const format = getAppropriateNumberFormat(combinedText);
-
-                const formattedCurrent = format === 'arabic' ? toArabicDigits(currentLength.toString()) : currentLength.toString();
-                const formattedMax = format === 'arabic' ? toArabicDigits(maxLength.toString()) : maxLength.toString();
-
-                let $counter = $('#commentCounter');
-                if ($counter.length === 0) {
-                    $comment.after(`
-                        <div class="d-flex justify-content-between align-items-center mt-2">
-                            <small class="text-muted">عدد الأحرف: <span id="commentCounter">${formattedCurrent}/${formattedMax}</span></small>
-                        </div>
-                    `);
-                    $counter = $('#commentCounter');
-                } else {
-                    $counter.text(`${formattedCurrent}/${formattedMax}`);
-                }
-
-                $counter.removeClass("text-warning text-danger");
-                if (currentLength > maxLength * 0.8) {
-                    $counter.addClass("text-warning");
-                }
-                if (currentLength >= maxLength) {
-                    $counter.addClass("text-danger").removeClass("text-warning");
-                }
-            }
-
-            function updateTypeCounter() {
-                const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
-                const totalCount = $("input[name='SelectedTypeIds']").length;
-
-                if (totalCount === 0) return;
-
-                const nameText = $('#Name').val() || '';
-                const commentText = $('#Comment').val() || '';
-                const combinedText = nameText + ' ' + commentText;
-                const format = getAppropriateNumberFormat(combinedText);
-
-                const formattedSelected = format === 'arabic' ? toArabicDigits(selectedCount.toString()) : selectedCount.toString();
-                const formattedTotal = format === 'arabic' ? toArabicDigits(totalCount.toString()) : totalCount.toString();
-
-                let $typeControls = $('#typeControls');
-                if ($typeControls.length === 0) {
-                    const $firstTypeLabel = $("label[for*='type_']").first().parent().parent();
-                    if ($firstTypeLabel.length > 0) {
-                        $firstTypeLabel.before(`
-                            <div class="row mb-3" id="typeControls">
-                                <div class="col-12">
-                                    <div class="btn-group" role="group">
-                                        <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllTypes">
-                                            <i class="fas fa-check-double me-1"></i>تحديد الكل (<span class="type-counter">${formattedSelected}/${formattedTotal}</span>)
-                                        </button>
-                                        <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllTypes">
-                                            <i class="fas fa-times me-1"></i>إلغاء الكل
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        `);
-                    }
-                } else {
-                    $typeControls.find('.type-counter').text(`${formattedSelected}/${formattedTotal}`);
-                }
-            }
-
-            function updateValidationCounter() {
-                const $validationSummary = $('#validationSummary');
-                if ($validationSummary.length === 0) return;
-
-                const errorCount = $validationSummary.find('li').length;
-                const nameText = $('#Name').val() || '';
-                const format = getAppropriateNumberFormat(nameText);
-                const formattedCount = format === 'arabic' ? toArabicDigits(errorCount.toString()) : errorCount.toString();
-
-                $validationSummary.find('h6').html(`<i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء`);
-            }
-
-            // Fixed form submission handler
-            function setupModalFormSubmission() {
-                $('#modalBody').off('submit', '#stakeholderForm');
-
-                $('#modalBody').on('submit', '#stakeholderForm', function(e) {
-                    e.preventDefault();
-
-                    const form = $(this);
-                    const formData = new FormData(this);
-
-                    // Show loading state
-                    const $submitBtn = form.find('button[type="submit"]');
-                    const originalText = $submitBtn.html();
-                    $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
-
-                    // Clear previous validation errors
-                    clearValidationErrors();
-
-                    const actionUrl = form.attr('action');
-
-                    $.ajax({
-                        url: actionUrl,
-                        type: 'POST',
-                        data: formData,
-                        processData: false,
-                        contentType: false,
-                        success: function(response) {
-                            $submitBtn.prop('disabled', false).html(originalText);
-
-                            if (response.success) {
-                                // Close modal and reload data
-                                $('#stakeholderModal').modal('hide');
-                                showNotification(response.message || 'تم الحفظ بنجاح', 'success');
-                                loadStakeholders(); // Reload the table
-                            } else {
-                                // Handle validation errors
-                                if (response.errors) {
-                                    displayValidationErrors(response.errors);
-                                } else {
-                                    showNotification(response.message || 'حدث خطأ أثناء الحفظ', 'error');
-                                }
-                            }
-                        },
-                        error: function(xhr, status, error) {
-                            $submitBtn.prop('disabled', false).html(originalText);
-                            console.error('Form submission error:', { xhr, status, error });
-
-                            let errorMessage = 'حدث خطأ أثناء حفظ البيانات';
-
-                            if (xhr.responseJSON) {
-                                if (xhr.responseJSON.errors) {
-                                    displayValidationErrors(xhr.responseJSON.errors);
-                                    return;
-                                } else if (xhr.responseJSON.message) {
-                                    errorMessage = xhr.responseJSON.message;
-                                }
-                            }
-
-                            showNotification(errorMessage, 'error');
-                        }
-                    });
-                });
-            }
-
-            function displayValidationErrors(errors) {
-                clearValidationErrors();
-
-                if (!errors || Object.keys(errors).length === 0) return;
-
-                const nameText = $('#Name').val() || '';
-                const format = getAppropriateNumberFormat(nameText);
-
-                // Count total errors
-                const errorCount = Object.keys(errors).reduce((count, key) => {
-                    return count + (Array.isArray(errors[key]) ? errors[key].length : 1);
-                }, 0);
-
-                const formattedCount = format === 'arabic' ? toArabicDigits(errorCount.toString()) : errorCount.toString();
-
-                let errorHtml = '';
-                Object.keys(errors).forEach(key => {
-                    if (Array.isArray(errors[key])) {
-                        errors[key].forEach(error => {
-                            errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${error}</li>`;
-                        });
-                    } else {
-                        errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${errors[key]}</li>`;
-                    }
-                });
-
-                const validationSummary = `
-                    <div class="alert alert-danger mb-4" id="validationSummary">
-                        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء</h6>
-                        <ul class="mb-0">${errorHtml}</ul>
-                    </div>
-                `;
-
-                $('#modalBody form').prepend(validationSummary);
-
-                // Scroll to top of modal to show errors
-                $('#modalBody').animate({ scrollTop: 0 }, 300);
-            }
-
-            function clearValidationErrors() {
-                $('#validationSummary').remove();
-                $('.is-invalid').removeClass('is-invalid');
-                $('.text-danger').text('');
-            }
-
-            // ==================== MODAL EVENT HANDLERS ====================
-
-            $('#stakeholderModal').on('shown.bs.modal', function() {
-                setTimeout(() => {
-                    initializeModalContent();
-                    $('#Name').focus();
-                }, 100);
-            });
-
-            $('#stakeholderModal').on('hidden.bs.modal', function() {
-                $('#modalBody').empty();
-            });
-
-            // Handle dynamic type selection events
-            $(document).on('change', "input[name='SelectedTypeIds']", function() {
-                updateTypeCounter();
-                updatePrimaryTypeOptions();
-            });
-
-            // Handle select all types button
-            $(document).on('click', '#selectAllTypes', function() {
-                const totalCount = $("input[name='SelectedTypeIds']").length;
-                const nameText = $('#Name').val() || '';
-                const format = getAppropriateNumberFormat(nameText);
-                const formattedTotal = format === 'arabic' ? toArabicDigits(totalCount.toString()) : totalCount.toString();
-
-                showArabicConfirm(
-                    'تحديد الكل',
-                    `هل تريد تحديد جميع الأنواع (${formattedTotal} نوع)؟`,
-                    'تحديد الكل',
-                    'إلغاء'
-                ).then((result) => {
-                    if (result.isConfirmed) {
-                        $("input[name='SelectedTypeIds']").prop("checked", true);
-                        updateTypeCounter();
-                        updatePrimaryTypeOptions();
-                    }
-                });
-            });
-
-            // Handle deselect all types button
-            $(document).on('click', '#deselectAllTypes', function() {
-                const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
-                if (selectedCount === 0) return;
-
-                const nameText = $('#Name').val() || '';
-                const format = getAppropriateNumberFormat(nameText);
-                const formattedCount = format === 'arabic' ? toArabicDigits(selectedCount.toString()) : selectedCount.toString();
-
-                showArabicConfirm(
-                    'إلغاء التحديد',
-                    `هل تريد إلغاء تحديد ${formattedCount} نوع؟`,
-                    'إلغاء التحديد',
-                    'تراجع'
-                ).then((result) => {
-                    if (result.isConfirmed) {
-                        $("input[name='SelectedTypeIds']").prop("checked", false);
-                        $("#PrimaryTypeId").val("");
-                        updateTypeCounter();
-                        updatePrimaryTypeOptions();
-                    }
-                });
-            });
-
-            function updatePrimaryTypeOptions() {
-                const selectedTypes = $("input[name='SelectedTypeIds']:checked").map(function() {
-                    return $(this).val();
-                }).get();
-
-                $("#PrimaryTypeId option").each(function() {
-                    const value = $(this).val();
-                    if (value && !selectedTypes.includes(value)) {
-                        $(this).prop("disabled", true);
-                        if ($(this).prop("selected")) {
-                            $(this).prop("selected", false);
-                        }
-                    } else {
-                        $(this).prop("disabled", false);
-                    }
-                });
-            }
-
-            // Enhanced popup functions with SweetAlert2
-            function showArabicPopup(title, message, type = 'info') {
-                const format = getAppropriateNumberFormat(message.toString());
-                const formattedTitle = format === 'arabic' ? toArabicDigits(title.toString()) : title.toString();
-                const formattedMessage = format === 'arabic' ? toArabicDigits(message.toString()) : message.toString();
-
-                if (typeof Swal !== 'undefined') {
-                    return Swal.fire({
-                        title: formattedTitle,
-                        text: formattedMessage,
-                        icon: type,
-                        confirmButtonText: 'موافق',
-                        confirmButtonColor: '#3085d6',
-                        customClass: {
-                            popup: 'arabic-popup'
-                        }
-                    });
-                } else {
-                    alert(`${formattedTitle}: ${formattedMessage}`);
-                }
-            }
-
-            function showArabicConfirm(title, message, confirmText = 'نعم', cancelText = 'لا') {
-                const format = getAppropriateNumberFormat(message.toString());
-                const formattedTitle = format === 'arabic' ? toArabicDigits(title.toString()) : title.toString();
-                const formattedMessage = format === 'arabic' ? toArabicDigits(message.toString()) : message.toString();
-
-                if (typeof Swal !== 'undefined') {
-                    return Swal.fire({
-                        title: formattedTitle,
-                        text: formattedMessage,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: confirmText,
-                        cancelButtonText: cancelText,
-                        customClass: {
-                            popup: 'arabic-popup'
-                        }
-                    });
-                } else {
-                    return Promise.resolve({ isConfirmed: confirm(`${formattedTitle}: ${formattedMessage}`) });
-                }
-            }
-
-            // ==================== SEARCH FUNCTIONALITY ====================
-
-            // Convert English digits to Arabic digits for search
-            function toArabicDigits_search(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
-            }
-
-            // Convert Arabic digits to English digits for search
-            function toLatinDigits_search(str) {
-                if (typeof str !== 'string') return str;
-                return str.replace(/[٠-٩]/g, d => '0123456789'['٠١٢٣٤٥٦٧٨٩'.indexOf(d)]);
-            }
-
-            // Check if the string contains Arabic characters for search
-            function containsArabic_search(str) {
-                return /[\u0600-\u06FF]/.test(str);
-            }
-
-            function shouldUseArabicNumbers_search(str) {
-                if (!str || str.trim().length === 0) {
-                    return true; // Default Arabic when empty
-                }
-
-                // If contains Arabic letters → use Arabic
-                if (containsArabic_search(str)) {
-                    return true;
-                }
-
-                // If contains only numbers → default Arabic
-                if (/^[0-9٠-٩]+$/.test(str)) {
-                    return true;
-                }
-
-                // Otherwise English
-                return false;
-            }
-
-            // Apply number conversion based on the input content for search
-            function applyNumberConversion_search($input) {
-                let val = $input.val();
-                let useArabicNumbers = shouldUseArabicNumbers_search(val || "");
-                let newVal = useArabicNumbers ? toArabicDigits_search(val || "") : toLatinDigits_search(val || "");
-
-                if (newVal !== val) {
-                    let cursorPos = $input[0].selectionStart || 0;
-                    $input.val(newVal);
-                    try {
-                        $input[0].setSelectionRange(cursorPos, cursorPos);
-                    } catch (ex) {
-                        $input.focus();
-                    }
-                }
-            }
-
-            // Enhanced search input event handler with Arabic support - excluding phone field from conversion
-            $(document).on("input keyup paste", "#searchByName, #searchByType, #searchByFinancial, #searchByComment", function(e) {
-                const $input = $(this);
-                applyNumberConversion_search($input);
-            });
-
-            // Phone field gets special treatment - no conversion
-            $(document).on("input keyup paste", "#searchByPhone", function(e) {
-                // No conversion for phone numbers - keep as entered
-            });
-
-            // Direct number key conversion for immediate Arabic conversion - excluding phone field
-            $(document).on("keypress", "#searchByName, #searchByType, #searchByFinancial, #searchByComment", function(e) {
-                // Convert English digits to Arabic immediately
-                if (e.which >= 48 && e.which <= 57) { // 0-9
-                    e.preventDefault();
-                    let digit = String.fromCharCode(e.which);
-                    let arabicDigit = toArabicDigits_search(digit);
-
-                    let input = e.target;
-                    let cursorPos = input.selectionStart || 0;
-                    let currentValue = input.value;
-
-                    let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
-                    input.value = newValue;
-
-                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
-
-                    // Trigger search
-                    $(input).trigger('input');
-                }
-            });
-
-            // Enhanced search functionality with Arabic number support
-            function performSearch() {
-                const nameSearch = $('#searchByName').val().toLowerCase().trim();
-                const nameSearchLatin = toLatinDigits_search(nameSearch);
-                const nameSearchArabic = toArabicDigits_search(nameSearch);
-
-                const typeSearch = $('#searchByType').val().toLowerCase().trim();
-                const typeSearchLatin = toLatinDigits_search(typeSearch);
-                const typeSearchArabic = toArabicDigits_search(typeSearch);
-
-                const statusSearch = $('#searchByStatus').val();
-
-                const financialSearch = $('#searchByFinancial').val().toLowerCase().trim();
-                const financialSearchLatin = toLatinDigits_search(financialSearch);
-                const financialSearchArabic = toArabicDigits_search(financialSearch);
-
-                const phoneSearch = $('#searchByPhone').val().toLowerCase().trim();
-                // Note: Phone search does not convert numbers - searches as entered
-
-                const commentSearch = $('#searchByComment').val().toLowerCase().trim();
-                const commentSearchLatin = toLatinDigits_search(commentSearch);
-                const commentSearchArabic = toArabicDigits_search(commentSearch);
-
-                let visibleCount = 0;
-
-                $('.stakeholder-row').each(function() {
-                    const row = $(this);
-                    const name = row.find('.stakeholder-name').text().toLowerCase();
-                    const type = row.find('.stakeholder-type').text().toLowerCase();
-                    const status = row.find('.status-toggle').prop('checked') ? 'active' : 'inactive';
-                    const financial = row.find('.stakeholder-financial').text().toLowerCase();
-                    const phone = row.find('.stakeholder-phone').text().toLowerCase();
-                    const comment = row.find('.stakeholder-comment').text().toLowerCase();
-
-                    // Enhanced matching with Arabic/English number support
-                    const nameMatch = !nameSearch ||
-                        name.includes(nameSearch) ||
-                        name.includes(nameSearchLatin) ||
-                        name.includes(nameSearchArabic);
-
-                    const typeMatch = !typeSearch ||
-                        type.includes(typeSearch) ||
-                        type.includes(typeSearchLatin) ||
-                        type.includes(typeSearchArabic);
-
-                    const statusMatch = !statusSearch || status === statusSearch;
-
-                    const financialMatch = !financialSearch ||
-                        financial.includes(financialSearch) ||
-                        financial.includes(financialSearchLatin) ||
-                        financial.includes(financialSearchArabic);
-
-                    // Phone search - no number conversion, search as entered
-                    const phoneMatch = !phoneSearch || phone.includes(phoneSearch);
-
-                    const commentMatch = !commentSearch ||
-                        comment.includes(commentSearch) ||
-                        comment.includes(commentSearchLatin) ||
-                        comment.includes(commentSearchArabic);
-
-                    const shouldShow = nameMatch && typeMatch && statusMatch && financialMatch && phoneMatch && commentMatch;
-                    row.toggle(shouldShow);
-
-                    if (shouldShow) visibleCount++;
-                });
-
-                updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch);
-            }
-
-            // Enhanced updateSearchInfo with Arabic numbers
-            function updateSearchInfo(visibleCount, nameSearch, typeSearch, statusSearch, financialSearch, phoneSearch, commentSearch) {
-                $('#visibleCount').text(toArabicDigits_search(visibleCount.toString()));
-                $('#badgeCount').text(toArabicDigits_search(visibleCount.toString()));
-
-                // Show/hide clear buttons
-                $('#clearNameSearch').toggle(nameSearch.length > 0);
-                $('#clearTypeSearch').toggle(typeSearch.length > 0);
-                $('#clearFinancialSearch').toggle(financialSearch.length > 0);
-                $('#clearPhoneSearch').toggle(phoneSearch.length > 0);
-                $('#clearCommentSearch').toggle(commentSearch.length > 0);
-
-                const hasAnySearch = nameSearch.length > 0 || typeSearch.length > 0 || statusSearch ||
-                                   financialSearch.length > 0 || phoneSearch.length > 0 || commentSearch.length > 0;
-                $('#clearAllSearch').toggle(hasAnySearch);
-
-                // Keep table always visible
-                $('#stakeholdersContainer .section-card').show();
-
-                // Add visual feedback to search inputs
-                $('#searchByName').toggleClass('border-primary', nameSearch.length > 0);
-                $('#searchByType').toggleClass('border-primary', typeSearch.length > 0);
-                $('#searchByStatus').toggleClass('border-primary', statusSearch);
-                $('#searchByFinancial').toggleClass('border-primary', financialSearch.length > 0);
-                $('#searchByPhone').toggleClass('border-primary', phoneSearch.length > 0);
-                $('#searchByComment').toggleClass('border-primary', commentSearch.length > 0);
-            }
-
-            // Search events
-            let searchTimeout;
-            $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').on('input', function() {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(performSearch, 200);
-            });
-
-            $('#searchByStatus').on('change', function() {
-                performSearch();
-            });
-
-            // Clear search buttons
-            $('#clearNameSearch').click(function() {
-                $('#searchByName').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByName').focus();
-            });
-
-            $('#clearTypeSearch').click(function() {
-                $('#searchByType').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByType').focus();
-            });
-
-            $('#clearFinancialSearch').click(function() {
-                $('#searchByFinancial').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByFinancial').focus();
-            });
-
-            $('#clearPhoneSearch').click(function() {
-                $('#searchByPhone').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByPhone').focus();
-            });
-
-            $('#clearCommentSearch').click(function() {
-                $('#searchByComment').val('').removeClass('border-primary');
-                performSearch();
-                $('#searchByComment').focus();
-            });
-
-            $('#clearAllSearch, #resetSearch').click(function() {
-                $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
-                $('#searchByStatus').val('').removeClass('border-primary');
-                performSearch();
-            });
-
-            // ==================== COMPONENT INITIALIZATION ====================
-
-            // Initialize components
-            const toastElement = document.getElementById('notificationToast');
-            const toast = new bootstrap.Toast(toastElement, { delay: 4000 });
-            const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-            const detailsModal = new bootstrap.Modal(document.getElementById('detailsModal'));
-
-            let stakeholdersData = [];
-            let currentDetailsId = null;
-
-            function showNotification(message, type = 'success') {
-                const icons = {
+            };
+
+            // ========================================
+            // UTILITY: NOTIFICATIONS
+            // ========================================
+            const Notification = {
+                icons: {
                     success: 'fa-check-circle',
                     error: 'fa-exclamation-circle',
                     warning: 'fa-exclamation-triangle',
                     info: 'fa-info-circle'
-                };
+                },
 
-                const colors = {
+                colors: {
                     success: 'bg-success',
                     error: 'bg-danger',
                     warning: 'bg-warning',
                     info: 'bg-info'
-                };
+                },
 
-                $('#toastIcon').removeClass().addClass(`fas ${icons[type]} me-2`);
-                $('#toastMessage').text(message);
-                $('#notificationToast').removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
-                    .addClass(`${colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
+                show(message, type = 'success') {
+                    $('#toastIcon').removeClass().addClass(`fas ${this.icons[type]} me-2`);
+                    $('#toastMessage').text(message);
+                    $('#notificationToast')
+                        .removeClass('bg-success bg-danger bg-warning bg-info text-white text-dark')
+                        .addClass(`${this.colors[type]} ${type === 'warning' ? 'text-dark' : 'text-white'}`);
 
-                toast.show();
-            }
+                    Modals.toast.show();
+                }
+            };
 
-            // ==================== MODAL HANDLERS ====================
+            // ========================================
+            // UTILITY: LOADING OVERLAY
+            // ========================================
+            const Loading = {
+                show() {
+                    $('#loadingOverlay').removeClass('d-none');
+                },
 
-            // Modal button handlers
-            $("#btnAddStakeholder").click(function () {
-                $.get("/StakeholdersInfo/Create", function (res) {
-                    $("#modalBody").html(res);
-                    $("#stakeholderModal").modal("show");
-                }).fail(function() {
-                    showNotification('حدث خطأ أثناء تحميل نموذج الإضافة', 'error');
-                });
-            });
+                hide() {
+                    $('#loadingOverlay').addClass('d-none');
+                }
+            };
 
-            $(document).on("click", ".btnEdit", function () {
-                var id = $(this).data("id");
-                $.get("/StakeholdersInfo/Edit/" + id, function (res) {
-                    $("#modalBody").html(res);
-                    $("#stakeholderModal").modal("show");
-                }).fail(function() {
-                    showNotification('حدث خطأ أثناء تحميل نموذج التعديل', 'error');
-                });
-            });
+            // ========================================
+            // UTILITY: INPUT NUMBER HANDLER - COMPLETELY FIXED
+            // ========================================
+            const InputNumberHandler = {
+                getContext() {
+                    return ($('#Name').val() || '') + ' ' + ($('#Comment').val() || '');
+                },
 
-            // ==================== LOADING FUNCTIONS ====================
+                // FIXED: More conservative conversion - only convert when necessary
+                applyConversion($input) {
+                    if ($input.attr('name') === 'ContactNumber') return; // Skip phone numbers
 
-            function showLoading() {
-                $('#loadingOverlay').removeClass('d-none');
-            }
+                    const val = $input.val();
+                    if (!val) return;
 
-            function hideLoading() {
-                $('#loadingOverlay').addClass('d-none');
-            }
+                    const context = this.getContext();
 
-            // Fixed loadStakeholders function using the new GetAll endpoint
-            function loadStakeholders() {
-                showLoading();
+                    // Only apply smart formatting on blur or when content is clearly in wrong format
+                    const hasArabicText = NumberConverter.containsArabicText(context);
+                    const hasArabicNumbers = /[٠-٩]/.test(val);
+                    const hasLatinNumbers = /[0-9]/.test(val);
 
-                $.ajax({
-                    url: '/StakeholdersInfo/GetAll',
-                    method: 'GET',
-                    success: function(response) {
-                        hideLoading();
+                    let shouldConvert = false;
+                    let newVal = val;
 
-                        if (response.success && response.data) {
-                            stakeholdersData = response.data;
-                            renderStakeholders(stakeholdersData);
-                            updateCounts(stakeholdersData.length);
+                    if (hasArabicText && hasLatinNumbers && !hasArabicNumbers) {
+                        // Arabic text with Latin numbers -> convert to Arabic numbers
+                        newVal = NumberConverter.toArabic(val);
+                        shouldConvert = true;
+                    } else if (!hasArabicText && hasArabicNumbers && NumberConverter.isOnlyEnglishAndNumbers(context)) {
+                        // English context with Arabic numbers -> convert to Latin numbers
+                        newVal = NumberConverter.toLatin(val);
+                        shouldConvert = true;
+                    }
 
-                            if (stakeholdersData.length === 0) {
-                                $('#emptyState').show();
-                                $('#stakeholdersContainer').hide();
+                    if (shouldConvert && newVal !== val) {
+                        const cursorPos = $input[0].selectionStart || 0;
+                        $input.val(newVal);
+                        try {
+                            $input[0].setSelectionRange(cursorPos, cursorPos);
+                        } catch (ex) {
+                            $input.focus();
+                        }
+                    }
+                },
+
+                // FIXED: Handle keypress without automatic conversion
+                handleKeyPress(e, input) {
+                    if ($(input).attr('name') === 'ContactNumber') return; // Skip phone numbers
+
+                    // Only handle number keys (0-9)
+                    if (e.which >= 48 && e.which <= 57) {
+                        const context = this.getContext();
+                        const digit = String.fromCharCode(e.which);
+
+                        // Determine if we should use Arabic or Latin digit based on context
+                        const appropriateDigit = NumberConverter.getAppropriateDigit(digit, context);
+
+                        // Only prevent default and replace if we need to use Arabic digit
+                        if (appropriateDigit !== digit) {
+                            e.preventDefault();
+
+                            const cursorStart = input.selectionStart || 0;
+                            const cursorEnd = input.selectionEnd || 0;
+                            const currentValue = input.value;
+
+                            // Handle text selection
+                            let newValue;
+                            if (cursorStart !== cursorEnd) {
+                                // Replace selected text
+                                newValue = currentValue.slice(0, cursorStart) +
+                                          appropriateDigit +
+                                          currentValue.slice(cursorEnd);
                             } else {
-                                $('#emptyState').hide();
-                                $('#stakeholdersContainer').show();
+                                // Insert at cursor position
+                                newValue = currentValue.slice(0, cursorStart) +
+                                          appropriateDigit +
+                                          currentValue.slice(cursorStart);
                             }
 
-                            console.log('Loaded stakeholders:', {
-                                count: stakeholdersData.length,
-                                time: CURRENT_TIME,
-                                user: CURRENT_USER
+                            input.value = newValue;
+                            input.setSelectionRange(cursorStart + 1, cursorStart + 1);
+                            $(input).trigger('input');
+                        }
+                        // If appropriateDigit === digit, let the default behavior handle it
+                    }
+                },
+
+                initialize() {
+                    const $inputs = $('#modalBody input[type="text"], #modalBody textarea')
+                        .not('[name="ContactNumber"]');
+
+                    // Remove existing handlers to prevent duplicates
+                    $inputs.off('input.numberHandler blur.numberHandler keyup.numberHandler keypress.numberHandler');
+
+                    // Handle input events - only apply conversion on blur for stability
+                    $inputs.on('blur.numberHandler', (e) => {
+                        this.applyConversion($(e.target));
+                        Counters.updateAll();
+                    });
+
+                    // Light conversion on input for immediate feedback
+                    $inputs.on('input.numberHandler', () => {
+                        setTimeout(() => {
+                            Counters.updateAll();
+                        }, 10);
+                    });
+
+                    // Handle key press for real-time digit conversion
+                    $inputs.on('keypress.numberHandler', (e) => {
+                        this.handleKeyPress(e, e.target);
+                    });
+                }
+            };
+
+            // ========================================
+            // COUNTERS MANAGEMENT - FIXED
+            // ========================================
+            const Counters = {
+                updateAll() {
+                    this.updateComment();
+                    this.updateType();
+                    this.updateValidation();
+                },
+
+                updateComment() {
+                    const $comment = $('#Comment');
+                    if ($comment.length === 0) return;
+
+                    const currentLength = $comment.val().length;
+                    const context = this.getContext();
+
+                    // Use smart formatting for counter display
+                    const format = NumberConverter.getAppropriateFormat($comment.val(), context);
+                    const formattedCurrent = format === 'arabic'
+                        ? NumberConverter.toArabic(currentLength.toString())
+                        : currentLength.toString();
+                    const formattedMax = format === 'arabic'
+                        ? NumberConverter.toArabic(CONFIG.COMMENT_MAX_LENGTH.toString())
+                        : CONFIG.COMMENT_MAX_LENGTH.toString();
+
+                    let $counter = $('#commentCounter');
+                    if ($counter.length === 0) {
+                        $comment.after(`
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <small class="text-muted">عدد الأحرف: <span id="commentCounter">${formattedCurrent}/${formattedMax}</span></small>
+                            </div>
+                        `);
+                        $counter = $('#commentCounter');
+                    } else {
+                        $counter.text(`${formattedCurrent}/${formattedMax}`);
+                    }
+
+                    $counter.removeClass('text-warning text-danger');
+                    if (currentLength > CONFIG.COMMENT_MAX_LENGTH * 0.8) {
+                        $counter.addClass('text-warning');
+                    }
+                    if (currentLength >= CONFIG.COMMENT_MAX_LENGTH) {
+                        $counter.addClass('text-danger').removeClass('text-warning');
+                    }
+                },
+
+                getContext() {
+                    return ($('#Name').val() || '') + ' ' + ($('#Comment').val() || '');
+                },
+
+                updateType() {
+                    const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
+                    const totalCount = $("input[name='SelectedTypeIds']").length;
+
+                    if (totalCount === 0) return;
+
+                    const context = this.getContext();
+                    const format = NumberConverter.getAppropriateFormat('', context);
+
+                    const formattedSelected = format === 'arabic'
+                        ? NumberConverter.toArabic(selectedCount.toString())
+                        : selectedCount.toString();
+                    const formattedTotal = format === 'arabic'
+                        ? NumberConverter.toArabic(totalCount.toString())
+                        : totalCount.toString();
+
+                    let $typeControls = $('#typeControls');
+                    if ($typeControls.length === 0) {
+                        const $firstTypeContainer = $("input[name='SelectedTypeIds']").first().closest('.form-check').parent();
+                        if ($firstTypeContainer.length > 0) {
+                            $firstTypeContainer.before(`
+                                <div class="row mb-3" id="typeControls">
+                                    <div class="col-12">
+                                        <div class="btn-group w-100" role="group">
+                                            <button type="button" class="btn btn-outline-primary btn-sm" id="selectAllTypes">
+                                                <i class="fas fa-check-double me-1"></i>تحديد الكل (<span class="type-counter">${formattedSelected}/${formattedTotal}</span>)
+                                            </button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" id="deselectAllTypes">
+                                                <i class="fas fa-times me-1"></i>إلغاء الكل
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `);
+                        }
+                    } else {
+                        $typeControls.find('.type-counter').text(`${formattedSelected}/${formattedTotal}`);
+                    }
+
+                    // Update button states
+                    const $selectBtn = $('#selectAllTypes');
+                    const $deselectBtn = $('#deselectAllTypes');
+
+                    $selectBtn.prop('disabled', selectedCount === totalCount);
+                    $deselectBtn.prop('disabled', selectedCount === 0);
+                },
+
+                updateValidation() {
+                    const $validationSummary = $('#validationSummary');
+                    if ($validationSummary.length === 0) return;
+
+                    const errorCount = $validationSummary.find('li').length;
+                    const context = this.getContext();
+                    const format = NumberConverter.getAppropriateFormat('', context);
+                    const formattedCount = format === 'arabic'
+                        ? NumberConverter.toArabic(errorCount.toString())
+                        : errorCount.toString();
+
+                    $validationSummary.find('h6').html(
+                        `<i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء`
+                    );
+                }
+            };
+
+            // ========================================
+            // VALIDATION
+            // ========================================
+            const Validation = {
+                display(errors) {
+                    this.clear();
+
+                    if (!errors || Object.keys(errors).length === 0) return;
+
+                    const context = InputNumberHandler.getContext();
+                    const format = NumberConverter.getAppropriateFormat('', context);
+
+                    const errorCount = Object.keys(errors).reduce((count, key) => {
+                        return count + (Array.isArray(errors[key]) ? errors[key].length : 1);
+                    }, 0);
+
+                    const formattedCount = format === 'arabic'
+                        ? NumberConverter.toArabic(errorCount.toString())
+                        : errorCount.toString();
+
+                    let errorHtml = '';
+                    Object.keys(errors).forEach(key => {
+                        if (Array.isArray(errors[key])) {
+                            errors[key].forEach(error => {
+                                errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${error}</li>`;
                             });
                         } else {
-                            showNotification('حدث خطأ أثناء تحميل البيانات', 'error');
+                            errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${errors[key]}</li>`;
+                        }
+                    });
+
+                    const validationSummary = `
+                        <div class="alert alert-danger mb-4" id="validationSummary">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء
+                            </h6>
+                            <ul class="mb-0">${errorHtml}</ul>
+                        </div>
+                    `;
+
+                    $('#modalBody form').prepend(validationSummary);
+                    $('#modalBody').animate({ scrollTop: 0 }, 300);
+                },
+
+                clear() {
+                    $('#validationSummary').remove();
+                    $('.is-invalid').removeClass('is-invalid');
+                    $('.text-danger').text('');
+                }
+            };
+
+            // ========================================
+            // POPUPS - SIMPLE NATIVE DIALOGS
+            // ========================================
+            const Popups = {
+                show(title, message, type = 'info') {
+                    alert(`${title}: ${message}`);
+                    return Promise.resolve();
+                },
+
+                confirm(title, message, confirmText = 'نعم', cancelText = 'لا') {
+                    const result = confirm(`${title}\n${message}`);
+                    return Promise.resolve({ isConfirmed: result });
+                }
+            };
+
+            // ========================================
+            // MODAL: STAKEHOLDER FORM - FIXED
+            // ========================================
+            const StakeholderModal = {
+                load(action, id = null) {
+                    const url = id ? `/StakeholdersInfo/${action}/${id}` : `/StakeholdersInfo/${action}`;
+
+                    $.get(url)
+                        .done(response => {
+                            $('#modalBody').html(response);
+
+                            // Initialize or create modal instance
+                            if (!Modals.stakeholder) {
+                                Modals.stakeholder = new bootstrap.Modal(document.getElementById('stakeholderModal'));
+                            }
+
+                            Modals.stakeholder.show();
+
+                            // Initialize after modal is shown
+                            $('#stakeholderModal').one('shown.bs.modal', function() {
+                                StakeholderModal.initialize();
+                                $('#Name').focus();
+                            });
+                        })
+                        .fail(() => {
+                            const message = id ? 'حدث خطأ أثناء تحميل نموذج التعديل' : 'حدث خطأ أثناء تحميل نموذج الإضافة';
+                            Notification.show(message, 'error');
+                        });
+                },
+
+                initialize() {
+                    // Clean up any existing handlers first
+                    $('#modalBody').off('.stakeholderModal');
+                    $(document).off('.typeHandlers');
+
+                    InputNumberHandler.initialize();
+                    Counters.updateAll();
+                    this.setupFormSubmission();
+                    this.setupTypeHandlers();
+                },
+
+                setupFormSubmission() {
+                    $('#modalBody').on('submit.stakeholderModal', '#stakeholderForm', function(e) {
+                        e.preventDefault();
+
+                        const form = $(this);
+                        const formData = new FormData(this);
+                        const $submitBtn = form.find('button[type="submit"]');
+                        const originalText = $submitBtn.html();
+
+                        $submitBtn.prop('disabled', true)
+                            .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+
+                        Validation.clear();
+
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success(response) {
+                                $submitBtn.prop('disabled', false).html(originalText);
+
+                                if (response.success) {
+                                    if (Modals.stakeholder) {
+                                        Modals.stakeholder.hide();
+                                    }
+                                    Notification.show(response.message || 'تم الحفظ بنجاح', 'success');
+                                    DataManager.load();
+                                } else {
+                                    if (response.errors) {
+                                        Validation.display(response.errors);
+                                    } else {
+                                        Notification.show(response.message || 'حدث خطأ أثناء الحفظ', 'error');
+                                    }
+                                }
+                            },
+                            error(xhr) {
+                                $submitBtn.prop('disabled', false).html(originalText);
+
+                                if (xhr.responseJSON?.errors) {
+                                    Validation.display(xhr.responseJSON.errors);
+                                } else {
+                                    const message = xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ البيانات';
+                                    Notification.show(message, 'error');
+                                }
+                            }
+                        });
+                    });
+                },
+
+                setupTypeHandlers() {
+                    // Type selection change
+                    $(document).on('change.typeHandlers', "input[name='SelectedTypeIds']", function() {
+                        Counters.updateType();
+                        StakeholderModal.updatePrimaryTypeOptions();
+                    });
+
+                    // Select all types - FIXED
+                    $(document).on('click.typeHandlers', '#selectAllTypes', function(e) {
+                        e.preventDefault();
+
+                        const totalCount = $("input[name='SelectedTypeIds']").length;
+                        const checkedCount = $("input[name='SelectedTypeIds']:checked").length;
+
+                        if (checkedCount === totalCount) {
+                            return; // Already all selected
+                        }
+
+                        // Simple confirmation
+                        const confirmed = confirm(`هل تريد تحديد جميع الأنواع (${totalCount} نوع)؟`);
+
+                        if (confirmed) {
+                            // Select all checkboxes
+                            $("input[name='SelectedTypeIds']").prop('checked', true).trigger('change');
+
+                            // Update counters and UI
+                            setTimeout(() => {
+                                Counters.updateType();
+                                StakeholderModal.updatePrimaryTypeOptions();
+                            }, 100);
+                        }
+                    });
+
+                    // Deselect all types - FIXED
+                    $(document).on('click.typeHandlers', '#deselectAllTypes', function(e) {
+                        e.preventDefault();
+
+                        const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
+
+                        if (selectedCount === 0) {
+                            return; // Already none selected
+                        }
+
+                        // Simple confirmation
+                        const confirmed = confirm(`هل تريد إلغاء تحديد ${selectedCount} نوع؟`);
+
+                        if (confirmed) {
+                            // Deselect all checkboxes
+                            $("input[name='SelectedTypeIds']").prop('checked', false).trigger('change');
+                            $('#PrimaryTypeId').val('').trigger('change');
+
+                            // Update counters and UI
+                            setTimeout(() => {
+                                Counters.updateType();
+                                StakeholderModal.updatePrimaryTypeOptions();
+                            }, 100);
+                        }
+                    });
+                },
+
+                updatePrimaryTypeOptions() {
+                    const selectedTypes = $("input[name='SelectedTypeIds']:checked")
+                        .map(function() { return $(this).val(); })
+                        .get();
+
+                    const $primarySelect = $('#PrimaryTypeId');
+                    if ($primarySelect.length === 0) return;
+
+                    $primarySelect.find('option').each(function() {
+                        const value = $(this).val();
+                        if (value && !selectedTypes.includes(value)) {
+                            $(this).prop('disabled', true);
+                            if ($(this).prop('selected')) {
+                                $(this).prop('selected', false);
+                                $primarySelect.val('');
+                            }
+                        } else {
+                            $(this).prop('disabled', false);
+                        }
+                    });
+
+                    // Trigger change event to update any dependent UI
+                    $primarySelect.trigger('change');
+                }
+            };
+
+            // ========================================
+            // SEARCH FUNCTIONALITY - FIXED WITH ARABIC NUMBERS
+            // ========================================
+            const Search = {
+                getSearchValues(query) {
+                    const trimmed = query.toLowerCase().trim();
+                    return {
+                        original: trimmed,
+                        latin: NumberConverter.toLatin(trimmed),
+                        arabic: NumberConverter.toArabic(trimmed)
+                    };
+                },
+
+                matchesSearch(text, searchValues) {
+                    if (!searchValues.original) return true;
+                    const lowerText = text.toLowerCase();
+                    return lowerText.includes(searchValues.original) ||
+                           lowerText.includes(searchValues.latin) ||
+                           lowerText.includes(searchValues.arabic);
+                },
+
+                // FIXED: New method specifically for phone number matching
+                matchesPhoneSearch(phoneText, searchQuery) {
+                    if (!searchQuery) return true;
+                    
+                    const cleanPhoneText = phoneText.toLowerCase();
+                    const searchValues = this.getSearchValues(searchQuery);
+                    
+                    // Check all variants of the search query against phone text
+                    return cleanPhoneText.includes(searchValues.original) ||
+                           cleanPhoneText.includes(searchValues.latin) ||
+                           cleanPhoneText.includes(searchValues.arabic);
+                },
+
+                perform() {
+                    const searches = {
+                        name: this.getSearchValues($('#searchByName').val()),
+                        type: this.getSearchValues($('#searchByType').val()),
+                        status: $('#searchByStatus').val(),
+                        financial: this.getSearchValues($('#searchByFinancial').val()),
+                        phone: $('#searchByPhone').val().toLowerCase().trim(),
+                        comment: this.getSearchValues($('#searchByComment').val())
+                    };
+
+                    let visibleCount = 0;
+
+                    $('.stakeholder-row').each(function() {
+                        const $row = $(this);
+                        const data = {
+                            name: $row.find('.stakeholder-name').text().toLowerCase(),
+                            type: $row.find('.stakeholder-type').text().toLowerCase(),
+                            status: $row.find('.status-toggle').prop('checked') ? 'active' : 'inactive',
+                            financial: $row.find('.stakeholder-financial').text().toLowerCase(),
+                            phone: $row.find('.stakeholder-phone').text().toLowerCase(),
+                            comment: $row.find('.stakeholder-comment').text().toLowerCase()
+                        };
+
+                        const matches = {
+                            name: Search.matchesSearch(data.name, searches.name),
+                            type: Search.matchesSearch(data.type, searches.type),
+                            status: !searches.status || data.status === searches.status,
+                            financial: Search.matchesSearch(data.financial, searches.financial),
+                            phone: Search.matchesPhoneSearch(data.phone, searches.phone),
+                            comment: Search.matchesSearch(data.comment, searches.comment)
+                        };
+
+                        const shouldShow = Object.values(matches).every(m => m);
+                        $row.toggle(shouldShow);
+                        if (shouldShow) visibleCount++;
+                    });
+
+                    this.updateUI(visibleCount, searches);
+                },
+
+                updateUI(visibleCount, searches) {
+                    const arabicCount = NumberConverter.toArabic(visibleCount.toString());
+                    $('#visibleCount, #badgeCount').text(arabicCount);
+
+                    const fields = ['Name', 'Type', 'Financial', 'Phone', 'Comment'];
+                    fields.forEach(field => {
+                        const searchKey = field.toLowerCase();
+                        const hasValue = searches[searchKey] &&
+                            (typeof searches[searchKey] === 'string'
+                                ? searches[searchKey].length > 0
+                                : searches[searchKey].original?.length > 0);
+
+                        $(`#clear${field}Search`).toggle(hasValue);
+                        $(`#searchBy${field}`).toggleClass('border-primary', hasValue);
+                    });
+
+                    const hasStatusSearch = !!searches.status;
+                    $('#searchByStatus').toggleClass('border-primary', hasStatusSearch);
+
+                    const hasAnySearch = fields.some(field => {
+                        const searchKey = field.toLowerCase();
+                        return searches[searchKey] &&
+                            (typeof searches[searchKey] === 'string'
+                                ? searches[searchKey].length > 0
+                                : searches[searchKey].original?.length > 0);
+                    }) || hasStatusSearch;
+
+                    $('#clearAllSearch').toggle(hasAnySearch);
+                    $('#stakeholdersContainer .section-card').show();
+
+                    // Update no results message
+                    if (visibleCount === 0 && hasAnySearch) {
+                        $('#noResultsMessage').show();
+                        $('#stakeholdersContainer .section-card').hide();
+                    } else {
+                        $('#noResultsMessage').hide();
+                    }
+
+                    // Update no results message
+                    if (visibleCount === 0 && hasAnySearch) {
+                        $('#noResultsMessage').show();
+                        $('#stakeholdersContainer .section-card').hide();
+                    } else {
+                        $('#noResultsMessage').hide();
+                    }
+
+                    // Update no results message
+                    if (visibleCount === 0 && hasAnySearch) {
+                        $('#noResultsMessage').show();
+                        $('#stakeholdersContainer .section-card').hide();
+                    } else {
+                        $('#noResultsMessage').hide();
+                    }
+                },
+
+                clear(field) {
+                    if (field === 'all') {
+                        $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment')
+                            .val('')
+                            .removeClass('border-primary');
+                        $('#searchByStatus').val('').removeClass('border-primary');
+                    } else {
+                        $(`#searchBy${field}`)
+                            .val('')
+                            .removeClass('border-primary')
+                            .focus();
+                    }
+                    this.perform();
+                },
+
+                initialize() {
+                    // Search inputs with controlled number conversion
+                    $('#searchByName, #searchByType, #searchByFinancial, #searchByComment')
+                        .on('input', function() {
+                            clearTimeout(State.searchTimeout);
+                            State.searchTimeout = setTimeout(() => Search.perform(), CONFIG.SEARCH_DELAY);
+                        });
+
+                    $('#searchByPhone').on('input', function() {
+                        clearTimeout(State.searchTimeout);
+                        State.searchTimeout = setTimeout(() => Search.perform(), CONFIG.SEARCH_DELAY);
+                    });
+
+                    $('#searchByStatus').on('change', () => this.perform());
+
+                    // FIXED: Less aggressive number conversion for search
+                    $('#searchByName, #searchByType, #searchByFinancial, #searchByComment')
+                        .on('keypress', function(e) {
+                            if (e.which >= 48 && e.which <= 57) {
+                                // Only convert if there's clear Arabic text context
+                                const currentValue = $(this).val();
+                                const hasArabicText = NumberConverter.containsArabicText(currentValue);
+
+                                if (hasArabicText) {
+                                    e.preventDefault();
+                                    const digit = String.fromCharCode(e.which);
+                                    const arabicDigit = NumberConverter.toArabic(digit);
+                                    const input = e.target;
+                                    const cursorPos = input.selectionStart || 0;
+                                    const newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                                    input.value = newValue;
+                                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+                                    $(input).trigger('input');
+                                }
+                                // Otherwise let default behavior handle it
+                            }
+                        });
+
+                    $('#clearNameSearch').click(() => this.clear('Name'));
+                    $('#clearTypeSearch').click(() => this.clear('Type'));
+                    $('#clearFinancialSearch').click(() => this.clear('Financial'));
+                    $('#clearPhoneSearch').click(() => this.clear('Phone'));
+                    $('#clearCommentSearch').click(() => this.clear('Comment'));
+                    $('#clearAllSearch, #resetSearch').click(() => this.clear('all'));
+                }
+            };
+
+            // ========================================
+            // DATA MANAGEMENT
+            // ========================================
+            const DataManager = {
+                load() {
+                    Loading.show();
+
+                    $.ajax({
+                        url: '/StakeholdersInfo/GetAll',
+                        method: 'GET',
+                        success(response) {
+                            Loading.hide();
+
+                            if (response.success && response.data) {
+                                State.stakeholdersData = response.data;
+                                DataManager.render(State.stakeholdersData);
+                                DataManager.updateCounts(State.stakeholdersData.length);
+
+                                if (State.stakeholdersData.length === 0) {
+                                    $('#emptyState').show();
+                                    $('#stakeholdersContainer').hide();
+                                } else {
+                                    $('#emptyState').hide();
+                                    $('#stakeholdersContainer').show();
+                                }
+
+                                console.log('Loaded stakeholders:', {
+                                    count: State.stakeholdersData.length,
+                                    time: CONFIG.CURRENT_TIME,
+                                    user: CONFIG.CURRENT_USER
+                                });
+                            } else {
+                                Notification.show('حدث خطأ أثناء تحميل البيانات', 'error');
+                                $('#emptyState').show();
+                                $('#stakeholdersContainer').hide();
+                            }
+                        },
+                        error(xhr, status, error) {
+                            Loading.hide();
+                            Notification.show('حدث خطأ أثناء تحميل بيانات الجهات', 'error');
+                            console.error('Load error:', { xhr, status, error, time: CONFIG.CURRENT_TIME });
                             $('#emptyState').show();
                             $('#stakeholdersContainer').hide();
                         }
-                    },
-                    error: function(xhr, status, error) {
-                        hideLoading();
-                        showNotification('حدث خطأ أثناء تحميل بيانات الجهات', 'error');
-                        console.error('Load error:', { xhr, status, error, time: CURRENT_TIME });
-                        $('#emptyState').show();
-                        $('#stakeholdersContainer').hide();
-                    }
-                });
-            }
-
-                  // Load stakeholder details via API
-        function loadStakeholderDetails(id) {
-            showLoading();
-
-            $.ajax({
-                url: `/api/StakeholdersInfo/${id}`,
-                method: 'GET',
-                success: function(response) {
-                    hideLoading();
-
-                    if (response.success) {
-                        renderDetailsModal(response.data);
-                        currentDetailsId = id;
-                        detailsModal.show();
-
-                        console.log('Loaded stakeholder details via API:', {
-                            id: id,
-                            name: response.data.name,
-                            time: CURRENT_TIME,
-                            user: CURRENT_USER
-                        });
-                    } else {
-                        showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
-                    }
+                    });
                 },
-                error: function(xhr, status, error) {
-                    hideLoading();
-                    showNotification('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
-                    console.error('Details load error:', { xhr, status, error, time: CURRENT_TIME });
-                }
-            });
-        }
 
-               // Enhanced render details modal content with Arabic numbers
-        function renderDetailsModal(stakeholder) {
-                const arabicTypesCount = toArabicDigits_search(
-                    (stakeholder.types ? stakeholder.types.length : 0).toString()
-                );
+                render(data) {
+                    const tbody = $('#stakeholdersTableBody');
+                    tbody.empty();
 
-                // ✅ Build types
-                const typesHtml = stakeholder.types && stakeholder.types.length > 0
-                    ? stakeholder.types.map(type =>
-                        `<div class="col-auto">
-                            <span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"} fs-6 py-2 px-3">
-                                <i class="fas fa-tag me-1"></i>${type.typeName}
-                                ${type.isPrimary ? '<i class="fas fa-star ms-1" title="النوع الرئيسي"></i>' : ''}
-                            </span>
-                        </div>`
-                    ).join('')
-                    : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا توجد أنواع مرتبطة</span></div>';
+                    if (!data || data.length === 0) return;
 
-                // ✅ Primary type + financial transaction
-                const primaryType = stakeholder.types ? stakeholder.types.find(t => t.isPrimary) : null;
-                const financialTypeHtml = primaryType && primaryType.financialTransactionType
-                    ? `<div class="alert alert-light border-start border-4 border-warning">
-                        <h6 class="alert-heading mb-2">
-                            <i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية
-                        </h6>
-                        <p class="mb-0">${primaryType.financialTransactionType}</p>
-                       </div>`
-                    : '<div class="alert alert-light text-muted text-center"><i class="fas fa-comment-slash me-2"></i>لا يوجد بيان أو تعليقات</div>';
+                    data.forEach(stakeholder => {
+                        const row = this.createRow(stakeholder);
+                        tbody.append(row);
+                    });
+                },
 
-                // ✅ Contacts (string → list)
-                let contactHtml = "";
-                if (stakeholder.contactNumbers && stakeholder.contactNumbers.trim() !== "") {
-                    let numbers = stakeholder.contactNumbers
-                        .split(/[,;\n]/) // بيفصل على فاصلة أو سطر جديد أو ;
-                        .map(num => num.trim())
-                        .filter(num => num !== "");
-
-                    if (numbers.length > 0) {
-                        contactHtml = `
-                            <div>
-                                <h6 class="fw-bold text-dark mb-3">
-                                    <i class="fas fa-phone text-success me-2"></i>أرقام التواصل
-                                </h6>
-                                ${numbers.map(num => `
-                                    <div class="d-flex align-items-center mb-2">
-                                        <i class="fas fa-phone-alt text-success me-2"></i>
-                                        <span dir="ltr">${num}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        `;
-                    } else {
-                        contactHtml = `<span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا يوجد أرقام تواصل</span>`;
-                    }
-                } else {
-                    contactHtml = `<span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا يوجد أرقام تواصل</span>`;
-                }
-
-                // ✅ Comment
-                let commentHtml = "";
-                if (stakeholder.comment && stakeholder.comment.trim() !== "") {
-                    commentHtml = `
-                        <div>
-                            <h6 class="fw-bold text-dark mb-3">
-                                <i class="fas fa-comment text-primary me-2"></i>ملاحظات
-                            </h6>
-                            <p class="mb-0">${stakeholder.comment}</p>
-                        </div>
-                    `;
-                } else {
-                    commentHtml = `<span class="text-muted fst-italic"><i class="fas fa-comment-slash me-2"></i>لا توجد ملاحظات</span>`;
-                }
-
-                // ✅ Final content
-                const detailsContent = `
-                    <div class="p-4">
-                        <!-- Header Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <div class="d-flex align-items-center p-3 bg-light rounded">
-                                    <div class="flex-shrink-0 me-3">
-                                        <div class="icon-circle bg-info text-white">
-                                            <i class="fas fa-building fa-2x"></i>
-                                        </div>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
-                                        <div class="row">
-                                            <div class="col-md-6">
-                                                <small class="text-muted">
-                                                    <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
-                                                    الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
-                                                </small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Types Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                <h6 class="fw-bold text-dark mb-3">
-                                    <i class="fas fa-tags text-info me-2"></i>أنواع الجهة
-                                </h6>
-                                <div class="row g-2">
-                                    ${typesHtml}
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Financial Transaction Type Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                ${financialTypeHtml}
-                            </div>
-                        </div>
-
-                        <!-- Contact Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                ${contactHtml}
-                            </div>
-                        </div>
-
-                        <!-- Comment Section -->
-                        <div class="row mb-4">
-                            <div class="col-12">
-                                ${commentHtml}
-                            </div>
-                        </div>
-
-                        <!-- Meta Information -->
-                        <div class="row mt-4 pt-3 border-top">
-                            <div class="col-12">
-                                <div class="row text-center">
-                                    <div class="col-md-4">
-                                        <div class="p-2">
-                                            <div class="text-primary fs-5 fw-bold">${arabicTypesCount}</div>
-                                            <small class="text-muted">أنواع مرتبطة</small>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                $('#detailsContent').html(detailsContent);
-            }
-
-
-            function renderStakeholders(data) {
-                const tbody = $('#stakeholdersTableBody');
-                tbody.empty();
-
-                if (!data || data.length === 0) return;
-
-                data.forEach(stakeholder => {
+                createRow(stakeholder) {
                     const typesHtml = (stakeholder.types?.length > 0)
                         ? stakeholder.types.map(type =>
-                            `<span class="badge ${type.isPrimary ? "bg-primary" : "bg-light text-dark border"} rounded-pill">
+                            `<span class="badge ${type.isPrimary ? 'bg-primary' : 'bg-light text-dark border'} rounded-pill">
                                 ${type.typeName}
                                 ${type.isPrimary ? '<i class="fas fa-star ms-1 small" title="النوع الرئيسي"></i>' : ''}
                             </span>`
@@ -1898,23 +2232,26 @@ function exportToExcel() {
                     const statusHtml = `
                         <div class="form-check form-switch">
                             <input type="checkbox" class="form-check-input status-toggle"
-                                   ${stakeholder.status ? "checked" : ""}
+                                   ${stakeholder.status ? 'checked' : ''}
                                    data-id="${stakeholder.id}"
                                    data-name="${stakeholder.name}">
-                            <label class="form-check-label">${stakeholder.status ? "نشط" : "غير نشط"}</label>
+                            <label class="form-check-label">${stakeholder.status ? 'نشط' : 'غير نشط'}</label>
                         </div>
                     `;
 
                     const primaryType = stakeholder.types?.find(t => t.isPrimary);
                     const financialType = primaryType?.financialTransactionType || '<span class="text-muted">-</span>';
 
-                    // معالجة أرقام الهاتف
                     let phoneHtml = '<span class="text-muted">-</span>';
-                    if (stakeholder.contactNumbers) {
-                        const phones = stakeholder.contactNumbers.split(/[;,]/).map(p => p.trim()).filter(p => p);
+                    if (stakeholder.contactNumbers && stakeholder.contactNumbers.trim()) {
+                        const phones = stakeholder.contactNumbers
+                            .split(/[;,\n]/)
+                            .map(p => p.trim())
+                            .filter(p => p);
+
                         if (phones.length > 0) {
                             phoneHtml = phones.map(p => `
-                                <div class="d-flex align-items-center gap-2">
+                                <div class="d-flex align-items-center gap-2 mb-1">
                                     <i class="fas fa-phone text-primary"></i>
                                     <span dir="ltr" class="small">${p}</span>
                                 </div>
@@ -1924,221 +2261,413 @@ function exportToExcel() {
 
                     const commentHtml = stakeholder.comment
                         ? `<span title="${stakeholder.comment}" class="comment-text">
-                            ${stakeholder.comment.length > 60 ? stakeholder.comment.substring(0, 57) + '...' : stakeholder.comment}
+                            ${stakeholder.comment.length > CONFIG.COMMENT_DISPLAY_LENGTH
+                                ? stakeholder.comment.substring(0, CONFIG.COMMENT_DISPLAY_LENGTH - 3) + '...'
+                                : stakeholder.comment}
                            </span>`
                         : '<span class="text-muted">-</span>';
 
-                    tbody.append(`
+                    return `
                         <tr data-id="${stakeholder.id}" class="stakeholder-row">
                             <td class="stakeholder-name">
                                 <div class="d-flex align-items-center">
-                                    <div class="stakeholder-icon me-2"><i class="fas fa-building text-success"></i></div>
+                                    <div class="stakeholder-icon me-2">
+                                        <i class="fas fa-building text-success"></i>
+                                    </div>
                                     <div><span class="fw-semibold">${stakeholder.name}</span></div>
                                 </div>
                             </td>
-                            <td class="stakeholder-type"><div class="d-flex flex-wrap gap-1">${typesHtml}</div></td>
+                            <td class="stakeholder-type">
+                                <div class="d-flex flex-wrap gap-1">${typesHtml}</div>
+                            </td>
                             <td class="stakeholder-status">${statusHtml}</td>
                             <td class="stakeholder-financial">${financialType}</td>
                             <td class="stakeholder-phone">${phoneHtml}</td>
                             <td class="stakeholder-comment">${commentHtml}</td>
                             <td class="text-center">
                                 <div class="btn-group" role="group">
-                                    <button class="btn btn-sm btn-outline-info btnEdit" data-id="${stakeholder.id}" title="تعديل ${stakeholder.name}">
+                                    <button class="btn btn-sm btn-outline-info btnEdit"
+                                            data-id="${stakeholder.id}"
+                                            title="تعديل ${stakeholder.name}">
                                         <i class="fas fa-edit"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-secondary view-details" data-id="${stakeholder.id}" title="تفاصيل ${stakeholder.name}">
+                                    <button class="btn btn-sm btn-outline-secondary view-details"
+                                            data-id="${stakeholder.id}"
+                                            title="تفاصيل ${stakeholder.name}">
                                         <i class="fas fa-info-circle"></i>
                                     </button>
-                                    <button class="btn btn-sm btn-outline-danger delete-stakeholder" data-id="${stakeholder.id}" data-name="${stakeholder.name}" title="حذف ${stakeholder.name}">
+                                    <button class="btn btn-sm btn-outline-danger delete-stakeholder"
+                                            data-id="${stakeholder.id}"
+                                            data-name="${stakeholder.name}"
+                                            title="حذف ${stakeholder.name}">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
                             </td>
                         </tr>
-                    `);
-                });
-            }
+                    `;
+                },
 
-            // Enhanced updateCounts with Arabic numbers
-            function updateCounts(count) {
-                const arabicCount = toArabicDigits_search(count.toString());
-                $('#totalCount').text(arabicCount);
-                $('#visibleCount').text(arabicCount);
-                $('#badgeCount').text(arabicCount);
-            }
+                updateCounts(count) {
+                    const arabicCount = NumberConverter.toArabic(count.toString());
+                    $('#totalCount').text(arabicCount);
+                    $('#visibleCount').text(arabicCount);
+                    $('#badgeCount').text(arabicCount);
+                },
 
-            // View details handler
-            $(document).on('click', '.view-details', function() {
-                const id = $(this).data('id');
-                loadStakeholderDetails(id);
-            });
+                delete(id) {
+                    const btn = $('#confirmDelete');
+                    const originalText = btn.html();
 
-            $('#editFromDetails').click(function () {
-                if (currentDetailsId) {
-                    if (detailsModal) detailsModal.hide();
+                    btn.prop('disabled', true)
+                        .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
 
                     $.ajax({
-                        url: `/StakeholdersInfo/Edit/${currentDetailsId}`,
-                        type: "GET",
-                        success: function (response) {
-                            $("#modalBody").html(response);
-                            let stakeholderModal = new bootstrap.Modal(document.getElementById("stakeholderModal"));
-                            stakeholderModal.show();
+                        url: `/StakeholdersInfo/${id}`,
+                        method: 'DELETE',
+                        success(response) {
+                            btn.prop('disabled', false).html(originalText);
+
+                            if (response.success) {
+                                Notification.show(response.message, 'success');
+                                Modals.delete.hide();
+
+                                $(`tr[data-id="${id}"]`).fadeOut(300, function() {
+                                    $(this).remove();
+                                    State.stakeholdersData = State.stakeholdersData.filter(s => s.id != id);
+                                    DataManager.updateCounts(State.stakeholdersData.length);
+
+                                    if (State.stakeholdersData.length === 0) {
+                                        $('#emptyState').show();
+                                        $('#stakeholdersContainer').hide();
+                                    }
+                                });
+                            } else {
+                                Notification.show(response.message || 'حدث خطأ أثناء الحذف', 'error');
+                            }
                         },
-                        error: function () {
-                            showArabicPopup("خطأ", "تعذر تحميل بيانات الجهة", "error");
+                        error(xhr) {
+                            btn.prop('disabled', false).html(originalText);
+                            const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة';
+                            Notification.show(errorMessage, 'error');
+                            console.error('Delete error:', { xhr, time: CONFIG.CURRENT_TIME });
+                        }
+                    });
+                },
+
+                toggleStatus(id, newStatus) {
+                    $.ajax({
+                        url: `/api/StakeholdersInfo/${id}/status`,
+                        method: 'PUT',
+                        contentType: 'application/json',
+                        data: JSON.stringify({ status: newStatus }),
+                        success(response) {
+                            if (response.success) {
+                                $(`.status-toggle[data-id="${id}"]`)
+                                    .prop('checked', newStatus)
+                                    .closest('.form-switch')
+                                    .find('.form-check-label')
+                                    .text(newStatus ? 'نشط' : 'غير نشط');
+
+                                const stakeholder = State.stakeholdersData.find(s => s.id == id);
+                                if (stakeholder) {
+                                    stakeholder.status = newStatus;
+                                }
+
+                                Notification.show(response.message, 'success');
+                            } else {
+                                $(`.status-toggle[data-id="${id}"]`).prop('checked', !newStatus);
+                                Notification.show(response.message || 'حدث خطأ أثناء تحديث الحالة', 'error');
+                            }
+                        },
+                        error(xhr) {
+                            $(`.status-toggle[data-id="${id}"]`).prop('checked', !newStatus);
+                            const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة';
+                            Notification.show(errorMessage, 'error');
                         }
                     });
                 }
-            });
+            };
 
-            // ==================== DELETE HANDLERS ====================
+            // ========================================
+            // DETAILS MODAL
+            // ========================================
+            const DetailsModal = {
+                load(id) {
+                    Loading.show();
 
-            // Delete handlers
-            $(document).on('click', '.delete-stakeholder', function() {
-                const id = $(this).data('id');
-                const name = $(this).data('name');
+                    $.ajax({
+                        url: `/api/StakeholdersInfo/${id}`,
+                        method: 'GET',
+                        success(response) {
+                            Loading.hide();
 
-                $('#deleteStakeholderId').val(id);
-                $('#deleteStakeholderName').text(name);
-                deleteModal.show();
-            });
+                            if (response.success) {
+                                DetailsModal.render(response.data);
+                                State.currentDetailsId = id;
+                                Modals.details.show();
 
-            // Delete stakeholder via API
-            $('#confirmDelete').click(function() {
-                const id = $('#deleteStakeholderId').val();
-                const btn = $(this);
-                const originalText = btn.html();
-
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
-
-                $.ajax({
-                    url: `/StakeholdersInfo/${id}`,
-                    method: 'DELETE',
-                    success: function(response) {
-                        btn.prop('disabled', false).html(originalText);
-
-                        if (response.success) {
-                            showNotification(response.message, 'success');
-                            deleteModal.hide();
-
-                            // Remove from UI and update data
-                            $(`tr[data-id="${id}"]`).fadeOut(300, function() {
-                                $(this).remove();
-                                stakeholdersData = stakeholdersData.filter(s => s.id != id);
-                                updateCounts(stakeholdersData.length);
-
-                                if (stakeholdersData.length === 0) {
-                                    $('#emptyState').show();
-                                    $('#stakeholdersContainer').hide();
-                                }
-                            });
-                        } else {
-                            showNotification(response.message || 'حدث خطأ أثناء الحذف', 'error');
-                        }
-                    },
-                    error: function(xhr, status, error) {
-                        btn.prop('disabled', false).html(originalText);
-                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة';
-                        showNotification(errorMessage, 'error');
-                        console.error('Delete error:', { xhr, status, error, time: CURRENT_TIME });
-                    }
-                });
-            });
-
-            // ==================== STATUS TOGGLE ====================
-
-            // Status toggle via API
-            $(document).on('change', '.status-toggle', function() {
-                const checkbox = $(this);
-                const id = checkbox.data('id');
-                const name = checkbox.data('name');
-                const newStatus = checkbox.prop('checked');
-
-                $.ajax({
-                    url: `/api/StakeholdersInfo/${id}/status`,
-                    method: 'PUT',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ status: newStatus }),
-                    success: function(response) {
-                        if (response.success) {
-                            // Update all instances of this stakeholder's status
-                            $(`.status-toggle[data-id="${id}"]`)
-                                .prop('checked', newStatus)
-                                .closest('.form-switch')
-                                .find('.form-check-label')
-                                .text(newStatus ? 'نشط' : 'غير نشط');
-
-                            // Update data
-                            const stakeholder = stakeholdersData.find(s => s.id == id);
-                            if (stakeholder) {
-                                stakeholder.status = newStatus;
+                                console.log('Loaded details:', {
+                                    id: id,
+                                    name: response.data.name,
+                                    time: CONFIG.CURRENT_TIME
+                                });
+                            } else {
+                                Notification.show('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
                             }
-
-                            showNotification(response.message, 'success');
-                        } else {
-                            checkbox.prop('checked', !newStatus);
-                            showNotification(response.message || 'حدث خطأ أثناء تحديث الحالة', 'error');
+                        },
+                        error(xhr) {
+                            Loading.hide();
+                            Notification.show('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
+                            console.error('Details error:', { xhr, time: CONFIG.CURRENT_TIME });
                         }
-                    },
-                    error: function(xhr) {
-                        checkbox.prop('checked', !newStatus);
-                        const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة';
-                        showNotification(errorMessage, 'error');
+                    });
+                },
+
+                render(stakeholder) {
+                    const arabicTypesCount = NumberConverter.toArabic(
+                        (stakeholder.types?.length || 0).toString()
+                    );
+
+                    const typesHtml = stakeholder.types && stakeholder.types.length > 0
+                        ? stakeholder.types.map(type =>
+                            `<div class="col-auto">
+                                <span class="badge ${type.isPrimary ? 'bg-primary' : 'bg-light text-dark border'} fs-6 py-2 px-3">
+                                    <i class="fas fa-tag me-1"></i>${type.typeName}
+                                    ${type.isPrimary ? '<i class="fas fa-star ms-1" title="النوع الرئيسي"></i>' : ''}
+                                </span>
+                            </div>`
+                          ).join('')
+                        : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا توجد أنواع مرتبطة</span></div>';
+
+                    const primaryType = stakeholder.types?.find(t => t.isPrimary);
+                    const financialTypeHtml = primaryType && primaryType.financialTransactionType
+                        ? `<div class="alert alert-light border-start border-4 border-warning">
+                            <h6 class="alert-heading mb-2">
+                                <i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية
+                            </h6>
+                            <p class="mb-0">${primaryType.financialTransactionType}</p>
+                           </div>`
+                        : '<div class="alert alert-light text-muted text-center"><i class="fas fa-info-circle me-2"></i>لا يوجد نوع معاملة مالية محدد</div>';
+
+                    let contactHtml = '<span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا يوجد أرقام تواصل</span>';
+                    if (stakeholder.contactNumbers && stakeholder.contactNumbers.trim()) {
+                        const numbers = stakeholder.contactNumbers
+                            .split(/[,;\n]/)
+                            .map(num => num.trim())
+                            .filter(num => num);
+
+                        if (numbers.length > 0) {
+                            contactHtml = `
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-3">
+                                        <i class="fas fa-phone text-success me-2"></i>أرقام التواصل
+                                    </h6>
+                                    ${numbers.map(num => `
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="fas fa-phone-alt text-success me-2"></i>
+                                            <span dir="ltr">${num}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }
                     }
+
+                    let commentHtml = '<span class="text-muted fst-italic"><i class="fas fa-comment-slash me-2"></i>لا توجد ملاحظات</span>';
+                    if (stakeholder.comment && stakeholder.comment.trim()) {
+                        commentHtml = `
+                            <div>
+                                <h6 class="fw-bold text-dark mb-3">
+                                    <i class="fas fa-comment text-primary me-2"></i>ملاحظات
+                                </h6>
+                                <p class="mb-0">${stakeholder.comment}</p>
+                            </div>
+                        `;
+                    }
+
+                    const content = `
+                        <div class="p-4">
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <div class="d-flex align-items-center p-3 bg-light rounded">
+                                        <div class="flex-shrink-0 me-3">
+                                            <div class="icon-circle bg-info text-white">
+                                                <i class="fas fa-building fa-2x"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1">
+                                            <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
+                                            <div class="row">
+                                                <div class="col-md-6">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
+                                                        الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
+                                                    </small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-12">
+                                    <h6 class="fw-bold text-dark mb-3">
+                                        <i class="fas fa-tags text-info me-2"></i>أنواع الجهة
+                                    </h6>
+                                    <div class="row g-2">${typesHtml}</div>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-12">${financialTypeHtml}</div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-12">${contactHtml}</div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-12">${commentHtml}</div>
+                            </div>
+                            <div class="row mt-4 pt-3 border-top">
+                                <div class="col-12">
+                                    <div class="row text-center">
+                                        <div class="col-md-4">
+                                            <div class="p-2">
+                                                <div class="text-primary fs-5 fw-bold">${arabicTypesCount}</div>
+                                                <small class="text-muted">أنواع مرتبطة</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+
+                    $('#detailsContent').html(content);
+                }
+            };
+
+            // ========================================
+            // EVENT HANDLERS
+            // ========================================
+            const EventHandlers = {
+                initialize() {
+                    // Clean up any existing main handlers
+                    $(document).off('.mainHandlers');
+
+                    // Add stakeholder button
+                    $('#btnAddStakeholder').off('click.main').on('click.main', () => {
+                        StakeholderModal.load('Create');
+                    });
+
+                    // Edit button
+                    $(document).on('click.mainHandlers', '.btnEdit', function() {
+                        StakeholderModal.load('Edit', $(this).data('id'));
+                    });
+
+                    // View details button
+                    $(document).on('click.mainHandlers', '.view-details', function() {
+                        DetailsModal.load($(this).data('id'));
+                    });
+
+                    // Edit from details modal
+                    $('#editFromDetails').off('click.main').on('click.main', () => {
+                        if (State.currentDetailsId) {
+                            Modals.details.hide();
+                            StakeholderModal.load('Edit', State.currentDetailsId);
+                        }
+                    });
+
+                    // Delete button
+                    $(document).on('click.mainHandlers', '.delete-stakeholder', function() {
+                        const id = $(this).data('id');
+                        const name = $(this).data('name');
+                        $('#deleteStakeholderId').val(id);
+                        $('#deleteStakeholderName').text(name);
+                        Modals.delete.show();
+                    });
+
+                    // Confirm delete
+                    $('#confirmDelete').off('click.main').on('click.main', () => {
+                        const id = $('#deleteStakeholderId').val();
+                        DataManager.delete(id);
+                    });
+
+                    // Status toggle
+                    $(document).on('change.mainHandlers', '.status-toggle', function() {
+                        const id = $(this).data('id');
+                        const newStatus = $(this).prop('checked');
+                        DataManager.toggleStatus(id, newStatus);
+                    });
+
+                    // Refresh data
+                    $('#refreshData').off('click.main').on('click.main', function() {
+                        const $btn = $(this);
+                        const originalText = $btn.html();
+                        $btn.prop('disabled', true)
+                            .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+
+                        DataManager.load();
+
+                        setTimeout(() => {
+                            $btn.prop('disabled', false).html(originalText);
+                        }, 1000);
+                    });
+
+                    // Modal events
+                    $('#stakeholderModal').off('shown.bs.modal.main hidden.bs.modal.main');
+
+                    $('#stakeholderModal').on('shown.bs.modal.main', function() {
+                        // Use setTimeout to ensure DOM is ready
+                        setTimeout(() => {
+                            StakeholderModal.initialize();
+                            $('#Name').focus();
+                        }, 150);
+                    });
+
+                    $('#stakeholderModal').on('hidden.bs.modal.main', function() {
+                        $('#modalBody').empty();
+                        // Clean up type handlers when modal closes
+                        $(document).off('.typeHandlers');
+                    });
+
+                    // Auto-dismiss alerts
+                    setTimeout(() => {
+                        $('.alert-success, .alert-danger').fadeOut(350);
+                    }, CONFIG.ALERT_DISMISS_DELAY);
+
+                    // Keyboard shortcuts
+                    $(document).off('keydown.main').on('keydown.main', function(e) {
+                        if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
+                            e.preventDefault();
+                            $('#searchByName').focus();
+                        }
+                        if (e.keyCode === 27) { // Escape
+                            Search.clear('all');
+                        }
+                    });
+                }
+            };
+
+            // ========================================
+            // INITIALIZATION
+            // ========================================
+            function initialize() {
+                console.log('Initializing stakeholders with fixed number handling:', {
+                    time: CONFIG.CURRENT_TIME,
+                    user: CONFIG.CURRENT_USER
                 });
-            });
 
-            // ==================== REFRESH AND UTILITIES ====================
+                // Initialize modules
+                Search.initialize();
+                EventHandlers.initialize();
+                DataManager.load();
 
-            // Refresh data
-            $('#refreshData').click(function() {
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+                console.log('Stakeholders info initialized successfully with smart number conversion');
+            }
 
-                loadStakeholders();
-
-                setTimeout(() => {
-                    btn.prop('disabled', false).html(originalText);
-                }, 1000);
-            });
-
-            // Auto-dismiss success alerts after 5 seconds
-            setTimeout(function() {
-                $('.alert-success, .alert-danger').fadeOut(350);
-            }, 5000);
-
-            // Keyboard shortcuts
-            $(document).keydown(function(e) {
-                if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
-                    e.preventDefault();
-                    $('#searchByName').focus();
-                }
-                if (e.keyCode === 27) { // Escape
-                    $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment').val('').removeClass('border-primary');
-                    $('#searchByStatus').val('').removeClass('border-primary');
-                    performSearch();
-                }
-            });
-
-            // ==================== DEBUGGING AND TESTING ====================
-
-            // Test number conversion functions
-            console.log('Testing Arabic number conversion:');
-            console.log('123 to Arabic:', toArabicDigits_search('123'));
-            console.log('١٢٣ to Latin:', toLatinDigits_search('١٢٣'));
-            console.log('Test text with 123:', toArabicDigits_search('نص تجريبي 123'));
-
-            // ==================== INITIALIZATION ====================
-
-            // Initialize page
-            loadStakeholders();
-
-            console.log('Enhanced stakeholders info page with modal Arabic numbers initialized successfully at', CURRENT_TIME, 'by', CURRENT_USER);
+            // Start the application
+            initialize();
         });
-
-
     </script>
 
     <style>

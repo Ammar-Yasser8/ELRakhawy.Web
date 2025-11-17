@@ -5,6 +5,24 @@
     var currentTime = "2025-08-19 20:46:08";
     var currentUser = "Ammar-Yasser8";
 }
+<style>
+    .table-responsive {
+        overflow-x: hidden !important;
+    }
+
+        .table-responsive table {
+            width: 100% !important;
+            table-layout: fixed !important;
+            word-wrap: break-word !important;
+        }
+
+        .table-responsive th,
+        .table-responsive td {
+            white-space: normal !important;
+            word-break: break-word !important;
+        }
+</style>
+
 <!-- ضع هذا في أعلى الصفحة الرئيسية (ليس داخل الmodal) -->
 @Html.AntiForgeryToken()
 <!-- Enhanced Navigation Breadcrumb -->
@@ -211,7 +229,22 @@
             let currentSortColumn = -1;
             let currentSortDirection = 'none';
 
-            // Initialize column toggle menu
+                   // Initialize column toggle menu
+            // Add control buttons first
+            const controlsLi = document.createElement("li");
+            controlsLi.innerHTML = `
+                <div class="dropdown-item-text border-bottom mb-2 pb-2">
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-outline-success btn-sm flex-fill" id="showAllColumns">
+                            <i class="fas fa-eye me-1"></i>إظهار الكل
+                        </button>
+                        <button type="button" class="btn btn-outline-danger btn-sm flex-fill" id="hideAllColumns">
+                            <i class="fas fa-eye-slash me-1"></i>إخفاء الكل
+                        </button>
+                    </div>
+                </div>`;
+            toggleMenu.appendChild(controlsLi);
+
             headers.forEach((th, index) => {
                 // Skip empty columns or action columns
                 if (th.innerText.trim() === "" || th.innerText.includes("الإجراءات")) return;
@@ -225,12 +258,74 @@
                 toggleMenu.appendChild(li);
             });
 
+            // Show All Columns functionality
+            document.getElementById('showAllColumns').addEventListener('click', function() {
+                document.querySelectorAll('.column-toggle').forEach(checkbox => {
+                    if (!checkbox.checked) {
+                        checkbox.checked = true;
+                        const colIndex = checkbox.getAttribute('data-index');
+
+                        // Show the column
+                        table.querySelectorAll("tr").forEach(row => {
+                            const cell = row.querySelectorAll("th, td")[colIndex];
+                            if (cell) {
+                                cell.style.display = "";
+                            }
+                        });
+                    }
+                });
+            });
+
+            // Hide All Columns functionality
+            document.getElementById('hideAllColumns').addEventListener('click', function() {
+                document.querySelectorAll('.column-toggle').forEach(checkbox => {
+                    // Don't hide the last visible column to maintain table structure
+                    const visibleColumns = document.querySelectorAll('.column-toggle:checked');
+                    if (visibleColumns.length > 1 || !checkbox.checked) {
+                        checkbox.checked = false;
+                        const colIndex = checkbox.getAttribute('data-index');
+
+                        // Hide the column
+                        table.querySelectorAll("tr").forEach(row => {
+                            const cell = row.querySelectorAll("th, td")[colIndex];
+                            if (cell) {
+                                cell.style.display = "none";
+                            }
+                        });
+                    }
+                });
+
+                // Ensure at least one column remains visible
+                const remainingVisible = document.querySelectorAll('.column-toggle:checked');
+                if (remainingVisible.length === 0) {
+                    // Re-show the first column if all were hidden
+                    const firstCheckbox = document.querySelector('.column-toggle');
+                    if (firstCheckbox) {
+                        firstCheckbox.checked = true;
+                        const colIndex = firstCheckbox.getAttribute('data-index');
+                        table.querySelectorAll("tr").forEach(row => {
+                            const cell = row.querySelectorAll("th, td")[colIndex];
+                            if (cell) {
+                                cell.style.display = "";
+                            }
+                        });
+                    }
+                }
+            });
+
             // Handle column visibility toggle
             toggleMenu.addEventListener("change", function (e) {
                 if (!e.target.classList.contains("column-toggle")) return;
 
                 const colIndex = e.target.getAttribute("data-index");
                 const isVisible = e.target.checked;
+
+                // Prevent hiding all columns
+                const visibleColumns = document.querySelectorAll('.column-toggle:checked');
+                if (!isVisible && visibleColumns.length === 0) {
+                    e.target.checked = true;
+                    return;
+                }
 
                 // Show/hide column
                 table.querySelectorAll("tr").forEach(row => {
@@ -598,6 +693,7 @@
         });
     });
 </script>
+
 <!-- Enhanced Create/Edit FormStyle Modal -->
 <div class="modal fade" id="formStyleModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -793,7 +889,8 @@
 
     <!-- Export and Print Functions -->
     <script>
-            function exportToExcel() {
+        // Export to Excel with proper RTL layout
+        function exportToExcel() {
             try {
                 // Get table data
                 const table = document.getElementById('formStylesTable');
@@ -807,10 +904,13 @@
                 const headers = ['اسم الواجهة'];
                 wsData.push(headers);
 
-                // Add data rows
+                // Add data rows (only visible rows)
                 rows.forEach(row => {
-                    // Skip search row and header
-                    if (row.classList.contains('search-row') || row.querySelector('th')) return;
+                    // Skip search row, header, and hidden rows
+                    if (row.classList.contains('search-row') ||
+                        row.querySelector('th') ||
+                        row.style.display === 'none' ||
+                        row.offsetParent === null) return;
 
                     const nameElement = row.querySelector('.form-style-name .fw-semibold');
                     if (nameElement) {
@@ -822,79 +922,145 @@
                 // Create worksheet
                 const ws = XLSX.utils.aoa_to_sheet(wsData);
 
+                // Set RTL for the worksheet (this sets the sheet direction)
+                if (!ws['!views']) ws['!views'] = [];
+                ws['!views'][0] = { rightToLeft: true };
+
                 // Set column width
                 const colWidths = [
                     {wch: 50} // Form name column width
                 ];
                 ws['!cols'] = colWidths;
 
-                // Set RTL for Arabic text
-                ws['!rtl'] = true;
+                // Style header row (bold, centered, background color)
+                const range = XLSX.utils.decode_range(ws['!ref']);
+                for (let C = range.s.c; C <= range.e.c; ++C) {
+                    const address = XLSX.utils.encode_col(C) + "1";
+                    if (!ws[address]) continue;
+                    if (!ws[address].s) ws[address].s = {};
+                    ws[address].s = {
+                        font: { bold: true },
+                        fill: { fgColor: { rgb: "F0F0F0" } },
+                        alignment: { horizontal: "right", vertical: "center" }
+                    };
+                }
 
                 // Add worksheet to workbook
                 XLSX.utils.book_append_sheet(wb, ws, 'الواجهات');
+
+                // Set workbook properties for RTL
+                if (!wb.Workbook) wb.Workbook = {};
+                if (!wb.Workbook.Views) wb.Workbook.Views = [];
+                if (!wb.Workbook.Views[0]) wb.Workbook.Views[0] = {};
+                wb.Workbook.Views[0].RTL = true;
 
                 // Generate Excel file and trigger download
                 const currentDate = new Date().toISOString().slice(0, 10);
                 XLSX.writeFile(wb, `الواجهات_${currentDate}.xlsx`);
 
                 // Show success notification
-                showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+                if (typeof showNotification === 'function') {
+                    showNotification('تم تصدير البيانات إلى Excel بنجاح', 'success');
+                }
 
             } catch (error) {
                 console.error('Error exporting to Excel:', error);
-                showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء التصدير إلى Excel', 'error');
+                }
             }
         }
-            // Print function
-            function printTable() {
+
+        // Print function - NO PAGE RELOAD
+        function printTable() {
             try {
+                // Remove existing print section if any
+                const existingPrintSection = document.getElementById('printSection');
+                if (existingPrintSection) {
+                    existingPrintSection.remove();
+                }
+
                 // Create a print-friendly version of the table
                 const printContent = document.createElement('div');
                 printContent.id = 'printSection';
+                printContent.style.direction = 'rtl';
 
                 // Add title and date
-                const title = document.createElement('h4');
+                const title = document.createElement('h2');
                 title.textContent = 'قائمة الواجهات';
-                title.className = 'text-center mb-3';
+                title.style.textAlign = 'center';
+                title.style.marginBottom = '10px';
+                title.style.color = '#333';
+                title.style.fontFamily = 'Arial, sans-serif';
                 printContent.appendChild(title);
 
                 const date = document.createElement('p');
-                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}`;
-                date.className = 'text-center mb-4 text-muted';
+                date.textContent = `تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                })} - ${new Date().toLocaleTimeString('ar-EG')}`;
+                date.style.textAlign = 'center';
+                date.style.marginBottom = '20px';
+                date.style.color = '#666';
+                date.style.fontSize = '14px';
                 printContent.appendChild(date);
 
                 // Create print table
                 const printTable = document.createElement('table');
                 printTable.className = 'print-table';
+                printTable.style.width = '100%';
+                printTable.style.borderCollapse = 'collapse';
+                printTable.style.direction = 'rtl';
+                printTable.style.fontFamily = 'Arial, sans-serif';
+                printTable.style.fontSize = '12px';
 
                 // Create table header
                 const thead = document.createElement('thead');
                 const headerRow = document.createElement('tr');
                 const th = document.createElement('th');
                 th.textContent = 'اسم الواجهة';
-                th.className = 'bg-light';
+                th.style.border = '1px solid #000';
+                th.style.padding = '10px';
+                th.style.backgroundColor = '#f0f0f0';
+                th.style.fontWeight = 'bold';
+                th.style.textAlign = 'right';
                 headerRow.appendChild(th);
                 thead.appendChild(headerRow);
                 printTable.appendChild(thead);
 
-                // Create table body with data
+                // Create table body with visible data only
                 const tbody = document.createElement('tbody');
-                const visibleRows = document.querySelectorAll('.form-style-row:not([style*="display: none"])');
+                const visibleRows = Array.from(document.querySelectorAll('.form-style-row')).filter(row => {
+                    return row.style.display !== 'none' && row.offsetParent !== null;
+                });
 
                 if (visibleRows.length === 0) {
                     const row = document.createElement('tr');
                     const cell = document.createElement('td');
                     cell.textContent = 'لا توجد بيانات للعرض';
-                    cell.className = 'text-center py-4 text-muted';
+                    cell.style.textAlign = 'center';
+                    cell.style.padding = '20px';
+                    cell.style.border = '1px solid #000';
+                    cell.style.color = '#999';
                     row.appendChild(cell);
                     tbody.appendChild(row);
                 } else {
-                    visibleRows.forEach(row => {
+                    visibleRows.forEach((row, index) => {
                         const dataRow = document.createElement('tr');
                         const nameCell = document.createElement('td');
                         const name = row.querySelector('.form-style-name .fw-semibold')?.textContent.trim() || '';
                         nameCell.textContent = name;
+                        nameCell.style.border = '1px solid #000';
+                        nameCell.style.padding = '8px';
+                        nameCell.style.textAlign = 'right';
+
+                        // Alternate row colors
+                        if (index % 2 === 1) {
+                            nameCell.style.backgroundColor = '#f9f9f9';
+                        }
+
                         dataRow.appendChild(nameCell);
                         tbody.appendChild(dataRow);
                     });
@@ -905,22 +1071,73 @@
 
                 // Add summary
                 const summary = document.createElement('p');
-                summary.className = 'mt-3 text-muted text-center';
-                summary.textContent = `عدد الواجهات: ${toArabicDigits(visibleRows.length.toString())}`;
+                summary.style.marginTop = '20px';
+                summary.style.textAlign = 'center';
+                summary.style.color = '#666';
+                summary.style.fontSize = '14px';
+                const count = visibleRows.length;
+                summary.textContent = `عدد الواجهات المعروضة: ${typeof toArabicDigits === 'function' ? toArabicDigits(count.toString()) : count}`;
                 printContent.appendChild(summary);
 
-                // Add to document and print
+                // Add to document
                 document.body.appendChild(printContent);
-                window.print();
 
-                // Clean up
-                document.body.removeChild(printContent);
+                // Trigger print with delay
+                setTimeout(() => {
+                    window.print();
+
+                    // Clean up after print dialog closes (NO RELOAD)
+                    setTimeout(() => {
+                        if (document.getElementById('printSection')) {
+                            document.getElementById('printSection').remove();
+                        }
+                    }, 100);
+                }, 100);
+
+                // Show success notification
+                if (typeof showNotification === 'function') {
+                    showNotification('تم تجهيز الصفحة للطباعة بنجاح', 'success');
+                }
 
             } catch (error) {
                 console.error('Error printing table:', error);
-                showNotification('حدث خطأ أثناء الطباعة', 'error');
+                if (typeof showNotification === 'function') {
+                    showNotification('حدث خطأ أثناء الطباعة', 'error');
+                }
             }
         }
+
+        // Mobile sorting functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Mobile sort buttons
+            document.querySelectorAll('.mobile-sort-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const direction = this.getAttribute('data-direction');
+                    const cards = Array.from(document.querySelectorAll('.mobile-form-card'));
+
+                    // Remove active state from all buttons
+                    document.querySelectorAll('.mobile-sort-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+
+                    // Sort cards
+                    cards.sort((a, b) => {
+                        const aName = a.querySelector('h6').textContent.trim();
+                        const bName = b.querySelector('h6').textContent.trim();
+                        const comparison = aName.localeCompare(bName, 'ar', {
+                            numeric: true,
+                            sensitivity: 'base'
+                        });
+                        return direction === 'asc' ? comparison : -comparison;
+                    });
+
+                    // Re-append sorted cards
+                    const container = document.getElementById('mobileCardsContainer');
+                    if (container) {
+                        cards.forEach(card => container.appendChild(card));
+                    }
+                });
+            });
+        });
     </script>
     <script>
         $(document).ready(function() {
@@ -1577,16 +1794,61 @@
                 showNotification(`تم تصدير ${arabicCount} واجهة بنجاح`, 'success');
             });
 
-            // Refresh data
-            $('#refreshData').click(function() {
-                const btn = $(this);
-                const originalText = btn.html();
-                btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
+                   $('#refreshData').click(function() {
+            const btn = $(this);
+            const originalText = btn.html();
+            btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
 
-                setTimeout(() => {
-                    location.reload();
-                }, 1000);
+            // AJAX call to get fresh data
+            $.ajax({
+                url: window.location.pathname, // Current page URL
+                type: 'GET',
+                data: { isAjax: true }, // Optional flag to indicate AJAX request
+                success: function(response) {
+                    try {
+                        // Extract the table body content from the response
+                        const newTableBody = $(response).find('#formStylesTableBody').html();
+                        const newMobileContainer = $(response).find('#mobileCardsContainer').html();
+
+                        // Update the table body
+                        if (newTableBody) {
+                            $('#formStylesTableBody').html(newTableBody);
+                        }
+
+                        // Update mobile cards
+                        if (newMobileContainer) {
+                            $('#mobileCardsContainer').html(newMobileContainer);
+                        }
+
+                        // Update counts and reset filters
+                        updateCounts();
+                        clearAllFilters();
+
+                        showNotification('تم تحديث البيانات بنجاح', 'success');
+                    } catch (error) {
+                        console.error('Error updating UI:', error);
+                        showNotification('حدث خطأ أثناء تحديث البيانات', 'error');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Refresh error:', error);
+                    showNotification('فشل في تحديث البيانات', 'error');
+                },
+                complete: function() {
+                    // Re-enable button
+                    btn.prop('disabled', false).html(originalText);
+                }
             });
+        });
+
+        // Helper function to clear all filters
+        function clearAllFilters() {
+            $('#searchByFormName').val('').removeClass('border-primary');
+            $('#searchInputMobile').val('');
+            $('#mobileCategoryFilter').val('');
+            $('#mobileUsageFilter').val('');
+            performSearch();
+        }
 
             // Enhanced notification function
             window.showNotification = function(message, type = 'success') {
