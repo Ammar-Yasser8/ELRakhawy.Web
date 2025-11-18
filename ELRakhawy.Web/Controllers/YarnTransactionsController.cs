@@ -780,18 +780,41 @@ namespace ELRakhawy.Web.Controllers
         {
             try
             {
-                return _unitOfWork.Repository<PackagingStyles>()
+                // Find all form styles that contain "غزل" in FormName
+                var yarnFormIds = _unitOfWork.Repository<FormStyle>()
                     .GetAll()
-                    .Select(p => new SelectListItem
-                    {
-                        Value = p.Id.ToString(),
-                        Text = p.StyleName
-                    })
+                    .Where(f => f.FormName.Contains("غزل"))
+                    .Select(f => f.Id)
                     .ToList();
+
+                if (!yarnFormIds.Any())
+                {
+                    _logger.LogWarning("No yarn forms found containing 'غزل' at {Time} by {User}",
+                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+                    return new List<SelectListItem>();
+                }
+
+                // Get packaging styles that are related to yarn forms
+                var yarnPackagingStyles = _unitOfWork.Repository<PackagingStyles>()
+                    .GetAll(includeEntities: "PackagingStyleForms")
+                    .Where(ps => ps.PackagingStyleForms.Any(psf => yarnFormIds.Contains(psf.FormId)))
+                    .Select(ps => new SelectListItem
+                    {
+                        Value = ps.Id.ToString(),
+                        Text = ps.StyleName
+                    })
+                    .OrderBy(ps => ps.Text)
+                    .ToList();
+
+                _logger.LogInformation("Loaded {Count} yarn-related packaging styles for dropdown by {User} at {Time}",
+                    yarnPackagingStyles.Count, "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                return yarnPackagingStyles;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting packaging styles");
+                _logger.LogError(ex, "Error getting yarn-related packaging styles by {User} at {Time}",
+                    "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 return new List<SelectListItem>();
             }
         }
@@ -1249,8 +1272,24 @@ namespace ELRakhawy.Web.Controllers
         {
             try
             {
-                return _unitOfWork.Repository<StakeholderType>()
+                // Find all form styles that contain "غزل" in FormName
+                var yarnFormIds = _unitOfWork.Repository<FormStyle>()
                     .GetAll()
+                    .Where(f => f.FormName.Contains("غزل"))
+                    .Select(f => f.Id)
+                    .ToList();
+
+                if (!yarnFormIds.Any())
+                {
+                    _logger.LogWarning("No yarn forms found containing 'غزل' at {Time} by {User}",
+                        DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"), "Ammar-Yasser8");
+                    return new List<SelectListItem>();
+                }
+
+                // Get stakeholder types that are related to yarn forms
+                var yarnStakeholderTypes = _unitOfWork.Repository<StakeholderType>()
+                    .GetAll(includeEntities: "StakeholderTypeForms")
+                    .Where(st => st.StakeholderTypeForms.Any(stf => yarnFormIds.Contains(stf.FormId)))
                     .Select(st => new SelectListItem
                     {
                         Value = st.Id.ToString(),
@@ -1258,10 +1297,15 @@ namespace ELRakhawy.Web.Controllers
                     })
                     .OrderBy(s => s.Text)
                     .ToList();
+
+                _logger.LogInformation("Loaded {Count} yarn-related stakeholder types for dropdown by {User} at {Time}",
+                    yarnStakeholderTypes.Count, "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+                return yarnStakeholderTypes;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting stakeholder types by {User} at {Time}",
+                _logger.LogError(ex, "Error getting yarn-related stakeholder types by {User} at {Time}",
                     "Ammar-Yasser8", DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
                 return new List<SelectListItem>();
             }

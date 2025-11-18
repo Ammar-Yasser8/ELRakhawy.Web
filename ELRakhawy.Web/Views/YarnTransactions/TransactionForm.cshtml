@@ -463,19 +463,57 @@
                 }
             });
 
-            // ✅ Handle Arabic number input in Select2 search
-            $(document).on('keyup', '.select2-search__field', function(e) {
-                const $searchField = $(this);
-                let searchValue = $searchField.val();
+                // ✅ Handle Arabic number input in Select2 search - IMMEDIATE conversion
+                $(document).on('keypress', '.select2-search__field', function(e) {
+                    // Handle number key presses immediately
+                    if (e.which >= 48 && e.which <= 57) {
+                        e.preventDefault();
+                        let digit = String.fromCharCode(e.which);
+                        let input = e.target;
+                        let cursorPos = input.selectionStart || 0;
+                        let cursorEnd = input.selectionEnd || 0;
 
-                if (searchValue && /[0-9]/.test(searchValue)) {
-                    requestAnimationFrame(() => {
-                        if ($searchField.is(':focus') && $searchField.val() === searchValue) {
-                            $searchField.val(toArabicDigits(searchValue));
+                        let currentValue = input.value;
+
+                        // Remove selected text if any
+                        if (cursorPos !== cursorEnd) {
+                            currentValue = currentValue.slice(0, cursorPos) + currentValue.slice(cursorEnd);
                         }
-                    });
-                }
-            });
+
+                        // Convert to Arabic digit immediately
+                        let arabicDigit = toArabicDigits(digit);
+
+                        // Insert Arabic digit at cursor position
+                        let newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
+                        input.value = newValue;
+                        input.setSelectionRange(cursorPos + 1, cursorPos + 1);
+
+                        // Trigger Select2 search with Arabic digit
+                        $(input).trigger('input');
+                    }
+                });
+
+                // ✅ Enhanced keyup handler for other character conversions
+                $(document).on('keyup input', '.select2-search__field', function(e) {
+                    const $searchField = $(this);
+                    let searchValue = $searchField.val();
+
+                    // Only process if there are still English digits (for paste operations)
+                    if (searchValue && /[0-9]/.test(searchValue)) {
+                        let convertedValue = toArabicDigits(searchValue);
+                        if (convertedValue !== searchValue) {
+                            let cursorPos = this.selectionStart || 0;
+                            $searchField.val(convertedValue);
+
+                            // Restore cursor position
+                            try {
+                                this.setSelectionRange(cursorPos, cursorPos);
+                            } catch (ex) {
+                                $searchField.focus();
+                            }
+                        }
+                    }
+                });
 
             // ✅ Clear button functionality
             $(document).on('click', '.btn-clear', function() {
@@ -506,82 +544,604 @@
                 }
             });
 
-            // ✅ Arabic-friendly Flatpickr calendar
-            if (window.flatpickr) {
-                const dateInput = document.getElementById('Date');
+          // ✅ Enhanced Arabic Flatpickr with Reset to Today Button
+// Replace your existing Flatpickr initialization with this code
 
-                const fp = flatpickr(dateInput, {
-                    dateFormat: 'Y-m-d',
-                    locale: {
-                        ...flatpickr.l10ns.ar,
-                        firstDayOfWeek: 6
-                    },
-                    allowInput: false,
-                    disableMobile: true,
-                    defaultDate: dateInput.value || new Date(),
-                    onChange: function(selectedDates, dateStr, instance) {
-                        dateInput.setAttribute('data-latin-date', dateStr);
-                        dateInput.value = toArabicDigits(dateStr);
+if (window.flatpickr) {
+    const dateInput = document.getElementById('Date');
 
-                        setTimeout(() => {
-                            $('.flatpickr-day, .flatpickr-current-month .numInputWrapper input').each(function() {
-                                const text = $(this).text() || $(this).val();
-                                if (text && /\d/.test(text)) {
-                                    if (!$(this).is('input')) {
-                                        $(this).text(toArabicDigits(text));
-                                    }
-                                }
-                            });
-                        }, 0);
-                    },
-                    onReady: function(selectedDates, dateStr, instance) {
-                        if (dateStr) {
-                            dateInput.setAttribute('data-latin-date', dateStr);
-                            dateInput.value = toArabicDigits(dateStr);
-                        }
+    // Arabic locale configuration with full customization
+    const arabicLocale = {
+        weekdays: {
+            shorthand: ['أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة', 'سبت'],
+            longhand: [
+                'الأحد',
+                'الإثنين',
+                'الثلاثاء',
+                'الأربعاء',
+                'الخميس',
+                'الجمعة',
+                'السبت'
+            ]
+        },
+        months: {
+            shorthand: [
+                'يناير',
+                'فبراير',
+                'مارس',
+                'أبريل',
+                'مايو',
+                'يونيو',
+                'يوليو',
+                'أغسطس',
+                'سبتمبر',
+                'أكتوبر',
+                'نوفمبر',
+                'ديسمبر'
+            ],
+            longhand: [
+                'يناير',
+                'فبراير',
+                'مارس',
+                'أبريل',
+                'مايو',
+                'يونيو',
+                'يوليو',
+                'أغسطس',
+                'سبتمبر',
+                'أكتوبر',
+                'نوفمبر',
+                'ديسمبر'
+            ]
+        },
+        firstDayOfWeek: 6, // Saturday
+        rangeSeparator: ' إلى ',
+        weekAbbreviation: 'أسبوع',
+        scrollTitle: 'قم بالتمرير للزيادة',
+        toggleTitle: 'اضغط للتبديل',
+        amPM: ['ص', 'م'],
+        yearAriaLabel: 'سنة',
+        monthAriaLabel: 'شهر',
+        hourAriaLabel: 'ساعة',
+        minuteAriaLabel: 'دقيقة',
+        time_24hr: true
+    };
 
-                        setTimeout(() => {
-                            $('.flatpickr-day, .flatpickr-monthDropdown-months option').each(function() {
-                                const text = $(this).text();
-                                if (text && /\d/.test(text)) {
-                                    $(this).text(toArabicDigits(text));
-                                }
-                            });
-                        }, 0);
-                    },
-                    onMonthChange: function(selectedDates, dateStr, instance) {
-                        setTimeout(() => {
-                            $('.flatpickr-day').each(function() {
-                                const text = $(this).text();
-                                if (text && /\d/.test(text)) {
-                                    $(this).text(toArabicDigits(text));
-                                }
-                            });
-                        }, 0);
-                    },
-                    onYearChange: function(selectedDates, dateStr, instance) {
-                        setTimeout(() => {
-                            $('.flatpickr-day').each(function() {
-                                const text = $(this).text();
-                                if (text && /\d/.test(text)) {
-                                    $(this).text(toArabicDigits(text));
-                                }
-                            });
-                        }, 0);
-                    }
-                });
+    // Initialize Flatpickr with full Arabic support
+    const fp = flatpickr(dateInput, {
+        dateFormat: 'Y-m-d',
+        locale: arabicLocale,
+        allowInput: false,
+        disableMobile: true,
+        defaultDate: dateInput.value || new Date(),
+        
+        // Enable week numbers in Arabic
+        weekNumbers: false,
+        
+        // Position calendar properly for RTL
+        position: 'auto center',
+        
+        // Custom rendering for Arabic numbers
+        onDayCreate: function(dObj, dStr, fp, dayElem) {
+            // Convert day number to Arabic
+            const dayNumber = dayElem.textContent;
+            dayElem.textContent = toArabicDigits(dayNumber);
+        },
 
-                $('#calendarBtn').on('click', function() {
-                    fp.open();
-                });
+        onChange: function(selectedDates, dateStr, instance) {
+            // Store Latin date format for form submission
+            dateInput.setAttribute('data-latin-date', dateStr);
+            // Display Arabic format to user
+            dateInput.value = toArabicDigits(dateStr);
+            
+            // Update all visible numbers to Arabic
+            convertCalendarToArabic();
+        },
 
-                if (dateInput.value) {
-                    const latinDate = dateInput.value;
-                    dateInput.setAttribute('data-latin-date', latinDate);
-                    dateInput.value = toArabicDigits(latinDate);
-                }
+        onReady: function(selectedDates, dateStr, instance) {
+            // Set initial values
+            if (dateStr) {
+                dateInput.setAttribute('data-latin-date', dateStr);
+                dateInput.value = toArabicDigits(dateStr);
             }
 
+            // Add custom "Today" button to calendar
+            addTodayButton(instance);
+            
+            // Convert all text to Arabic
+            convertCalendarToArabic();
+            
+            // Add RTL class to calendar
+            instance.calendarContainer.classList.add('flatpickr-rtl');
+        },
+
+        onMonthChange: function(selectedDates, dateStr, instance) {
+            // Re-convert when month changes
+            setTimeout(() => convertCalendarToArabic(), 50);
+        },
+
+        onYearChange: function(selectedDates, dateStr, instance) {
+            // Re-convert when year changes
+            setTimeout(() => convertCalendarToArabic(), 50);
+        },
+
+        onOpen: function(selectedDates, dateStr, instance) {
+            // Ensure Arabic conversion when calendar opens
+            setTimeout(() => {
+                convertCalendarToArabic();
+                highlightTodayIfNeeded(instance);
+            }, 50);
+        }
+    });
+
+    // Function to add "Today" button
+    function addTodayButton(instance) {
+        const calendar = instance.calendarContainer;
+        
+        // Remove existing button if any
+        const existingBtn = calendar.querySelector('.flatpickr-today-btn');
+        if (existingBtn) {
+            existingBtn.remove();
+        }
+
+        // Create today button container
+        const todayBtnContainer = document.createElement('div');
+        todayBtnContainer.className = 'flatpickr-today-btn-container';
+        todayBtnContainer.style.cssText = `
+            padding: 8px;
+            border-top: 1px solid #e6e6e6;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+        `;
+
+        // Create "Today" button
+        const todayBtn = document.createElement('button');
+        todayBtn.type = 'button';
+        todayBtn.className = 'flatpickr-today-btn';
+        todayBtn.innerHTML = '<i class="fas fa-calendar-day" style="margin-left: 5px;"></i>اليوم';
+        todayBtn.style.cssText = `
+            padding: 6px 16px;
+            background: #198754;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        `;
+
+        todayBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#146c43';
+            this.style.transform = 'translateY(-1px)';
+        });
+
+        todayBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#198754';
+            this.style.transform = 'translateY(0)';
+        });
+
+        todayBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const today = new Date();
+            instance.setDate(today, true);
+            instance.close();
+            
+            // Show success notification
+            showTodaySetNotification();
+        });
+
+        // Create "Clear" button (optional)
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'flatpickr-clear-btn';
+        clearBtn.innerHTML = '<i class="fas fa-times" style="margin-left: 5px;"></i>مسح';
+        clearBtn.style.cssText = `
+            padding: 6px 16px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        `;
+
+        clearBtn.addEventListener('mouseenter', function() {
+            this.style.background = '#bb2d3b';
+            this.style.transform = 'translateY(-1px)';
+        });
+
+        clearBtn.addEventListener('mouseleave', function() {
+            this.style.background = '#dc3545';
+            this.style.transform = 'translateY(0)';
+        });
+
+        clearBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            instance.clear();
+            dateInput.value = '';
+            dateInput.removeAttribute('data-latin-date');
+        });
+
+        todayBtnContainer.appendChild(todayBtn);
+        todayBtnContainer.appendChild(clearBtn);
+
+        // Append button container to calendar
+        calendar.appendChild(todayBtnContainer);
+    }
+
+   // Function to convert all calendar text to Arabic
+function convertCalendarToArabic() {
+    // Convert day numbers
+    document.querySelectorAll('.flatpickr-day').forEach(function(day) {
+        const text = day.textContent.trim();
+        if (text && /^\d+$/.test(text)) {
+            day.textContent = toArabicDigits(text);
+        }
+    });
+
+    // Convert year in year dropdown with proper Arabic display
+    document.querySelectorAll('.cur-year, .numInput').forEach(function(yearInput) {
+        if (yearInput.value && /^\d+$/.test(yearInput.value)) {
+            const arabicYear = toArabicDigits(yearInput.value);
+
+            // For input elements (year input field)
+            if (yearInput.tagName === 'INPUT') {
+                // Remove any existing overlay first
+                const existingOverlay = yearInput.parentNode.querySelector('.arabic-year-overlay');
+                if (existingOverlay) {
+                    existingOverlay.remove();
+                }
+
+                // Store the original Latin value for functionality
+                yearInput.setAttribute('data-latin-value', yearInput.value);
+
+                // Create a single visual overlay for Arabic display
+                const overlay = document.createElement('div');
+                overlay.className = 'arabic-year-overlay';
+                overlay.style.cssText = `
+                    position: absolute;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    pointer-events: none;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: #495057;
+                    font-size: inherit;
+                    background: transparent;
+                    z-index: 10;
+                    font-weight: 500;
+                `;
+                overlay.textContent = arabicYear;
+
+                // Make parent relative for positioning
+                yearInput.style.position = 'relative';
+                yearInput.style.color = 'transparent';
+                yearInput.style.textShadow = '0 0 0 transparent';
+                yearInput.parentNode.style.position = 'relative';
+                
+                // Append the overlay
+                yearInput.parentNode.appendChild(overlay);
+
+                // Clean up any existing event listeners
+                yearInput.removeEventListener('input', yearInput._arabicHandler);
+                
+                // Add new event listener
+                yearInput._arabicHandler = function() {
+                    const overlay = this.parentNode.querySelector('.arabic-year-overlay');
+                    if (overlay && this.value && /^\d+$/.test(this.value)) {
+                        overlay.textContent = toArabicDigits(this.value);
+                    }
+                };
+                yearInput.addEventListener('input', yearInput._arabicHandler);
+
+            } else {
+                // For non-input elements (display text)
+                yearInput.textContent = arabicYear;
+            }
+        }
+    });
+
+    // Handle year inputs with proper mutation observation
+    const yearInputs = document.querySelectorAll('.numInput[data-type="year"]');
+    yearInputs.forEach(function(input) {
+        // Disconnect existing observers
+        if (input._mutationObserver) {
+            input._mutationObserver.disconnect();
+        }
+
+        // Create new observer
+        input._mutationObserver = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.type === 'attributes' && 
+                    (mutation.attributeName === 'value' || mutation.attributeName === 'data-value')) {
+                    
+                    const overlay = input.parentNode.querySelector('.arabic-year-overlay');
+                    if (overlay && input.value && /^\d+$/.test(input.value)) {
+                        overlay.textContent = toArabicDigits(input.value);
+                    }
+                }
+            });
+        });
+
+        // Start observing
+        input._mutationObserver.observe(input, {
+            attributes: true,
+            attributeFilter: ['value', 'data-value']
+        });
+
+        // Also listen for direct value changes
+        if (!input._arabicValueHandler) {
+            input._arabicValueHandler = function(e) {
+                setTimeout(() => {
+                    const overlay = this.parentNode.querySelector('.arabic-year-overlay');
+                    if (overlay && this.value && /^\d+$/.test(this.value)) {
+                        overlay.textContent = toArabicDigits(this.value);
+                    }
+                }, 10);
+            };
+            
+            input.addEventListener('change', input._arabicValueHandler);
+            input.addEventListener('keyup', input._arabicValueHandler);
+            input.addEventListener('blur', input._arabicValueHandler);
+        }
+    });
+
+    // Convert month dropdown options
+    document.querySelectorAll('.flatpickr-monthDropdown-months option').forEach(function(option) {
+        const text = option.textContent;
+        if (text && /\d/.test(text)) {
+            option.textContent = toArabicDigits(text);
+        }
+    });
+
+    // Handle month navigation arrows and other numeric displays
+    document.querySelectorAll('.flatpickr-current-month span.cur-month').forEach(function(monthSpan) {
+        const text = monthSpan.textContent;
+        if (text && /\d/.test(text)) {
+            monthSpan.textContent = toArabicDigits(text);
+        }
+    });
+
+    // Ensure proper RTL layout
+    const calendar = document.querySelector('.flatpickr-calendar');
+    if (calendar) {
+        calendar.dir = 'rtl';
+    }
+}
+    // Highlight today's date with special styling
+    function highlightTodayIfNeeded(instance) {
+        const today = new Date();
+        const todayStr = today.toISOString().split('T')[0];
+        
+        document.querySelectorAll('.flatpickr-day').forEach(function(day) {
+            const dayDate = day.getAttribute('aria-label');
+            if (day.classList.contains('today')) {
+                day.style.position = 'relative';
+                
+                // Add a subtle indicator
+                if (!day.querySelector('.today-indicator')) {
+                    const indicator = document.createElement('div');
+                    indicator.className = 'today-indicator';
+                    indicator.style.cssText = `
+                        position: absolute;
+                        bottom: 2px;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        width: 4px;
+                        height: 4px;
+                        background: #198754;
+                        border-radius: 50%;
+                    `;
+                    day.appendChild(indicator);
+                }
+            }
+        });
+    }
+
+    // Show notification when today is set
+    function showTodaySetNotification() {
+        // Create toast notification
+        const toast = document.createElement('div');
+        toast.className = 'today-set-toast';
+        toast.innerHTML = `
+            <i class="fas fa-check-circle" style="margin-left: 8px;"></i>
+            تم تعيين تاريخ اليوم
+        `;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #198754;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            font-weight: 600;
+            animation: slideInRight 0.3s ease-out;
+        `;
+
+        document.body.appendChild(toast);
+
+        // Remove after 2 seconds
+        setTimeout(() => {
+            toast.style.animation = 'slideOutRight 0.3s ease-out';
+            setTimeout(() => {
+                toast.remove();
+            }, 300);
+        }, 2000);
+    }
+
+    // External calendar button handler
+    $('#calendarBtn').on('click', function() {
+        fp.open();
+    });
+
+    // Set initial Arabic format if date exists
+    if (dateInput.value) {
+        const latinDate = dateInput.value;
+        dateInput.setAttribute('data-latin-date', latinDate);
+        dateInput.value = toArabicDigits(latinDate);
+    }
+
+    // Store flatpickr instance globally for external access
+    window.fpInstance = fp;
+}
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @@keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+
+    @@keyframes slideOutRight {
+        from {
+            transform: translateX(0);
+            opacity: 1;
+        }
+        to {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+    }
+
+    /* RTL Calendar Styling */
+    .flatpickr-rtl {
+        direction: rtl !important;
+    }
+
+    .flatpickr-rtl .flatpickr-months {
+        direction: rtl !important;
+    }
+
+    .flatpickr-rtl .flatpickr-current-month {
+        padding: 0 !important;
+    }
+
+    .flatpickr-rtl .flatpickr-prev-month {
+        right: auto !important;
+        left: 0 !important;
+    }
+
+    .flatpickr-rtl .flatpickr-next-month {
+        left: auto !important;
+        right: 0 !important;
+    }
+
+    /* Today indicator styling */
+    .flatpickr-day.today {
+        border-color: #198754 !important;
+        font-weight: bold !important;
+    }
+
+    .flatpickr-day.today:not(.selected) {
+        background: #d4edda !important;
+        color: #155724 !important;
+    }
+
+    /* Selected date styling */
+    .flatpickr-day.selected {
+        background: #198754 !important;
+        border-color: #198754 !important;
+        color: white !important;
+        font-weight: bold !important;
+    }
+
+    .flatpickr-day.selected:hover {
+        background: #146c43 !important;
+        border-color: #146c43 !important;
+    }
+
+    /* Hover effect */
+    .flatpickr-day:hover:not(.selected):not(.flatpickr-disabled) {
+        background: #e9ecef !important;
+        border-color: #dee2e6 !important;
+    }
+
+    /* Month and year dropdowns - Arabic friendly */
+    .flatpickr-monthDropdown-months,
+    .numInput {
+        font-family: 'Arial', 'Tahoma', sans-serif !important;
+        direction: ltr !important;
+    }
+
+    /* Better spacing for buttons */
+    .flatpickr-today-btn-container {
+        margin-top: 0 !important;
+    }
+
+    /* Calendar container */
+    .flatpickr-calendar {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+        border-radius: 8px !important;
+        overflow: hidden !important;
+    }
+
+    /* Days container */
+    .flatpickr-days {
+        border-left: 0 !important;
+        border-right: 0 !important;
+    }
+
+    /* Weekday labels */
+    .flatpickr-weekday {
+        font-weight: 700 !important;
+        color: #198754 !important;
+    }
+
+    /* Disabled dates */
+    .flatpickr-day.flatpickr-disabled {
+        color: #ccc !important;
+    }
+
+    /* Better focus states */
+    .flatpickr-day:focus {
+        outline: 2px solid #198754 !important;
+        outline-offset: 2px !important;
+    }
+
+    /* Mobile responsiveness */
+    @@media (max-width: 768px) {
+        .flatpickr-calendar {
+            width: 100% !important;
+            max-width: 350px !important;
+        }
+
+        .flatpickr-today-btn,
+        .flatpickr-clear-btn {
+            font-size: 13px !important;
+            padding: 5px 12px !important;
+        }
+    }
+`;
+document.head.appendChild(style);
+
+console.log('✅ Enhanced Arabic Flatpickr with Today button initialized successfully');
             // Convert existing content to Arabic
             function convertExistingContentToArabic() {
                 $('span, div, p, td, th, label, small').each(function() {

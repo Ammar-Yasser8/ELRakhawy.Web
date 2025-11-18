@@ -242,7 +242,16 @@
                                         "اختر صنف الغزل",
                                         new { @class = "form-select form-select-sm", @id = "YarnItemId" })
                 </div>
-
+                 <!-- Stakeholder Type -->
+                <div class="col-md-3">
+                    <label for="StakeholderTypeId" class="form-label">
+                        <i class="fas fa-user-tag text-primary me-1"></i>نوع التاجر
+                    </label>
+                    @Html.DropDownListFor(m => m.StakeholderTypeId,
+                                        new SelectList(Model.StakeholderTypes, "Value", "Text"),
+                                        "اختر نوع التاجر",
+                                        new { @class = "form-select form-select-sm", @id = "StakeholderTypeId" })
+                </div>
                 <!-- Stakeholder -->
                 <div class="col-md-3">
                     <label for="StakeholderId" class="form-label">
@@ -253,6 +262,8 @@
                                         "اختر تاجر الغزل",
                                         new { @class = "form-select form-select-sm", @id = "StakeholderId" })
                 </div>
+
+               
 
                 <!-- Packaging Style -->
                 <div class="col-md-3">
