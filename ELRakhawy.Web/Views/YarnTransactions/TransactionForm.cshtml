@@ -306,12 +306,12 @@
 
     <script>
         $(document).ready(function () {
-            const CURRENT_TIME = '@currentTime';
-            const CURRENT_USER = '@currentUser';
+            const CURRENT_TIME = '2025-11-17 14:32:51';
+            const CURRENT_USER = 'Ammar-Yasser8';
             const IS_INBOUND = window.yarnFormConfig?.isInbound || false;
             const FORM_NAME = window.yarnFormConfig?.formName || '';
 
-            console.log('🚀 Enhanced yarn transaction form initializing:', {
+            console.log('🚀 Enhanced yarn transaction form with detailed balance display:', {
                 time: CURRENT_TIME,
                 user: CURRENT_USER,
                 isInbound: IS_INBOUND,
@@ -372,28 +372,21 @@
                     let input = e.target;
                     let cursorPos = input.selectionStart || 0;
                     let cursorEnd = input.selectionEnd || 0;
-                    
-                    // Get current value
+
                     let currentValue = input.value;
-                    
-                    // If text is selected, remove it first
+
                     if (cursorPos !== cursorEnd) {
                         currentValue = currentValue.slice(0, cursorPos) + currentValue.slice(cursorEnd);
                     }
-                    
-                    // Create temporary value to test conversion
-                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
 
-                    // Determine conversion based on content
+                    let tempValue = currentValue.slice(0, cursorPos) + digit + currentValue.slice(cursorPos);
                     let useArabic = shouldUseArabicDigits(tempValue);
                     let convertedDigit = useArabic ? toArabicDigits(digit) : digit;
 
-                    // Insert the converted digit
                     let newValue = currentValue.slice(0, cursorPos) + convertedDigit + currentValue.slice(cursorPos);
                     input.value = newValue;
                     input.setSelectionRange(cursorPos + 1, cursorPos + 1);
 
-                    // Trigger input event
                     $(input).trigger('input');
                 }
             }
@@ -406,7 +399,7 @@
 
             $(document).on('keypress', INPUT_SELECTORS, handleNumberKeypress);
 
-            // ✅ Enhanced Select2 with full Arabic number support in search
+            // ✅ Enhanced Select2 with full Arabic number support
             $('.form-select').select2({
                 theme: 'bootstrap-5',
                 width: '100%',
@@ -426,7 +419,6 @@
                     if (!data.id) {
                         return data.text;
                     }
-                    // Convert numbers in dropdown options to Arabic
                     var text = data.text;
                     if (text && /\d/.test(text)) {
                         text = toArabicDigits(text);
@@ -434,7 +426,6 @@
                     return $('<span>' + text + '</span>');
                 },
                 templateSelection: function(data) {
-                    // Convert numbers in selected option to Arabic
                     var text = data.text;
                     if (text && /\d/.test(text)) {
                         text = toArabicDigits(text);
@@ -442,62 +433,48 @@
                     return text;
                 },
                 matcher: function (params, data) {
-                    // If no search term, return all data
                     if ($.trim(params.term) === '') {
                         return data;
                     }
 
-                    // Don't display if no text
                     if (typeof data.text === 'undefined') {
                         return null;
                     }
 
-                    // Normalize Arabic characters (أإآ -> ا, ى -> ي)
                     const normalizeArabic = (str) => {
                         if (!str) return '';
                         return str.replace(/[أإآ]/g, 'ا').replace(/ى/g, 'ي');
                     };
 
-                    // Get search term and option text
                     let searchTerm = params.term.toLowerCase().trim();
                     let optionText = data.text.toLowerCase().trim();
 
-                    // Convert BOTH Arabic and Latin numbers to a common format (Latin) for comparison
-                    // This allows searching with either ١٢٣ or 123
                     searchTerm = toLatinDigits(searchTerm);
                     optionText = toLatinDigits(optionText);
 
-                    // Normalize Arabic characters
                     searchTerm = normalizeArabic(searchTerm);
                     optionText = normalizeArabic(optionText);
 
-                    // Check if option text includes search term
                     if (optionText.includes(searchTerm)) {
                         return data;
                     }
 
-                    // No match found
                     return null;
                 }
             });
 
-            // ✅ Handle Arabic number input in Select2 search box
+            // ✅ Handle Arabic number input in Select2 search
             $(document).on('keyup', '.select2-search__field', function(e) {
                 const $searchField = $(this);
                 let searchValue = $searchField.val();
-                
-                // Use requestAnimationFrame for better performance and avoid lag
+
                 if (searchValue && /[0-9]/.test(searchValue)) {
                     requestAnimationFrame(() => {
-                        // Only convert if the field still has focus and value hasn't changed
                         if ($searchField.is(':focus') && $searchField.val() === searchValue) {
                             $searchField.val(toArabicDigits(searchValue));
                         }
                     });
                 }
-                
-                // If already has Arabic numbers, leave as is
-                // The matcher function will handle both Arabic and English numbers for searching
             });
 
             // ✅ Clear button functionality
@@ -512,7 +489,7 @@
                 $('#commentCharCount').text(toArabicDigits('0'));
             });
 
-            // ✅ Show/hide clear buttons based on input
+            // ✅ Show/hide clear buttons
             $(document).on('input change', 'input[type="text"]:not(#Date), textarea', function() {
                 const $clearBtn = $(this).siblings('.btn-clear, .btn-clear-textarea');
                 if ($(this).val().trim()) {
@@ -522,7 +499,6 @@
                 }
             });
 
-            // Initial hide for empty fields
             $('input[type="text"]:not(#Date), textarea').each(function() {
                 const $clearBtn = $(this).siblings('.btn-clear, .btn-clear-textarea');
                 if (!$(this).val().trim()) {
@@ -533,31 +509,25 @@
             // ✅ Arabic-friendly Flatpickr calendar
             if (window.flatpickr) {
                 const dateInput = document.getElementById('Date');
-                
+
                 const fp = flatpickr(dateInput, {
                     dateFormat: 'Y-m-d',
                     locale: {
                         ...flatpickr.l10ns.ar,
-                        firstDayOfWeek: 6 // Saturday
+                        firstDayOfWeek: 6
                     },
                     allowInput: false,
                     disableMobile: true,
                     defaultDate: dateInput.value || new Date(),
                     onChange: function(selectedDates, dateStr, instance) {
-                        // Store Latin format internally for server
                         dateInput.setAttribute('data-latin-date', dateStr);
-                        
-                        // Display Arabic format to user
                         dateInput.value = toArabicDigits(dateStr);
-                        
-                        // Update calendar display with Arabic numbers
+
                         setTimeout(() => {
                             $('.flatpickr-day, .flatpickr-current-month .numInputWrapper input').each(function() {
                                 const text = $(this).text() || $(this).val();
                                 if (text && /\d/.test(text)) {
-                                    if ($(this).is('input')) {
-                                        // Don't convert year input to maintain functionality
-                                    } else {
+                                    if (!$(this).is('input')) {
                                         $(this).text(toArabicDigits(text));
                                     }
                                 }
@@ -565,14 +535,11 @@
                         }, 0);
                     },
                     onReady: function(selectedDates, dateStr, instance) {
-                        // Store initial Latin date
                         if (dateStr) {
                             dateInput.setAttribute('data-latin-date', dateStr);
-                            // Display in Arabic
                             dateInput.value = toArabicDigits(dateStr);
                         }
-                        
-                        // Convert calendar display to Arabic on load
+
                         setTimeout(() => {
                             $('.flatpickr-day, .flatpickr-monthDropdown-months option').each(function() {
                                 const text = $(this).text();
@@ -583,7 +550,6 @@
                         }, 0);
                     },
                     onMonthChange: function(selectedDates, dateStr, instance) {
-                        // Convert when month changes
                         setTimeout(() => {
                             $('.flatpickr-day').each(function() {
                                 const text = $(this).text();
@@ -594,7 +560,6 @@
                         }, 0);
                     },
                     onYearChange: function(selectedDates, dateStr, instance) {
-                        // Convert when year changes
                         setTimeout(() => {
                             $('.flatpickr-day').each(function() {
                                 const text = $(this).text();
@@ -606,12 +571,10 @@
                     }
                 });
 
-                // Calendar button click handler
                 $('#calendarBtn').on('click', function() {
                     fp.open();
                 });
 
-                // Convert existing date display to Arabic
                 if (dateInput.value) {
                     const latinDate = dateInput.value;
                     dateInput.setAttribute('data-latin-date', latinDate);
@@ -668,14 +631,32 @@
 
             $('#commentCharCount').text(toArabicDigits($('#Comment').val().length.toString()));
 
-            // Packaging change handler
+            // ✅ Enhanced warning system
+            function showWarning(message, type = 'warning') {
+                return `
+                    <div class="alert alert-${type} mt-2 mb-0" role="alert">
+                        <i class="fas fa-exclamation-triangle me-1"></i>
+                        ${message}
+                        <small class="d-block mt-1 opacity-75">
+                            ${type === 'warning' ? 'يمكنك المتابعة أو تعديل القيم' : ''}
+                        </small>
+                    </div>
+                `;
+            }
+
+            function clearWarnings(fieldId) {
+                $(`#${fieldId}`).closest('.input-group').next('.alert').remove();
+                $(`#${fieldId}`).removeClass('border-warning border-danger');
+            }
+
+            // ✅ Enhanced packaging change handler with detailed balance
             $('#PackagingStyleId').on('change', function () {
                 var selectedText = $(this).find('option:selected').text();
                 var selectedId = $(this).val();
                 $('#PackagingStyleName').val(selectedText);
 
-                $('#Quantity, #Count').removeClass('is-invalid');
-                $('.invalid-feedback').remove();
+                clearWarnings('Quantity');
+                clearWarnings('Count');
                 $('#validationSummary').hide().removeClass('alert-danger');
 
                 if (selectedId && window.currentPackagingBreakdown) {
@@ -710,103 +691,61 @@
                         `);
                     }
                 }
+
+                $('#Quantity').trigger('blur');
+                $('#Count').trigger('blur');
             });
 
-            // Quantity input handler
+            // ✅ Quantity input handler with warnings
             $('#Quantity').on('input blur', function() {
-                let val = this.value;
-                val = val.replace(/،/g, '.');
-                let parts = val.split('.');
-                if (parts.length > 2) {
-                    val = parts[0] + '.' + parts.slice(1).join('');
-                }
-                val = val.replace(/[^\d٠-٩.]/g, '');
+                let val = this.value.replace(/،/g,'.');
+                val = val.replace(/[^\d٠-٩.-]/g,'');
                 applySmartNumberConversion($(this));
 
-                if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
+                clearWarnings('Quantity');
+
+                if (!IS_INBOUND && window.currentPackagingBreakdown) {
                     let selectedPackagingId = $('#PackagingStyleId').val();
                     if (selectedPackagingId) {
                         let quantityValue = parseFloat(toLatinDigits(val));
                         let selectedPackaging = window.currentPackagingBreakdown.find(pkg =>
                             pkg.packagingId.toString() === selectedPackagingId);
 
-                        let $quantityField = $(this);
-
                         if (selectedPackaging && !isNaN(quantityValue)) {
-                            if (quantityValue > selectedPackaging.specificWeight) {
-                                $quantityField.addClass('is-invalid');
-                                let existingError = $quantityField.closest('.input-group').next('.invalid-feedback');
-                                if (existingError.length === 0) {
-                                    $quantityField.closest('.input-group').after(`
-                                        <div class="invalid-feedback d-block">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>
-                                            الكمية ${toArabicDigits(quantityValue.toFixed(2))} كجم تتجاوز المتاح لـ${selectedPackaging.packagingType}
-                                            (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم فقط)
-                                        </div>
-                                    `);
-                                } else {
-                                    existingError.html(`
-                                        <i class="fas fa-exclamation-triangle me-1"></i>
-                                        الكمية ${toArabicDigits(quantityValue.toFixed(2))} كجم تتجاوز المتاح لـ${selectedPackaging.packagingType}
-                                        (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم فقط)
-                                    `);
-                                }
-                            } else {
-                                $quantityField.removeClass('is-invalid');
-                                $quantityField.closest('.input-group').next('.invalid-feedback').remove();
+                            if (Math.abs(quantityValue) > selectedPackaging.specificWeight) {
+                                let warningMessage = `الكمية المطلوبة (${toArabicDigits(quantityValue.toFixed(2))} كجم) تتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم)`;
+
+                                $(this).addClass('border-warning');
+                                $(this).closest('.input-group').after(showWarning(warningMessage));
                             }
                         }
                     }
-                } else {
-                    $(this).removeClass('is-invalid');
-                    $(this).closest('.input-group').next('.invalid-feedback').remove();
                 }
             });
 
-            // Count input handler
+            // ✅ Count input handler with warnings
             $('#Count').on('input blur', function() {
-                let val = this.value;
-                val = val.replace(/\./g, '');
-                val = val.replace(/[^\d٠-٩]/g, '');
+                let val = this.value.replace(/[^\d٠-٩.-]/g,'');
                 applySmartNumberConversion($(this));
 
-                if (!IS_INBOUND && val && window.currentPackagingBreakdown) {
+                clearWarnings('Count');
+
+                if (!IS_INBOUND && window.currentPackagingBreakdown) {
                     let selectedPackagingId = $('#PackagingStyleId').val();
                     if (selectedPackagingId) {
                         let countValue = parseInt(toLatinDigits(val));
                         let selectedPackaging = window.currentPackagingBreakdown.find(pkg =>
                             pkg.packagingId.toString() === selectedPackagingId);
 
-                        let $countField = $(this);
-
                         if (selectedPackaging && !isNaN(countValue)) {
-                            if (countValue > selectedPackaging.totalCount) {
-                                $countField.addClass('is-invalid');
-                                let existingError = $countField.closest('.input-group').next('.invalid-feedback');
-                                if (existingError.length === 0) {
-                                    $countField.closest('.input-group').after(`
-                                        <div class="invalid-feedback d-block">
-                                            <i class="fas fa-exclamation-triangle me-1"></i>
-                                            العدد ${toArabicDigits(countValue.toString())} يتجاوز المتاح لـ${selectedPackaging.packagingType}
-                                            (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة فقط)
-                                        </div>
-                                    `);
-                                } else {
-                                    existingError.html(`
-                                        <i class="fas fa-exclamation-triangle me-1"></i>
-                                        العدد ${toArabicDigits(countValue.toString())} يتجاوز المتاح لـ${selectedPackaging.packagingType}
-                                        (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة فقط)
-                                    `);
-                                }
-                            } else {
-                                $countField.removeClass('is-invalid');
-                                $countField.closest('.input-group').next('.invalid-feedback').remove();
+                            if (Math.abs(countValue) > selectedPackaging.totalCount) {
+                                let warningMessage = `العدد المطلوب (${toArabicDigits(countValue.toString())} وحدة) يتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة)`;
+
+                                $(this).addClass('border-warning');
+                                $(this).closest('.input-group').after(showWarning(warningMessage));
                             }
                         }
                     }
-                } else {
-                    $(this).removeClass('is-invalid');
-                    $(this).closest('.input-group').next('.invalid-feedback').remove();
                 }
             });
 
@@ -817,9 +756,10 @@
                 }
             });
 
-            // Preview button
+            // ✅ Enhanced preview with warnings
             $('#previewBtn').click(function () {
                 let validation = validateForm();
+
                 if (!validation.isValid) {
                     showValidationErrors(validation.errors);
                     return;
@@ -837,8 +777,8 @@
                 };
 
                 var displayDate = toArabicDigits(data.date);
-
                 var packagingWeight = '';
+
                 if (window.currentPackagingBreakdown && $('#PackagingStyleId').val()) {
                     var selectedPackagingId = $('#PackagingStyleId').val();
                     var selectedPackaging = window.currentPackagingBreakdown.find(p =>
@@ -847,6 +787,21 @@
                     if (selectedPackaging) {
                         packagingWeight = `<p><strong>الوزن المتاح للتعبئة:</strong> ${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم</p>`;
                     }
+                }
+
+                var warningsHtml = '';
+                if (validation.hasWarnings) {
+                    warningsHtml = `
+                        <div class="alert alert-warning mt-3">
+                            <h6><i class="fas fa-exclamation-triangle me-1"></i> تحذيرات:</h6>
+                            <ul class="mb-0">
+                                ${validation.warnings.map(warning => `<li>${warning}</li>`).join('')}
+                            </ul>
+                            <small class="d-block mt-2 text-muted">
+                                يمكنك المتابعة أو تعديل القيم حسب الحاجة
+                            </small>
+                        </div>
+                    `;
                 }
 
                 var preview = `
@@ -871,16 +826,17 @@
                             <p><strong>البيان:</strong> ${data.comment}</p>
                         </div>
                     </div>
+                    ${warningsHtml}
                 `;
 
                 Swal.fire({
                     title: 'معاينة المعاملة',
                     html: preview,
-                    icon: 'question',
+                    icon: validation.hasWarnings ? 'warning' : 'question',
                     showCancelButton: true,
                     confirmButtonText: `<i class="fas fa-save me-1"></i> حفظ ${IS_INBOUND ? 'الوارد' : 'الصادر'}`,
                     cancelButtonText: '<i class="fas fa-times me-1"></i> تراجع',
-                    confirmButtonColor: IS_INBOUND ? '#198754' : '#ffc107',
+                    confirmButtonColor: validation.hasWarnings ? '#fd7e14' : (IS_INBOUND ? '#198754' : '#ffc107'),
                     cancelButtonColor: '#6c757d',
                     reverseButtons: true
                 }).then((result) => {
@@ -890,10 +846,11 @@
                 });
             });
 
-            // Form validation
+            // ✅ Enhanced form validation with warnings
             function validateForm() {
                 var isValid = true;
                 var errors = [];
+                var warnings = [];
 
                 if (!$('#YarnItemId').val()) {
                     errors.push('يجب اختيار صنف الغزل');
@@ -905,8 +862,8 @@
 
                 var quantityVal = $('#Quantity').val().trim();
                 var quantity = parseFloat(toLatinDigits(quantityVal));
-                if (!quantityVal || isNaN(quantity) || quantity <= 0) {
-                    errors.push('يجب إدخال كمية صحيحة أكبر من الصفر');
+                if (!quantityVal || isNaN(quantity) || quantity < 0) {
+                    errors.push('يجب إدخال كمية صحيحة (صفر أو أكبر)');
                     $('#Quantity').addClass('is-invalid');
                     isValid = false;
                 } else {
@@ -915,15 +872,14 @@
 
                 var countVal = $('#Count').val().trim();
                 var count = parseInt(toLatinDigits(countVal));
-                if (!countVal || isNaN(count) || count <= 0 || !Number.isInteger(parseFloat(toLatinDigits(countVal)))) {
-                    errors.push('يجب إدخال عدد صحيح (بدون فاصلة عشرية) أكبر من الصفر');
+                if (!countVal || isNaN(count) || count < 0 || !Number.isInteger(parseFloat(toLatinDigits(countVal)))) {
+                    errors.push('يجب إدخال عدد صحيح (بدون فاصلة عشرية) صفر أو أكبر');
                     $('#Count').addClass('is-invalid');
                     isValid = false;
                 } else {
                     $('#Count').removeClass('is-invalid');
                 }
 
-                // NEW: Validate stakeholder type
                 if (!$('#StakeholderTypeId').val()) {
                     errors.push('يجب اختيار نوع الجهة');
                     $('#StakeholderTypeId').next('.select2-container').addClass('is-invalid');
@@ -932,7 +888,6 @@
                     $('#StakeholderTypeId').next('.select2-container').removeClass('is-invalid');
                 }
 
-                // Validate stakeholder
                 if (!$('#StakeholderId').val()) {
                     errors.push('يجب اختيار الجهة');
                     $('#StakeholderId').next('.select2-container').addClass('is-invalid');
@@ -949,11 +904,9 @@
                     $('#PackagingStyleId').next('.select2-container').removeClass('is-invalid');
                 }
 
-                // Date validation and default
                 var dateVal = $('#Date').val();
                 var dateLatin = $('#Date').attr('data-latin-date') || toLatinDigits(dateVal || '');
                 if (!dateLatin || !/^\d{4}-\d{2}-\d{2}$/.test(dateLatin)) {
-                    // Set today's date in yyyy-MM-dd format
                     var today = new Date();
                     var yyyy = today.getFullYear();
                     var mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -973,21 +926,22 @@
 
                         if (selectedPackaging) {
                             if (quantity > selectedPackaging.specificWeight) {
-                                errors.push(`الكمية المطلوبة (${toArabicDigits(quantity.toFixed(2))} كجم) تتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم)`);
-                                $('#Quantity').addClass('is-invalid');
-                                isValid = false;
+                                warnings.push(`الكمية المطلوبة (${toArabicDigits(quantity.toFixed(2))} كجم) تتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.specificWeight.toFixed(2))} كجم)`);
                             }
 
                             if (count > selectedPackaging.totalCount) {
-                                errors.push(`العدد المطلوب (${toArabicDigits(count.toString())} وحدة) يتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة)`);
-                                $('#Count').addClass('is-invalid');
-                                isValid = false;
+                                warnings.push(`العدد المطلوب (${toArabicDigits(count.toString())} وحدة) يتجاوز المتاح لـ${selectedPackaging.packagingType} (${toArabicDigits(selectedPackaging.totalCount.toString())} وحدة)`);
                             }
                         }
                     }
                 }
 
-                return { isValid: isValid, errors: errors };
+                return {
+                    isValid: isValid,
+                    errors: errors,
+                    warnings: warnings,
+                    hasWarnings: warnings.length > 0
+                };
             }
 
             function showValidationErrors(errors) {
@@ -1004,7 +958,7 @@
                 }
             }
 
-            // Form submission
+            // ✅ Enhanced form submission with warnings
             $('#yarnTransactionForm').on('submit', function(e) {
                 e.preventDefault();
 
@@ -1032,6 +986,37 @@
                     return false;
                 }
 
+                if (validation.hasWarnings) {
+                    Swal.fire({
+                        title: 'هناك تحذيرات',
+                        html: `
+                            <div class="text-warning">
+                                <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                                <h6>تم اكتشاف التحذيرات التالية:</h6>
+                            </div>
+                            <ul class="text-start">
+                                ${validation.warnings.map(warning => `<li class="text-warning">${warning}</li>`).join('')}
+                            </ul>
+                            <div class="alert alert-info mt-3">
+                                <strong>هل تريد المتابعة رغم التحذيرات؟</strong>
+                                <br><small>يمكنك حفظ المعاملة الآن أو العودة لتعديل القيم</small>
+                            </div>
+                        `,
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-save me-1"></i> نعم، احفظ مع التحذيرات',
+                        cancelButtonText: '<i class="fas fa-edit me-1"></i> تراجع للتعديل',
+                        confirmButtonColor: '#fd7e14',
+                        cancelButtonColor: '#6c757d',
+                        reverseButtons: true
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            submitForm();
+                        }
+                    });
+                    return false;
+                }
+
                 submitForm();
             });
 
@@ -1040,7 +1025,6 @@
                 let countLatin = toLatinDigits($('#Count').val() || '0');
                 let dateLatin = $('#Date').attr('data-latin-date') || toLatinDigits($('#Date').val() || '');
 
-                // Always ensure date is in correct format, fallback to today if not
                 if (!dateLatin || !/^\d{4}-\d{2}-\d{2}$/.test(dateLatin)) {
                     var today = new Date();
                     var yyyy = today.getFullYear();
@@ -1058,58 +1042,56 @@
                 $('#saveBtn').prop('disabled', true)
                     .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحفظ...');
 
+                console.log('✅ Form submitted successfully at', CURRENT_TIME, 'by', CURRENT_USER);
                 $('#yarnTransactionForm')[0].submit();
                 return true;
             }
 
-            // Yarn item selection
+            // ✅ Enhanced yarn item selection with detailed balance display
             $('#YarnItemId').on('change', function () {
                 var selectedItemId = $(this).val();
                 var selectedText = $(this).find('option:selected').text();
                 $('#YarnItemName').val(selectedText);
 
                 if (!selectedItemId) {
-                    $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
+                    displayDetailedBalance(null);
                     return;
                 }
 
                 fetchYarnItemBalance(parseInt(selectedItemId));
             });
 
-            // ✅ NEW: Stakeholder Type change handler
+            // ✅ Stakeholder Type change handler
             $('#StakeholderTypeId').on('change', function () {
-            var selectedTypeId = $(this).val();
-            var selectedTypeName = $(this).find('option:selected').text();
-            $('#StakeholderTypeName').val(selectedTypeName);
+                var selectedTypeId = $(this).val();
+                var selectedTypeName = $(this).find('option:selected').text();
+                $('#StakeholderTypeName').val(selectedTypeName);
 
-            // Clear and disable stakeholder dropdown
-            var $stakeholderSelect = $('#StakeholderId');
-            $stakeholderSelect.empty()
-                .append('<option value="">-- اختر الجهة --</option>')
-                .prop('disabled', true)
-                .trigger('change');
-
-            // Clear stakeholder name
-            $('#StakeholderName').val('');
-
-            if (selectedTypeId) {
-                // Fetch stakeholders for this type
-                fetchStakeholdersByType(parseInt(selectedTypeId));
-            } else {
-                $stakeholderSelect.prop('disabled', true)
-                    .empty()
-                    .append('<option value="">-- اختر نوع الجهة أولاً --</option>')
+                var $stakeholderSelect = $('#StakeholderId');
+                $stakeholderSelect.empty()
+                    .append('<option value="">-- اختر الجهة --</option>')
+                    .prop('disabled', true)
                     .trigger('change');
-            }
-        });
-            // ✅ UPDATED: Stakeholder change handler
+
+                $('#StakeholderName').val('');
+
+                if (selectedTypeId) {
+                    fetchStakeholdersByType(parseInt(selectedTypeId));
+                } else {
+                    $stakeholderSelect.prop('disabled', true)
+                        .empty()
+                        .append('<option value="">-- اختر نوع الجهة أولاً --</option>')
+                        .trigger('change');
+                }
+            });
+
+            // ✅ Stakeholder change handler
             $('#StakeholderId').on('change', function () {
-            var selectedText = $(this).find('option:selected').text();
-            $('#StakeholderName').val(selectedText);
-        });
+                var selectedText = $(this).find('option:selected').text();
+                $('#StakeholderName').val(selectedText);
+            });
 
-
-            // Reset button
+            // ✅ Reset button
             $('#resetBtn').on('click', function() {
                 Swal.fire({
                     title: 'إعادة تعيين النموذج',
@@ -1127,7 +1109,7 @@
                         $('.form-select').val('').trigger('change');
                         $('#validationSummary').hide();
                         $('.is-invalid').removeClass('is-invalid');
-                        $('#currentBalanceDisplay').html('<small class="text-muted">اختر الصنف أولاً</small>');
+                        displayDetailedBalance(null);
                         $('#commentCharCount').text(toArabicDigits('0'));
                         $('.btn-clear, .btn-clear-textarea').hide();
 
@@ -1142,107 +1124,250 @@
                 });
             });
 
-            // Load stakeholders and packaging
-            fetchStakeholderTypesByForm(FORM_NAME);
-            fetchPackagingStyles(FORM_NAME);
+            // ✅ NEW: Enhanced detailed balance display
+            function displayDetailedBalance(balanceData) {
+                const $balanceDisplay = $('#currentBalanceDisplay');
 
-            var initialYarnItemId = $('#YarnItemId').val();
-            if (initialYarnItemId) {
-                fetchYarnItemBalance(parseInt(initialYarnItemId));
-            }
-
-           function fetchStakeholderTypesByForm(formName) {
-            $.ajax({
-                url: '/YarnTransactions/GetStackholderTypeByForm',
-                type: 'GET',
-                data: { fromName: formName },
-                beforeSend: function () {
-                    $('#StakeholderTypeId')
-                        .prop('disabled', true)
-                        .empty()
-                        .append('<option value="">جاري التحميل...</option>');
-                },
-                success: function (response) {
-                    var $select = $('#StakeholderTypeId');
-                    $select.empty().append('<option value="">-- اختر نوع الجهة --</option>');
-
-                    if (response?.success && response.data?.length > 0) {
-
-                        response.data.forEach(function (item) {
-                            var displayName = item.name;
-                            if (displayName && /\d/.test(displayName)) {
-                                displayName = toArabicDigits(displayName);
-                            }
-
-                            $select.append(new Option(displayName, item.id));
-                        });
-
-                        $select.prop('disabled', false);
-                    } else {
-                        $select.append('<option value="">لا توجد أنواع جهات متاحة</option>');
-                        $select.prop('disabled', false);
-                    }
-                },
-                error: function () {
-                    $('#StakeholderTypeId')
-                        .empty()
-                        .append('<option value="">خطأ في تحميل أنواع الجهات</option>')
-                        .prop('disabled', false);
+                if (!balanceData || !balanceData.success) {
+                    $balanceDisplay.html(`
+                        <div class="text-center text-muted py-3">
+                            <i class="fas fa-info-circle fa-2x mb-2 opacity-50"></i>
+                            <div class="small">اختر الصنف أولاً لعرض الرصيد</div>
+                        </div>
+                    `);
+                    return;
                 }
-            });
-        }
 
-        // ✅ NEW: Function to fetch stakeholders by type ID
-            function fetchStakeholdersByType(typeId) {
-            if (!typeId || typeId <= 0) {
-                return;
+                const totalBalance = balanceData.totalQuantityBalance || 0;
+                const totalCount = balanceData.totalCountBalance || 0;
+                const packagingBreakdown = balanceData.packagingBreakdown || [];
+
+                const balanceAr = toArabicDigits(totalBalance.toFixed(3));
+                const countAr = toArabicDigits(totalCount.toString());
+
+                // Create detailed breakdown HTML
+                let packagingDetailsHtml = '';
+                if (packagingBreakdown.length > 0) {
+                    const sortedPackaging = packagingBreakdown
+                        .filter(pkg => pkg.totalCount > 0 || pkg.specificWeight > 0)
+                        .sort((a, b) => b.specificWeight - a.specificWeight);
+
+                    if (sortedPackaging.length > 0) {
+                        packagingDetailsHtml = `
+                            <div class="packaging-breakdown mt-3">
+                                <h6 class="text-primary mb-2">
+                                    <i class="fas fa-boxes me-1"></i>
+                                    تفاصيل التعبئة:
+                                </h6>
+                                <div class="row g-2">
+                                    ${sortedPackaging.map(pkg => {
+                                        const countAr = toArabicDigits(pkg.totalCount.toString());
+                                        const weightAr = toArabicDigits(pkg.specificWeight.toFixed(2));
+                                        const avgWeight = pkg.totalCount > 0 ? (pkg.specificWeight / pkg.totalCount).toFixed(2) : '0.00';
+                                        const avgWeightAr = toArabicDigits(avgWeight);
+
+                                        return `
+                                            <div class="col-md-6">
+                                                <div class="card border-0 bg-light h-100">
+                                                    <div class="card-body p-2">
+                                                        <div class="d-flex align-items-center justify-content-between">
+                                                            <div class="text-truncate">
+                                                                <div class="fw-bold text-dark small">${pkg.packagingType}</div>
+                                                                <div class="text-muted smaller">
+                                                                    متوسط: ${avgWeightAr} كجم/وحدة
+                                                                </div>
+                                                            </div>
+                                                            <div class="text-end">
+                                                                <div class="badge bg-info text-dark">
+                                                                    ${countAr} وحدة
+                                                                </div>
+                                                                <div class="fw-bold text-success small">
+                                                                    ${weightAr} كجم
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        packagingDetailsHtml = `
+                            <div class="text-center text-muted mt-2">
+                                <i class="fas fa-box-open me-1"></i>
+                                <small>لا توجد تعبئة متاحة</small>
+                            </div>
+                        `;
+                    }
+                }
+
+                // Create summary header with total balance
+                const summaryHtml = `
+                    <div class="balance-summary">
+                        <div class="row align-items-center mb-3">
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-primary bg-gradient rounded text-white">
+                                    <div class="display-6 fw-bold">${balanceAr}</div>
+                                    <div class="small opacity-90">كجم إجمالي</div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="text-center p-3 bg-info bg-gradient rounded text-white">
+                                    <div class="display-6 fw-bold">${countAr}</div>
+                                    <div class="small opacity-90">وحدة إجمالي</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Additional stats if available
+                let statsHtml = '';
+                if (packagingBreakdown.length > 0) {
+                    const totalPackagingTypes = packagingBreakdown.filter(pkg => pkg.totalCount > 0).length;
+                    const avgWeightPerUnit = totalCount > 0 ? (totalBalance / totalCount).toFixed(2) : '0.00';
+
+                    statsHtml = `
+                        <div class="stats-summary border-top pt-2 mt-2">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="small text-muted">أنواع التعبئة</div>
+                                    <div class="fw-bold text-primary">${toArabicDigits(totalPackagingTypes.toString())}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="small text-muted">متوسط الوزن</div>
+                                    <div class="fw-bold text-success">${toArabicDigits(avgWeightPerUnit)}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="small text-muted">آخر تحديث</div>
+                                    <div class="fw-bold text-info">${toArabicDigits(new Date().toLocaleString('ar-SA', {
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                    }))}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Combine all parts
+                $balanceDisplay.html(`
+                    <div class="detailed-balance p-3 border rounded">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <h6 class="mb-0 text-primary">
+                                <i class="fas fa-warehouse me-1"></i>
+                                الرصيد الحالي
+                            </h6>
+                            <small class="text-muted">
+                                <i class="fas fa-clock me-1"></i>
+                                ${CURRENT_TIME.split(' ')[1].substring(0,5)}
+                            </small>
+                        </div>
+                        ${summaryHtml}
+                        ${packagingDetailsHtml}
+                        ${statsHtml}
+                    </div>
+                `);
+
+                console.log('✅ Detailed balance displayed:', {
+                    yarnItem: balanceData.yarnItem,
+                    totalQuantityBalance: totalBalance,
+                    totalCountBalance: totalCount,
+                    packagingTypes: packagingBreakdown.length,
+                    timestamp: CURRENT_TIME,
+                    user: CURRENT_USER
+                });
             }
 
-            $.ajax({
-                url: '/YarnTransactions/GetStackholderByGetType',
-                type: 'GET',
-                data: { typeId: typeId },
-                beforeSend: function() {
-                    var $select = $('#StakeholderId');
-                    $select.prop('disabled', true)
-                        .empty()
-                        .append('<option value="">جاري التحميل...</option>');
-                },
-                success: function(response) {
-                    var $select = $('#StakeholderId');
-                    $select.empty().append('<option value="">-- اختر الجهة --</option>');
+            // ✅ API Functions
+            function fetchStakeholderTypesByForm(formName) {
+                $.ajax({
+                    url: '/YarnTransactions/GetStackholderTypeByForm',
+                    type: 'GET',
+                    data: { fromName: formName },
+                    beforeSend: function () {
+                        $('#StakeholderTypeId')
+                            .prop('disabled', true)
+                            .empty()
+                            .append('<option value="">جاري التحميل...</option>');
+                    },
+                    success: function (response) {
+                        var $select = $('#StakeholderTypeId');
+                        $select.empty().append('<option value="">-- اختر نوع الجهة --</option>');
 
-                    if (response && response.success && response.data && response.data.length > 0) {
-                        response.data.forEach(function(stakeholder) {
-                            var displayName = stakeholder.name;
-                            if (displayName && /\d/.test(displayName)) {
-                                displayName = toArabicDigits(displayName);
-                            }
-                            $select.append(new Option(displayName, stakeholder.id));
-                        });
-                        $select.prop('disabled', false);
-
-                        console.log('✅ Loaded ' + response.data.length + ' stakeholders for type ' + typeId);
-                    } else {
-                        $select.append('<option value="">لا توجد جهات نشطة لهذا النوع</option>');
-                        $select.prop('disabled', true);
-
-                        if (response && response.error) {
-                            console.warn('Stakeholders warning:', response.error);
+                        if (response?.success && response.data?.length > 0) {
+                            response.data.forEach(function (item) {
+                                var displayName = item.name;
+                                if (displayName && /\d/.test(displayName)) {
+                                    displayName = toArabicDigits(displayName);
+                                }
+                                $select.append(new Option(displayName, item.id));
+                            });
+                            $select.prop('disabled', false);
+                        } else {
+                            $select.append('<option value="">لا توجد أنواع جهات متاحة</option>');
+                            $select.prop('disabled', false);
                         }
+                    },
+                    error: function () {
+                        $('#StakeholderTypeId')
+                            .empty()
+                            .append('<option value="">خطأ في تحميل أنواع الجهات</option>')
+                            .prop('disabled', false);
                     }
+                });
+            }
 
-                    $select.trigger('change');
-                },
-                error: function(xhr, status, error) {
-                    console.error('Error loading stakeholders:', error);
-                    var $select = $('#StakeholderId');
-                    $select.empty()
-                        .append('<option value="">خطأ في تحميل الجهات</option>')
-                        .prop('disabled', false);
+            function fetchStakeholdersByType(typeId) {
+                if (!typeId || typeId <= 0) {
+                    return;
                 }
-            });
-        }
+
+                $.ajax({
+                    url: '/YarnTransactions/GetStackholderByGetType',
+                    type: 'GET',
+                    data: { typeId: typeId },
+                    beforeSend: function() {
+                        var $select = $('#StakeholderId');
+                        $select.prop('disabled', true)
+                            .empty()
+                            .append('<option value="">جاري التحميل...</option>');
+                    },
+                    success: function(response) {
+                        var $select = $('#StakeholderId');
+                        $select.empty().append('<option value="">-- اختر الجهة --</option>');
+
+                        if (response && response.success && response.data && response.data.length > 0) {
+                            response.data.forEach(function(stakeholder) {
+                                var displayName = stakeholder.name;
+                                if (displayName && /\d/.test(displayName)) {
+                                    displayName = toArabicDigits(displayName);
+                                }
+                                $select.append(new Option(displayName, stakeholder.id));
+                            });
+                            $select.prop('disabled', false);
+                            console.log('✅ Loaded ' + response.data.length + ' stakeholders for type ' + typeId);
+                        } else {
+                            $select.append('<option value="">لا توجد جهات نشطة لهذا النوع</option>');
+                            $select.prop('disabled', true);
+                            if (response && response.error) {
+                                console.warn('Stakeholders warning:', response.error);
+                            }
+                        }
+                        $select.trigger('change');
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Error loading stakeholders:', error);
+                        var $select = $('#StakeholderId');
+                        $select.empty()
+                            .append('<option value="">خطأ في تحميل الجهات</option>')
+                            .prop('disabled', false);
+                    }
+                });
+            }
 
             function fetchPackagingStyles(formName) {
                 $.ajax({
@@ -1258,7 +1383,6 @@
                             packagingStyles.forEach(function(item) {
                                 var optionText = item.name || item.styleName || item.text;
                                 var optionValue = item.id || item.value;
-                                // Convert numbers to Arabic
                                 if (optionText && /\d/.test(optionText)) {
                                     optionText = toArabicDigits(optionText);
                                 }
@@ -1275,57 +1399,62 @@
                 });
             }
 
-            function fetchYarnItemBalance(yarnItemId) {
-                $.ajax({
-                    url: '/YarnTransactions/GetYarnItemBalance',
-                    type: 'GET',
-                    data: { yarnItemId: yarnItemId },
-                    beforeSend: function() {
-                        $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
-                    },
-                    success: function(response) {
-                        if (response && response.success) {
-                            var totalBalance = response.totalQuantityBalance || 0;
-                            var totalCount = response.totalCountBalance || 0;
+             // ✅ Display current balance
+    function fetchYarnItemBalance(yarnItemId) {
+        $.ajax({
+            url: '/YarnTransactions/GetYarnItemBalance',
+            type: 'GET',
+            data: { yarnItemId: yarnItemId },
+            beforeSend: function() { $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...'); },
+            success: function(response) {
+                if (response && response.success) {
+                    var totalBalance = response.totalQuantityBalance || 0;
+                    var totalCount = response.totalCountBalance || 0;
 
-                            var balanceAr = toArabicDigits(totalBalance.toFixed(3).toString());
-                            var countAr = toArabicDigits(totalCount.toString());
+                    $('#currentBalanceDisplay').html(`
+                        <div class="d-flex justify-content-between align-items-center w-100">
+                            <div>
+                                <strong class="text-primary fs-6">${toArabicDigits(totalBalance.toFixed(3))}</strong>
+                                <small class="text-muted ms-1">كجم</small>
+                            </div>
+                            <div>
+                                <span class="badge bg-info">${toArabicDigits(totalCount.toString())} وحدة</span>
+                            </div>
+                        </div>
+                    `);
 
-                            $('#currentBalanceDisplay').html(`
-                                <div class="d-flex justify-content-between align-items-center w-100">
-                                    <div>
-                                        <strong class="text-primary fs-6">${balanceAr}</strong>
-                                        <small class="text-muted ms-1">كجم</small>
-                                    </div>
-                                    <div>
-                                        <span class="badge bg-info">${countAr} وحدة</span>
-                                    </div>
-                                </div>
-                            `);
+                    window.currentPackagingBreakdown = response.packagingBreakdown || [];
+                    $('#OriginYarnName').val(response.originYarn || '');
+                } else {
+                    $('#currentBalanceDisplay').html('<small class="text-danger">٠</small>');
+                }
+            },
+            error: function() { $('#currentBalanceDisplay').html('<small class="text-danger">خطأ في التحميل</small>'); }
+        });
+    }
 
-                            window.currentPackagingBreakdown = response.packagingBreakdown || [];
-                            $('#OriginYarnName').val(response.originYarn || '');
+            // ✅ Initialize application
+            fetchStakeholderTypesByForm(FORM_NAME);
+            fetchPackagingStyles(FORM_NAME);
 
-                            console.log('✅ Balance loaded:', {
-                                yarnItem: response.yarnItem,
-                                totalQuantityBalance: totalBalance,
-                                totalCountBalance: totalCount
-                            });
-                        } else {
-                            $('#currentBalanceDisplay').html('<small class="text-danger">٠</small>');
-                        }
-                    },
-                    error: function() {
-                        $('#currentBalanceDisplay').html('<small class="text-danger">خطأ في التحميل</small>');
-                    }
-                });
+            var initialYarnItemId = $('#YarnItemId').val();
+            if (initialYarnItemId) {
+                fetchYarnItemBalance(parseInt(initialYarnItemId));
             }
 
+            // ✅ Global functions
             window.toArabicDigits = toArabicDigits;
             window.toLatinDigits = toLatinDigits;
+            window.fetchYarnItemBalance = fetchYarnItemBalance;
+            window.displayDetailedBalance = displayDetailedBalance;
+
+            console.log('✅ Enhanced yarn transaction form loaded successfully:', {
+                time: CURRENT_TIME,
+                user: CURRENT_USER,
+                features: ['detailed_balance', 'warning_system', 'arabic_numbers', 'enhanced_ui']
+            });
         });
     </script>
-
     <style>
         /* Make the card larger */
         .card {

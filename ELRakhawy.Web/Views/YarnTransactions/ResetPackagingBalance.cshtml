@@ -933,26 +933,28 @@
             });
         }
 
-               // ✅ Submit the adjustment (convert Arabic to English for server)
+                      // ✅ Submit the adjustment (convert Arabic to English for server)
         function submitAdjustment() {
             var formData = {
                 yarnItemId: parseInt($('#YarnItemId').val()),
                 packagingStyleId: parseInt($('#PackagingStyleId').val()),
-                desiredQuantityBalance: getEnglishNumericValue($('#DesiredQuantityBalance').val()),
-                desiredCountBalance: getEnglishNumericValue($('#DesiredCountBalance').val()),
+                newQuantity: $('#DesiredQuantityBalance').attr('data-english-value') || '0',
+                newCount: $('#DesiredCountBalance').attr('data-english-value') || '0',
                 reason: $('#ReasonForReset').val()
             };
 
             // Add CSRF token
             formData.__RequestVerificationToken = $('input[name="__RequestVerificationToken"]').val();
 
+            console.log('📤 Sending data to server:', formData); // للتأكد من القيم
+
             $.ajax({
                 url: '@Url.Action("ResetPackagingBalance")',
                 type: 'POST',
                 data: formData,
-                dataType: 'json', // Expect JSON response
+                dataType: 'json',
                 headers: {
-                    'X-Requested-With': 'XMLHttpRequest' // Identify as AJAX request
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 beforeSend: function() {
                     Swal.fire({
@@ -976,10 +978,11 @@
                             showCancelButton: true,
                             cancelButtonText: 'العودة للقائمة'
                         }).then((result) => {
-                            if (result.isConfirmed && response.detailsUrl) {
-                                window.location.href = response.detailsUrl;
-                            } else {
+                            if (result.isDismissed) {
                                 window.location.href = '@Url.Action("Overview")';
+                            } else {
+                                // Reload to show new balance
+                                location.reload();
                             }
                         });
                     } else {
@@ -990,7 +993,6 @@
                     Swal.close();
                     console.error('Submit error:', xhr.responseText);
 
-                    // Try to parse error response
                     try {
                         var errorResponse = JSON.parse(xhr.responseText);
                         showArabicError(errorResponse.error || 'حدث خطأ أثناء تعديل الرصيد');
@@ -1000,7 +1002,6 @@
                 }
             });
         }
-
         // Helper function to show Arabic error messages
         function showArabicError(message) {
             Swal.fire({

@@ -457,7 +457,6 @@
             ws['!cols'] = data[0].map(() => ({ wch: 20 }));
             XLSX.utils.book_append_sheet(wb, ws, 'البيانات');
             XLSX.writeFile(wb, `نتائج_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`);
-            alert('تم التصدير بنجاح!');
         } catch (err) { alert('حدث خطأ: ' + err.message); }
         finally { setTimeout(hideLoadingOverlay, 1000); }
     };

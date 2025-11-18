@@ -593,90 +593,200 @@ function isRowVisible(row) {
     return row.style.display !== 'none' && row.offsetParent !== null;
 }
 
-// Export to Excel - FIXED to export only visible rows and columns
-function exportToExcel() {
-    try {
-        const table = document.getElementById('itemsTable');
-        const wsData = [];
+        // Export to Excel - ENHANCED RTL ARABIC FORMAT
+        function exportToExcel() {
+            try {
+                const table = document.getElementById('itemsTable');
+                const wsData = [];
 
-        // Get all header cells
-        const headerCells = table.querySelectorAll('thead tr:first-child th');
-        const visibleColumnIndices = [];
-        const headers = [];
-        
-        // Identify visible columns (skip actions column)
-        headerCells.forEach((th, index) => {
-            // Skip actions column (last column)
-            if (index === headerCells.length - 1) return;
-            
-            // Only include visible columns
-            if (isColumnVisible(table, index)) {
-                visibleColumnIndices.push(index);
-                const headerText = th.textContent.trim().replace(/\s+/g, ' ');
-                headers.push(headerText);
-            }
-        });
-        
-        wsData.push(headers);
+                // Get all header cells
+                const headerCells = table.querySelectorAll('thead tr:first-child th');
+                const visibleColumnIndices = [];
+                const headers = [];
 
-        // Get all data rows
-        const allRows = table.querySelectorAll('tbody tr.item-row');
-        let exportedRowCount = 0;
-        
-        allRows.forEach(row => {
-            // Skip hidden rows (filtered out by search)
-            if (!isRowVisible(row)) return;
-            
-            exportedRowCount++;
-            const cols = row.querySelectorAll('td');
-            const rowData = [];
-            
-            // Only include data from visible columns
-            visibleColumnIndices.forEach(colIndex => {
-                const cell = cols[colIndex];
-                if (!cell) {
-                    rowData.push('');
+                // Identify visible columns (skip actions column)
+                headerCells.forEach((th, index) => {
+                    // Skip actions column (last column)
+                    if (index === headerCells.length - 1) return;
+
+                    // Only include visible columns
+                    if (isColumnVisible(table, index)) {
+                        visibleColumnIndices.push(index);
+                        const headerText = th.textContent.trim().replace(/\s+/g, ' ');
+                        headers.push(headerText);
+                    }
+                });
+
+                wsData.push(headers);
+
+                // Get all data rows
+                const allRows = table.querySelectorAll('tbody tr.item-row');
+                let exportedRowCount = 0;
+
+                allRows.forEach(row => {
+                    // Skip hidden rows (filtered out by search)
+                    if (!isRowVisible(row)) return;
+
+                    exportedRowCount++;
+                    const cols = row.querySelectorAll('td');
+                    const rowData = [];
+
+                    // Only include data from visible columns
+                    visibleColumnIndices.forEach(colIndex => {
+                        const cell = cols[colIndex];
+                        if (!cell) {
+                            rowData.push('');
+                            return;
+                        }
+
+                        // Get clean text from cell
+                        const text = getCleanCellText(cell);
+                        rowData.push(text || '-');
+                    });
+
+                    wsData.push(rowData);
+                });
+
+                // Check if there's data to export
+                if (exportedRowCount === 0) {
+                    alert('لا توجد بيانات مرئية للتصدير');
                     return;
                 }
-                
-                // Get clean text from cell
-                const text = getCleanCellText(cell);
-                rowData.push(text || '-');
-            });
-            
-            wsData.push(rowData);
-        });
 
-        // Check if there's data to export
-        if (exportedRowCount === 0) {
-            alert('لا توجد بيانات مرئية للتصدير');
-            return;
+                // Create Excel workbook
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+
+                // ✅ ENHANCED RTL CONFIGURATION FOR ARABIC
+
+                // Set worksheet RTL direction
+                ws['!rtl'] = true;
+
+                // Set worksheet properties for RTL
+                if (!wb.Workbook) wb.Workbook = {};
+                if (!wb.Workbook.Views) wb.Workbook.Views = [{}];
+                wb.Workbook.Views[0].RTL = true;
+
+                // Configure column widths and alignment
+                const colWidths = headers.map(() => ({
+                    wch: 25,
+                    // Set RTL alignment for each column
+                    alignment: {
+                        horizontal: 'right',
+                        vertical: 'center',
+                        readingOrder: 1 // RTL reading order
+                    }
+                }));
+                ws['!cols'] = colWidths;
+
+                // ✅ APPLY RTL STYLING TO ALL CELLS
+                const range = XLSX.utils.decode_range(ws['!ref']);
+
+                for (let row = range.s.r; row <= range.e.r; row++) {
+                    for (let col = range.s.c; col <= range.e.c; col++) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+                        const cell = ws[cellAddress];
+
+                        if (cell) {
+                            // Apply RTL styling to each cell
+                            cell.s = {
+                                alignment: {
+                                    horizontal: 'right',
+                                    vertical: 'center',
+                                    readingOrder: 1, // RTL
+                                    textRotation: 0
+                                },
+                                font: {
+                                    name: 'Arial',
+                                    sz: 11,
+                                    color: { rgb: '000000' }
+                                }
+                            };
+
+                            // Special styling for header row
+                            if (row === 0) {
+                                cell.s.fill = {
+                                    fgColor: { rgb: 'E6F3FF' }
+                                };
+                                cell.s.font.bold = true;
+                                cell.s.font.sz = 12;
+                                cell.s.border = {
+                                    top: { style: 'thin', color: { rgb: '000000' } },
+                                    bottom: { style: 'thin', color: { rgb: '000000' } },
+                                    left: { style: 'thin', color: { rgb: '000000' } },
+                                    right: { style: 'thin', color: { rgb: '000000' } }
+                                };
+                            } else {
+                                // Data rows border
+                                cell.s.border = {
+                                    top: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    bottom: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    left: { style: 'thin', color: { rgb: 'CCCCCC' } },
+                                    right: { style: 'thin', color: { rgb: 'CCCCCC' } }
+                                };
+                            }
+                        }
+                    }
+                }
+
+                // ✅ SET WORKSHEET VIEW PROPERTIES FOR RTL
+                ws['!views'] = [{
+                    rightToLeft: true,
+                    showGridLines: true,
+                    showRowColHeaders: true
+                }];
+
+                // ✅ ADD WORKSHEET PROPERTIES FOR BETTER RTL SUPPORT
+                ws['!protect'] = {
+                    selectLockedCells: false,
+                    selectUnlockedCells: true
+                };
+
+                // Add worksheet to workbook with Arabic name
+                XLSX.utils.book_append_sheet(wb, ws, "أصناف الغزل");
+
+                // ✅ SET WORKBOOK PROPERTIES FOR RTL
+                wb.Props = {
+                    Title: "أصناف الغزل",
+                    Subject: "تقرير أصناف الغزل",
+                    Author: "نظام إدارة أصناف الغزل",
+                    CreatedDate: new Date(),
+                    Language: "ar-SA" // Arabic language
+                };
+
+                // Generate filename with Arabic date
+                const currentDate = new Date();
+                const arabicDate = currentDate.toLocaleDateString('ar-SA');
+                const isoDate = currentDate.toISOString().slice(0, 10);
+
+                // Create filename with both Arabic and ISO date for compatibility
+                const fileName = `أصناف_الغزل_${isoDate}.xlsx`;
+
+                // ✅ WRITE FILE WITH RTL CONFIGURATION
+                const wopts = {
+                    bookType: 'xlsx',
+                    type: 'binary',
+                    cellStyles: true,
+                    sheetStubs: false,
+                    RTL: true // Ensure RTL at write level
+                };
+
+                XLSX.writeFile(wb, fileName, wopts);
+
+                // Success message with Arabic formatting info
+                alert(`تم تصدير ${toArabicDigits(exportedRowCount.toString())} صف و ${toArabicDigits(headers.length.toString())} عمود إلى Excel بتنسيق عربي RTL بنجاح`);
+
+            } catch (error) {
+                console.error('Error exporting to Excel:', error);
+                alert('حدث خطأ أثناء التصدير إلى Excel');
+            }
         }
 
-        // Create Excel workbook
-        const wb = XLSX.utils.book_new();
-        const ws = XLSX.utils.aoa_to_sheet(wsData);
-        
-        // Set RTL for Arabic
-        ws['!rtl'] = true;
-
-        // Set column widths
-        const colWidths = headers.map(() => ({ wch: 25 }));
-        ws['!cols'] = colWidths;
-
-        XLSX.utils.book_append_sheet(wb, ws, "أصناف الغزل");
-        
-        // Generate filename with date
-        const currentDate = new Date().toISOString().slice(0, 10);
-        XLSX.writeFile(wb, `أصناف_الغزل_${currentDate}.xlsx`);
-
-        alert(`تم تصدير ${exportedRowCount} صف و ${headers.length} عمود إلى Excel بنجاح`);
-
-    } catch (error) {
-        console.error('Error exporting to Excel:', error);
-        alert('حدث خطأ أثناء التصدير إلى Excel');
-    }
-}
+        // ✅ HELPER FUNCTION FOR ARABIC DIGITS IN EXPORT
+        function toArabicDigits(str) {
+            if (typeof str !== 'string') str = str.toString();
+            return str.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+        }
 
 // Print function - FIXED to print only visible rows and columns
 function printTable() {
