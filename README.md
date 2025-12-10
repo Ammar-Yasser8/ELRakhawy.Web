@@ -723,18 +723,6 @@ This software is proprietary and confidential. Unauthorized copying, distributio
 ---
 
 ## 🎯 Roadmap
-
-### Planned Features
-- [ ] API endpoints for mobile integration
-- [ ] Advanced reporting dashboard
-- [ ] Email notifications
-- [ ] WhatsApp integration enhancement
-- [ ] Multi-language support (English/Arabic toggle)
-- [ ] Barcode/QR code support for inventory
-- [ ] Advanced analytics and charts
-- [ ] Automated backup system
-- [ ] Audit log viewer
-
 ---
 
 **Last Updated**: December 2024  
