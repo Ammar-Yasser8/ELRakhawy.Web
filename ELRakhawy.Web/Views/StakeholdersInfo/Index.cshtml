@@ -1388,68 +1388,20 @@
             };
 
             // ========================================
-            // UTILITY: ARABIC NUMBER CONVERSION - FIXED
+            // UTILITY: ARABIC NUMBER CONVERSION
             // ========================================
             const NumberConverter = {
                 arabicDigits: '٠١٢٣٤٥٦٧٨٩',
                 latinDigits: '0123456789',
 
                 toArabic(str) {
-                    if (typeof str !== 'string' && typeof str !== 'number') return str;
+                    if (str === null || str === undefined) return '';
                     return str.toString().replace(/[0-9]/g, d => this.arabicDigits[d]);
                 },
 
                 toLatin(str) {
-                    if (typeof str !== 'string') return str;
-                    return str.replace(/[٠-٩]/g, d => this.latinDigits[this.arabicDigits.indexOf(d)]);
-                },
-
-                containsArabicText(str) {
-                    if (!str) return false;
-                    return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str);
-                },
-
-                isOnlyEnglishAndNumbers(str) {
-                    if (!str || typeof str !== 'string') return false;
-                    return /^[a-zA-Z0-9\s\-_@@.]+$/.test(str);
-                },
-
-                // FIXED: Better format detection
-                getAppropriateFormat(text, contextText = '') {
-                    if (!text || typeof text !== 'string') return 'arabic';
-
-                    const combined = contextText + ' ' + text;
-
-                    // If contains Arabic characters, use Arabic numbers
-                    if (this.containsArabicText(combined)) return 'arabic';
-
-                    // If only English and numbers, use Latin numbers
-                    if (this.isOnlyEnglishAndNumbers(combined)) return 'latin';
-
-                    // Default to Arabic for mixed or unclear content
-                    return 'arabic';
-                },
-
-                // FIXED: Apply format without changing existing content unnecessarily
-                applyFormatSmart(text, context = '') {
-                    if (!text) return text;
-
-                    const format = this.getAppropriateFormat(text, context);
-
-                    // Only convert if there's a clear format preference
-                    if (format === 'arabic') {
-                        return this.toArabic(text);
-                    } else if (format === 'latin') {
-                        return this.toLatin(text);
-                    }
-
-                    return text; // Return unchanged if format is unclear
-                },
-
-                // FIXED: Get appropriate digit for new input
-                getAppropriateDigit(digit, context = '') {
-                    const format = this.getAppropriateFormat('', context);
-                    return format === 'arabic' ? this.toArabic(digit) : digit;
+                    if (str === null || str === undefined) return '';
+                    return str.toString().replace(/[٠-٩]/g, d => this.latinDigits[this.arabicDigits.indexOf(d)]);
                 }
             };
 
@@ -1496,122 +1448,60 @@
             };
 
             // ========================================
-            // UTILITY: INPUT NUMBER HANDLER - COMPLETELY FIXED
+            // UTILITY: INPUT NUMBER HANDLER (FORMS)
             // ========================================
             const InputNumberHandler = {
-                getContext() {
-                    return ($('#Name').val() || '') + ' ' + ($('#Comment').val() || '');
-                },
-
-                // FIXED: More conservative conversion - only convert when necessary
-                applyConversion($input) {
-                    if ($input.attr('name') === 'ContactNumber') return; // Skip phone numbers
-
+                // Strict conversion: forces any typed Latin digit to Arabic immediately
+                forceArabicInput($input) {
                     const val = $input.val();
                     if (!val) return;
 
-                    const context = this.getContext();
+                    // If contains any Latin digits 0-9
+                    if (/[0-9]/.test(val)) {
+                        const cursorStart = $input[0].selectionStart;
+                        const cursorEnd = $input[0].selectionEnd;
 
-                    // Only apply smart formatting on blur or when content is clearly in wrong format
-                    const hasArabicText = NumberConverter.containsArabicText(context);
-                    const hasArabicNumbers = /[٠-٩]/.test(val);
-                    const hasLatinNumbers = /[0-9]/.test(val);
+                        // Convert to Arabic
+                        const newVal = NumberConverter.toArabic(val);
 
-                    let shouldConvert = false;
-                    let newVal = val;
-
-                    if (hasArabicText && hasLatinNumbers && !hasArabicNumbers) {
-                        // Arabic text with Latin numbers -> convert to Arabic numbers
-                        newVal = NumberConverter.toArabic(val);
-                        shouldConvert = true;
-                    } else if (!hasArabicText && hasArabicNumbers && NumberConverter.isOnlyEnglishAndNumbers(context)) {
-                        // English context with Arabic numbers -> convert to Latin numbers
-                        newVal = NumberConverter.toLatin(val);
-                        shouldConvert = true;
-                    }
-
-                    if (shouldConvert && newVal !== val) {
-                        const cursorPos = $input[0].selectionStart || 0;
                         $input.val(newVal);
+
+                        // Restore cursor position
                         try {
-                            $input[0].setSelectionRange(cursorPos, cursorPos);
+                            $input[0].setSelectionRange(cursorStart, cursorEnd);
                         } catch (ex) {
-                            $input.focus();
+                            // ignore
                         }
-                    }
-                },
-
-                // FIXED: Handle keypress without automatic conversion
-                handleKeyPress(e, input) {
-                    if ($(input).attr('name') === 'ContactNumber') return; // Skip phone numbers
-
-                    // Only handle number keys (0-9)
-                    if (e.which >= 48 && e.which <= 57) {
-                        const context = this.getContext();
-                        const digit = String.fromCharCode(e.which);
-
-                        // Determine if we should use Arabic or Latin digit based on context
-                        const appropriateDigit = NumberConverter.getAppropriateDigit(digit, context);
-
-                        // Only prevent default and replace if we need to use Arabic digit
-                        if (appropriateDigit !== digit) {
-                            e.preventDefault();
-
-                            const cursorStart = input.selectionStart || 0;
-                            const cursorEnd = input.selectionEnd || 0;
-                            const currentValue = input.value;
-
-                            // Handle text selection
-                            let newValue;
-                            if (cursorStart !== cursorEnd) {
-                                // Replace selected text
-                                newValue = currentValue.slice(0, cursorStart) +
-                                          appropriateDigit +
-                                          currentValue.slice(cursorEnd);
-                            } else {
-                                // Insert at cursor position
-                                newValue = currentValue.slice(0, cursorStart) +
-                                          appropriateDigit +
-                                          currentValue.slice(cursorStart);
-                            }
-
-                            input.value = newValue;
-                            input.setSelectionRange(cursorStart + 1, cursorStart + 1);
-                            $(input).trigger('input');
-                        }
-                        // If appropriateDigit === digit, let the default behavior handle it
                     }
                 },
 
                 initialize() {
-                    const $inputs = $('#modalBody input[type="text"], #modalBody textarea')
-                        .not('[name="ContactNumber"]');
+                    // Target ALL text inputs and textareas, specifically including ContactNumber
+                    const $inputs = $('#modalBody input[type="text"], #modalBody textarea');
 
-                    // Remove existing handlers to prevent duplicates
-                    $inputs.off('input.numberHandler blur.numberHandler keyup.numberHandler keypress.numberHandler');
+                    // Remove existing handlers
+                    $inputs.off('input.numberHandler blur.numberHandler');
 
-                    // Handle input events - only apply conversion on blur for stability
-                    $inputs.on('blur.numberHandler', (e) => {
-                        this.applyConversion($(e.target));
-                        Counters.updateAll();
-                    });
+                    // Apply strict conversion on input (while typing)
+                    $inputs.on('input.numberHandler', (e) => {
+                        this.forceArabicInput($(e.target));
 
-                    // Light conversion on input for immediate feedback
-                    $inputs.on('input.numberHandler', () => {
+                        // Update counters slightly delayed
                         setTimeout(() => {
                             Counters.updateAll();
                         }, 10);
                     });
 
-                    // Handle key press for real-time digit conversion
-                    $inputs.on('keypress.numberHandler', (e) => {
-                        this.handleKeyPress(e, e.target);
+                    // Ensure conversion on blur as well
+                    $inputs.on('blur.numberHandler', (e) => {
+                        this.forceArabicInput($(e.target));
+                        Counters.updateAll();
                     });
                 }
             };
 
             // ========================================
-            // COUNTERS MANAGEMENT - FIXED
+            // COUNTERS MANAGEMENT
             // ========================================
             const Counters = {
                 updateAll() {
@@ -1625,16 +1515,10 @@
                     if ($comment.length === 0) return;
 
                     const currentLength = $comment.val().length;
-                    const context = this.getContext();
 
-                    // Use smart formatting for counter display
-                    const format = NumberConverter.getAppropriateFormat($comment.val(), context);
-                    const formattedCurrent = format === 'arabic'
-                        ? NumberConverter.toArabic(currentLength.toString())
-                        : currentLength.toString();
-                    const formattedMax = format === 'arabic'
-                        ? NumberConverter.toArabic(CONFIG.COMMENT_MAX_LENGTH.toString())
-                        : CONFIG.COMMENT_MAX_LENGTH.toString();
+                    // Force Arabic display for counters
+                    const formattedCurrent = NumberConverter.toArabic(currentLength.toString());
+                    const formattedMax = NumberConverter.toArabic(CONFIG.COMMENT_MAX_LENGTH.toString());
 
                     let $counter = $('#commentCounter');
                     if ($counter.length === 0) {
@@ -1657,25 +1541,15 @@
                     }
                 },
 
-                getContext() {
-                    return ($('#Name').val() || '') + ' ' + ($('#Comment').val() || '');
-                },
-
                 updateType() {
                     const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
                     const totalCount = $("input[name='SelectedTypeIds']").length;
 
                     if (totalCount === 0) return;
 
-                    const context = this.getContext();
-                    const format = NumberConverter.getAppropriateFormat('', context);
-
-                    const formattedSelected = format === 'arabic'
-                        ? NumberConverter.toArabic(selectedCount.toString())
-                        : selectedCount.toString();
-                    const formattedTotal = format === 'arabic'
-                        ? NumberConverter.toArabic(totalCount.toString())
-                        : totalCount.toString();
+                    // Force Arabic display
+                    const formattedSelected = NumberConverter.toArabic(selectedCount.toString());
+                    const formattedTotal = NumberConverter.toArabic(totalCount.toString());
 
                     let $typeControls = $('#typeControls');
                     if ($typeControls.length === 0) {
@@ -1700,7 +1574,6 @@
                         $typeControls.find('.type-counter').text(`${formattedSelected}/${formattedTotal}`);
                     }
 
-                    // Update button states
                     const $selectBtn = $('#selectAllTypes');
                     const $deselectBtn = $('#deselectAllTypes');
 
@@ -1713,11 +1586,8 @@
                     if ($validationSummary.length === 0) return;
 
                     const errorCount = $validationSummary.find('li').length;
-                    const context = this.getContext();
-                    const format = NumberConverter.getAppropriateFormat('', context);
-                    const formattedCount = format === 'arabic'
-                        ? NumberConverter.toArabic(errorCount.toString())
-                        : errorCount.toString();
+                    // Force Arabic display
+                    const formattedCount = NumberConverter.toArabic(errorCount.toString());
 
                     $validationSummary.find('h6').html(
                         `<i class="fas fa-exclamation-triangle me-2"></i>تم العثور على ${formattedCount} أخطاء`
@@ -1734,25 +1604,23 @@
 
                     if (!errors || Object.keys(errors).length === 0) return;
 
-                    const context = InputNumberHandler.getContext();
-                    const format = NumberConverter.getAppropriateFormat('', context);
-
                     const errorCount = Object.keys(errors).reduce((count, key) => {
                         return count + (Array.isArray(errors[key]) ? errors[key].length : 1);
                     }, 0);
 
-                    const formattedCount = format === 'arabic'
-                        ? NumberConverter.toArabic(errorCount.toString())
-                        : errorCount.toString();
+                    const formattedCount = NumberConverter.toArabic(errorCount.toString());
 
                     let errorHtml = '';
                     Object.keys(errors).forEach(key => {
                         if (Array.isArray(errors[key])) {
                             errors[key].forEach(error => {
-                                errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${error}</li>`;
+                                // Convert any numbers inside error messages to Arabic
+                                const arabicError = NumberConverter.toArabic(error);
+                                errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${arabicError}</li>`;
                             });
                         } else {
-                            errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${errors[key]}</li>`;
+                            const arabicError = NumberConverter.toArabic(errors[key]);
+                            errorHtml += `<li><i class="fas fa-exclamation-circle me-2"></i>${arabicError}</li>`;
                         }
                     });
 
@@ -1777,200 +1645,7 @@
             };
 
             // ========================================
-            // POPUPS - SIMPLE NATIVE DIALOGS
-            // ========================================
-            const Popups = {
-                show(title, message, type = 'info') {
-                    alert(`${title}: ${message}`);
-                    return Promise.resolve();
-                },
-
-                confirm(title, message, confirmText = 'نعم', cancelText = 'لا') {
-                    const result = confirm(`${title}\n${message}`);
-                    return Promise.resolve({ isConfirmed: result });
-                }
-            };
-
-            // ========================================
-            // MODAL: STAKEHOLDER FORM - FIXED
-            // ========================================
-            const StakeholderModal = {
-                load(action, id = null) {
-                    const url = id ? `/StakeholdersInfo/${action}/${id}` : `/StakeholdersInfo/${action}`;
-
-                    $.get(url)
-                        .done(response => {
-                            $('#modalBody').html(response);
-
-                            // Initialize or create modal instance
-                            if (!Modals.stakeholder) {
-                                Modals.stakeholder = new bootstrap.Modal(document.getElementById('stakeholderModal'));
-                            }
-
-                            Modals.stakeholder.show();
-
-                            // Initialize after modal is shown
-                            $('#stakeholderModal').one('shown.bs.modal', function() {
-                                StakeholderModal.initialize();
-                                $('#Name').focus();
-                            });
-                        })
-                        .fail(() => {
-                            const message = id ? 'حدث خطأ أثناء تحميل نموذج التعديل' : 'حدث خطأ أثناء تحميل نموذج الإضافة';
-                            Notification.show(message, 'error');
-                        });
-                },
-
-                initialize() {
-                    // Clean up any existing handlers first
-                    $('#modalBody').off('.stakeholderModal');
-                    $(document).off('.typeHandlers');
-
-                    InputNumberHandler.initialize();
-                    Counters.updateAll();
-                    this.setupFormSubmission();
-                    this.setupTypeHandlers();
-                },
-
-                setupFormSubmission() {
-                    $('#modalBody').on('submit.stakeholderModal', '#stakeholderForm', function(e) {
-                        e.preventDefault();
-
-                        const form = $(this);
-                        const formData = new FormData(this);
-                        const $submitBtn = form.find('button[type="submit"]');
-                        const originalText = $submitBtn.html();
-
-                        $submitBtn.prop('disabled', true)
-                            .html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
-
-                        Validation.clear();
-
-                        $.ajax({
-                            url: form.attr('action'),
-                            type: 'POST',
-                            data: formData,
-                            processData: false,
-                            contentType: false,
-                            success(response) {
-                                $submitBtn.prop('disabled', false).html(originalText);
-
-                                if (response.success) {
-                                    if (Modals.stakeholder) {
-                                        Modals.stakeholder.hide();
-                                    }
-                                    Notification.show(response.message || 'تم الحفظ بنجاح', 'success');
-                                    DataManager.load();
-                                } else {
-                                    if (response.errors) {
-                                        Validation.display(response.errors);
-                                    } else {
-                                        Notification.show(response.message || 'حدث خطأ أثناء الحفظ', 'error');
-                                    }
-                                }
-                            },
-                            error(xhr) {
-                                $submitBtn.prop('disabled', false).html(originalText);
-
-                                if (xhr.responseJSON?.errors) {
-                                    Validation.display(xhr.responseJSON.errors);
-                                } else {
-                                    const message = xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ البيانات';
-                                    Notification.show(message, 'error');
-                                }
-                            }
-                        });
-                    });
-                },
-
-                setupTypeHandlers() {
-                    // Type selection change
-                    $(document).on('change.typeHandlers', "input[name='SelectedTypeIds']", function() {
-                        Counters.updateType();
-                        StakeholderModal.updatePrimaryTypeOptions();
-                    });
-
-                    // Select all types - FIXED
-                    $(document).on('click.typeHandlers', '#selectAllTypes', function(e) {
-                        e.preventDefault();
-
-                        const totalCount = $("input[name='SelectedTypeIds']").length;
-                        const checkedCount = $("input[name='SelectedTypeIds']:checked").length;
-
-                        if (checkedCount === totalCount) {
-                            return; // Already all selected
-                        }
-
-                        // Simple confirmation
-                        const confirmed = confirm(`هل تريد تحديد جميع الأنواع (${totalCount} نوع)؟`);
-
-                        if (confirmed) {
-                            // Select all checkboxes
-                            $("input[name='SelectedTypeIds']").prop('checked', true).trigger('change');
-
-                            // Update counters and UI
-                            setTimeout(() => {
-                                Counters.updateType();
-                                StakeholderModal.updatePrimaryTypeOptions();
-                            }, 100);
-                        }
-                    });
-
-                    // Deselect all types - FIXED
-                    $(document).on('click.typeHandlers', '#deselectAllTypes', function(e) {
-                        e.preventDefault();
-
-                        const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
-
-                        if (selectedCount === 0) {
-                            return; // Already none selected
-                        }
-
-                        // Simple confirmation
-                        const confirmed = confirm(`هل تريد إلغاء تحديد ${selectedCount} نوع؟`);
-
-                        if (confirmed) {
-                            // Deselect all checkboxes
-                            $("input[name='SelectedTypeIds']").prop('checked', false).trigger('change');
-                            $('#PrimaryTypeId').val('').trigger('change');
-
-                            // Update counters and UI
-                            setTimeout(() => {
-                                Counters.updateType();
-                                StakeholderModal.updatePrimaryTypeOptions();
-                            }, 100);
-                        }
-                    });
-                },
-
-                updatePrimaryTypeOptions() {
-                    const selectedTypes = $("input[name='SelectedTypeIds']:checked")
-                        .map(function() { return $(this).val(); })
-                        .get();
-
-                    const $primarySelect = $('#PrimaryTypeId');
-                    if ($primarySelect.length === 0) return;
-
-                    $primarySelect.find('option').each(function() {
-                        const value = $(this).val();
-                        if (value && !selectedTypes.includes(value)) {
-                            $(this).prop('disabled', true);
-                            if ($(this).prop('selected')) {
-                                $(this).prop('selected', false);
-                                $primarySelect.val('');
-                            }
-                        } else {
-                            $(this).prop('disabled', false);
-                        }
-                    });
-
-                    // Trigger change event to update any dependent UI
-                    $primarySelect.trigger('change');
-                }
-            };
-
-            // ========================================
-            // SEARCH FUNCTIONALITY - FIXED WITH ARABIC NUMBERS
+            // SEARCH FUNCTIONALITY
             // ========================================
             const Search = {
                 getSearchValues(query) {
@@ -1984,23 +1659,11 @@
 
                 matchesSearch(text, searchValues) {
                     if (!searchValues.original) return true;
+                    // Check against all variants to ensure finding mixed content
                     const lowerText = text.toLowerCase();
                     return lowerText.includes(searchValues.original) ||
                            lowerText.includes(searchValues.latin) ||
                            lowerText.includes(searchValues.arabic);
-                },
-
-                // FIXED: New method specifically for phone number matching
-                matchesPhoneSearch(phoneText, searchQuery) {
-                    if (!searchQuery) return true;
-                    
-                    const cleanPhoneText = phoneText.toLowerCase();
-                    const searchValues = this.getSearchValues(searchQuery);
-                    
-                    // Check all variants of the search query against phone text
-                    return cleanPhoneText.includes(searchValues.original) ||
-                           cleanPhoneText.includes(searchValues.latin) ||
-                           cleanPhoneText.includes(searchValues.arabic);
                 },
 
                 perform() {
@@ -2009,7 +1672,7 @@
                         type: this.getSearchValues($('#searchByType').val()),
                         status: $('#searchByStatus').val(),
                         financial: this.getSearchValues($('#searchByFinancial').val()),
-                        phone: $('#searchByPhone').val().toLowerCase().trim(),
+                        phone: this.getSearchValues($('#searchByPhone').val()),
                         comment: this.getSearchValues($('#searchByComment').val())
                     };
 
@@ -2031,7 +1694,8 @@
                             type: Search.matchesSearch(data.type, searches.type),
                             status: !searches.status || data.status === searches.status,
                             financial: Search.matchesSearch(data.financial, searches.financial),
-                            phone: Search.matchesPhoneSearch(data.phone, searches.phone),
+                            // Updated phone matching to use the flexible match logic
+                            phone: Search.matchesSearch(data.phone, searches.phone),
                             comment: Search.matchesSearch(data.comment, searches.comment)
                         };
 
@@ -2047,109 +1711,65 @@
                     const arabicCount = NumberConverter.toArabic(visibleCount.toString());
                     $('#visibleCount, #badgeCount').text(arabicCount);
 
+                    // Logic for showing clear buttons...
                     const fields = ['Name', 'Type', 'Financial', 'Phone', 'Comment'];
-                    fields.forEach(field => {
-                        const searchKey = field.toLowerCase();
-                        const hasValue = searches[searchKey] &&
-                            (typeof searches[searchKey] === 'string'
-                                ? searches[searchKey].length > 0
-                                : searches[searchKey].original?.length > 0);
+                    let hasAnySearch = false;
 
-                        $(`#clear${field}Search`).toggle(hasValue);
-                        $(`#searchBy${field}`).toggleClass('border-primary', hasValue);
+                    fields.forEach(field => {
+                        const key = field.toLowerCase();
+                        const val = searches[key];
+                        const hasVal = val && val.original.length > 0;
+                        if(hasVal) hasAnySearch = true;
+
+                        $(`#clear${field}Search`).toggle(hasVal);
+                        $(`#searchBy${field}`).toggleClass('border-primary', hasVal);
                     });
 
-                    const hasStatusSearch = !!searches.status;
-                    $('#searchByStatus').toggleClass('border-primary', hasStatusSearch);
-
-                    const hasAnySearch = fields.some(field => {
-                        const searchKey = field.toLowerCase();
-                        return searches[searchKey] &&
-                            (typeof searches[searchKey] === 'string'
-                                ? searches[searchKey].length > 0
-                                : searches[searchKey].original?.length > 0);
-                    }) || hasStatusSearch;
+                    if(searches.status) hasAnySearch = true;
+                    $('#searchByStatus').toggleClass('border-primary', !!searches.status);
 
                     $('#clearAllSearch').toggle(hasAnySearch);
-                    $('#stakeholdersContainer .section-card').show();
-
-                    // Update no results message
-                    if (visibleCount === 0 && hasAnySearch) {
-                        $('#noResultsMessage').show();
-                        $('#stakeholdersContainer .section-card').hide();
-                    } else {
-                        $('#noResultsMessage').hide();
-                    }
-
-                    // Update no results message
-                    if (visibleCount === 0 && hasAnySearch) {
-                        $('#noResultsMessage').show();
-                        $('#stakeholdersContainer .section-card').hide();
-                    } else {
-                        $('#noResultsMessage').hide();
-                    }
-
-                    // Update no results message
-                    if (visibleCount === 0 && hasAnySearch) {
-                        $('#noResultsMessage').show();
-                        $('#stakeholdersContainer .section-card').hide();
-                    } else {
-                        $('#noResultsMessage').hide();
-                    }
+                    $('#stakeholdersContainer .section-card').toggle(!(visibleCount === 0 && hasAnySearch));
+                    $('#noResultsMessage').toggle(visibleCount === 0 && hasAnySearch);
                 },
 
                 clear(field) {
                     if (field === 'all') {
                         $('#searchByName, #searchByType, #searchByFinancial, #searchByPhone, #searchByComment')
-                            .val('')
-                            .removeClass('border-primary');
+                            .val('').removeClass('border-primary');
                         $('#searchByStatus').val('').removeClass('border-primary');
                     } else {
-                        $(`#searchBy${field}`)
-                            .val('')
-                            .removeClass('border-primary')
-                            .focus();
+                        $(`#searchBy${field}`).val('').removeClass('border-primary').focus();
                     }
                     this.perform();
                 },
 
                 initialize() {
-                    // Search inputs with controlled number conversion
-                    $('#searchByName, #searchByType, #searchByFinancial, #searchByComment')
-                        .on('input', function() {
-                            clearTimeout(State.searchTimeout);
-                            State.searchTimeout = setTimeout(() => Search.perform(), CONFIG.SEARCH_DELAY);
-                        });
+                    const selector = '#searchByName, #searchByType, #searchByFinancial, #searchByComment, #searchByPhone';
 
-                    $('#searchByPhone').on('input', function() {
+                    // Attach event to FORCE Arabic numbers on typing in search
+                    $(selector).on('input', function() {
+                        const $input = $(this);
+                        const val = $input.val();
+
+                        // Check for Latin digits
+                        if (/[0-9]/.test(val)) {
+                            const cursorStart = this.selectionStart;
+                            const cursorEnd = this.selectionEnd;
+                            const newVal = NumberConverter.toArabic(val);
+
+                            $input.val(newVal);
+
+                            try {
+                                this.setSelectionRange(cursorStart, cursorEnd);
+                            } catch(e) {}
+                        }
+
                         clearTimeout(State.searchTimeout);
                         State.searchTimeout = setTimeout(() => Search.perform(), CONFIG.SEARCH_DELAY);
                     });
 
                     $('#searchByStatus').on('change', () => this.perform());
-
-                    // FIXED: Less aggressive number conversion for search
-                    $('#searchByName, #searchByType, #searchByFinancial, #searchByComment')
-                        .on('keypress', function(e) {
-                            if (e.which >= 48 && e.which <= 57) {
-                                // Only convert if there's clear Arabic text context
-                                const currentValue = $(this).val();
-                                const hasArabicText = NumberConverter.containsArabicText(currentValue);
-
-                                if (hasArabicText) {
-                                    e.preventDefault();
-                                    const digit = String.fromCharCode(e.which);
-                                    const arabicDigit = NumberConverter.toArabic(digit);
-                                    const input = e.target;
-                                    const cursorPos = input.selectionStart || 0;
-                                    const newValue = currentValue.slice(0, cursorPos) + arabicDigit + currentValue.slice(cursorPos);
-                                    input.value = newValue;
-                                    input.setSelectionRange(cursorPos + 1, cursorPos + 1);
-                                    $(input).trigger('input');
-                                }
-                                // Otherwise let default behavior handle it
-                            }
-                        });
 
                     $('#clearNameSearch').click(() => this.clear('Name'));
                     $('#clearTypeSearch').click(() => this.clear('Type'));
@@ -2166,13 +1786,11 @@
             const DataManager = {
                 load() {
                     Loading.show();
-
                     $.ajax({
                         url: '/StakeholdersInfo/GetAll',
                         method: 'GET',
                         success(response) {
                             Loading.hide();
-
                             if (response.success && response.data) {
                                 State.stakeholdersData = response.data;
                                 DataManager.render(State.stakeholdersData);
@@ -2185,24 +1803,13 @@
                                     $('#emptyState').hide();
                                     $('#stakeholdersContainer').show();
                                 }
-
-                                console.log('Loaded stakeholders:', {
-                                    count: State.stakeholdersData.length,
-                                    time: CONFIG.CURRENT_TIME,
-                                    user: CONFIG.CURRENT_USER
-                                });
                             } else {
                                 Notification.show('حدث خطأ أثناء تحميل البيانات', 'error');
-                                $('#emptyState').show();
-                                $('#stakeholdersContainer').hide();
                             }
                         },
                         error(xhr, status, error) {
                             Loading.hide();
                             Notification.show('حدث خطأ أثناء تحميل بيانات الجهات', 'error');
-                            console.error('Load error:', { xhr, status, error, time: CONFIG.CURRENT_TIME });
-                            $('#emptyState').show();
-                            $('#stakeholdersContainer').hide();
                         }
                     });
                 },
@@ -2210,12 +1817,9 @@
                 render(data) {
                     const tbody = $('#stakeholdersTableBody');
                     tbody.empty();
-
                     if (!data || data.length === 0) return;
-
                     data.forEach(stakeholder => {
-                        const row = this.createRow(stakeholder);
-                        tbody.append(row);
+                        tbody.append(this.createRow(stakeholder));
                     });
                 },
 
@@ -2242,6 +1846,7 @@
                     const primaryType = stakeholder.types?.find(t => t.isPrimary);
                     const financialType = primaryType?.financialTransactionType || '<span class="text-muted">-</span>';
 
+                    // Process Phone Numbers to ARABIC
                     let phoneHtml = '<span class="text-muted">-</span>';
                     if (stakeholder.contactNumbers && stakeholder.contactNumbers.trim()) {
                         const phones = stakeholder.contactNumbers
@@ -2253,7 +1858,7 @@
                             phoneHtml = phones.map(p => `
                                 <div class="d-flex align-items-center gap-2 mb-1">
                                     <i class="fas fa-phone text-primary"></i>
-                                    <span dir="ltr" class="small">${p}</span>
+                                    <span dir="ltr" class="small">${NumberConverter.toArabic(p)}</span>
                                 </div>
                             `).join('');
                         }
@@ -2319,24 +1924,20 @@
                     const btn = $('#confirmDelete');
                     const originalText = btn.html();
 
-                    btn.prop('disabled', true)
-                        .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
+                    btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري الحذف...');
 
                     $.ajax({
                         url: `/StakeholdersInfo/${id}`,
                         method: 'DELETE',
                         success(response) {
                             btn.prop('disabled', false).html(originalText);
-
                             if (response.success) {
                                 Notification.show(response.message, 'success');
                                 Modals.delete.hide();
-
                                 $(`tr[data-id="${id}"]`).fadeOut(300, function() {
                                     $(this).remove();
                                     State.stakeholdersData = State.stakeholdersData.filter(s => s.id != id);
                                     DataManager.updateCounts(State.stakeholdersData.length);
-
                                     if (State.stakeholdersData.length === 0) {
                                         $('#emptyState').show();
                                         $('#stakeholdersContainer').hide();
@@ -2348,9 +1949,7 @@
                         },
                         error(xhr) {
                             btn.prop('disabled', false).html(originalText);
-                            const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة';
-                            Notification.show(errorMessage, 'error');
-                            console.error('Delete error:', { xhr, time: CONFIG.CURRENT_TIME });
+                            Notification.show(xhr.responseJSON?.message || 'حدث خطأ أثناء حذف الجهة', 'error');
                         }
                     });
                 },
@@ -2365,15 +1964,10 @@
                             if (response.success) {
                                 $(`.status-toggle[data-id="${id}"]`)
                                     .prop('checked', newStatus)
-                                    .closest('.form-switch')
-                                    .find('.form-check-label')
+                                    .closest('.form-switch').find('.form-check-label')
                                     .text(newStatus ? 'نشط' : 'غير نشط');
-
                                 const stakeholder = State.stakeholdersData.find(s => s.id == id);
-                                if (stakeholder) {
-                                    stakeholder.status = newStatus;
-                                }
-
+                                if (stakeholder) stakeholder.status = newStatus;
                                 Notification.show(response.message, 'success');
                             } else {
                                 $(`.status-toggle[data-id="${id}"]`).prop('checked', !newStatus);
@@ -2382,8 +1976,126 @@
                         },
                         error(xhr) {
                             $(`.status-toggle[data-id="${id}"]`).prop('checked', !newStatus);
-                            const errorMessage = xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة';
-                            Notification.show(errorMessage, 'error');
+                            Notification.show(xhr.responseJSON?.message || 'حدث خطأ أثناء تحديث الحالة', 'error');
+                        }
+                    });
+                }
+            };
+
+            // ========================================
+            // MODAL: STAKEHOLDER FORM
+            // ========================================
+            const StakeholderModal = {
+                load(action, id = null) {
+                    const url = id ? `/StakeholdersInfo/${action}/${id}` : `/StakeholdersInfo/${action}`;
+                    $.get(url)
+                        .done(response => {
+                            $('#modalBody').html(response);
+                            if (!Modals.stakeholder) {
+                                Modals.stakeholder = new bootstrap.Modal(document.getElementById('stakeholderModal'));
+                            }
+                            Modals.stakeholder.show();
+                            $('#stakeholderModal').one('shown.bs.modal', function() {
+                                StakeholderModal.initialize();
+                                $('#Name').focus();
+                            });
+                        })
+                        .fail(() => {
+                            Notification.show('حدث خطأ أثناء تحميل النموذج', 'error');
+                        });
+                },
+
+                initialize() {
+                    $('#modalBody').off('.stakeholderModal');
+                    $(document).off('.typeHandlers');
+
+                    // Initialize the forced Arabic Input handler
+                    InputNumberHandler.initialize();
+
+                    Counters.updateAll();
+                    this.setupFormSubmission();
+                    this.setupTypeHandlers();
+                },
+
+                setupFormSubmission() {
+                    $('#modalBody').on('submit.stakeholderModal', '#stakeholderForm', function(e) {
+                        e.preventDefault();
+                        const form = $(this);
+                        const formData = new FormData(this);
+                        const $submitBtn = form.find('button[type="submit"]');
+                        const originalText = $submitBtn.html();
+
+                        $submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جارٍ الحفظ...');
+                        Validation.clear();
+
+                        $.ajax({
+                            url: form.attr('action'),
+                            type: 'POST',
+                            data: formData,
+                            processData: false,
+                            contentType: false,
+                            success(response) {
+                                $submitBtn.prop('disabled', false).html(originalText);
+                                if (response.success) {
+                                    if (Modals.stakeholder) Modals.stakeholder.hide();
+                                    Notification.show(response.message || 'تم الحفظ بنجاح', 'success');
+                                    DataManager.load();
+                                } else {
+                                    if (response.errors) Validation.display(response.errors);
+                                    else Notification.show(response.message || 'حدث خطأ أثناء الحفظ', 'error');
+                                }
+                            },
+                            error(xhr) {
+                                $submitBtn.prop('disabled', false).html(originalText);
+                                if (xhr.responseJSON?.errors) Validation.display(xhr.responseJSON.errors);
+                                else Notification.show(xhr.responseJSON?.message || 'حدث خطأ أثناء حفظ البيانات', 'error');
+                            }
+                        });
+                    });
+                },
+
+                setupTypeHandlers() {
+                    $(document).on('change.typeHandlers', "input[name='SelectedTypeIds']", function() {
+                        Counters.updateType();
+                        StakeholderModal.updatePrimaryTypeOptions();
+                    });
+
+                    $(document).on('click.typeHandlers', '#selectAllTypes', function(e) {
+                        e.preventDefault();
+                        const totalCount = $("input[name='SelectedTypeIds']").length;
+                        const checkedCount = $("input[name='SelectedTypeIds']:checked").length;
+                        if (checkedCount === totalCount) return;
+                        if (confirm(`هل تريد تحديد جميع الأنواع (${NumberConverter.toArabic(totalCount)})؟`)) {
+                            $("input[name='SelectedTypeIds']").prop('checked', true).trigger('change');
+                        }
+                    });
+
+                    $(document).on('click.typeHandlers', '#deselectAllTypes', function(e) {
+                        e.preventDefault();
+                        const selectedCount = $("input[name='SelectedTypeIds']:checked").length;
+                        if (selectedCount === 0) return;
+                        if (confirm(`هل تريد إلغاء تحديد ${NumberConverter.toArabic(selectedCount)} نوع؟`)) {
+                            $("input[name='SelectedTypeIds']").prop('checked', false).trigger('change');
+                            $('#PrimaryTypeId').val('').trigger('change');
+                        }
+                    });
+                },
+
+                updatePrimaryTypeOptions() {
+                    const selectedTypes = $("input[name='SelectedTypeIds']:checked").map(function() { return $(this).val(); }).get();
+                    const $primarySelect = $('#PrimaryTypeId');
+                    if ($primarySelect.length === 0) return;
+
+                    $primarySelect.find('option').each(function() {
+                        const value = $(this).val();
+                        if (value && !selectedTypes.includes(value)) {
+                            $(this).prop('disabled', true);
+                            if ($(this).prop('selected')) {
+                                $(this).prop('selected', false);
+                                $primarySelect.val('');
+                            }
+                        } else {
+                            $(this).prop('disabled', false);
                         }
                     });
                 }
@@ -2395,23 +2107,15 @@
             const DetailsModal = {
                 load(id) {
                     Loading.show();
-
                     $.ajax({
                         url: `/api/StakeholdersInfo/${id}`,
                         method: 'GET',
                         success(response) {
                             Loading.hide();
-
                             if (response.success) {
                                 DetailsModal.render(response.data);
                                 State.currentDetailsId = id;
                                 Modals.details.show();
-
-                                console.log('Loaded details:', {
-                                    id: id,
-                                    name: response.data.name,
-                                    time: CONFIG.CURRENT_TIME
-                                });
                             } else {
                                 Notification.show('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
                             }
@@ -2419,15 +2123,12 @@
                         error(xhr) {
                             Loading.hide();
                             Notification.show('حدث خطأ أثناء تحميل تفاصيل الجهة', 'error');
-                            console.error('Details error:', { xhr, time: CONFIG.CURRENT_TIME });
                         }
                     });
                 },
 
                 render(stakeholder) {
-                    const arabicTypesCount = NumberConverter.toArabic(
-                        (stakeholder.types?.length || 0).toString()
-                    );
+                    const arabicTypesCount = NumberConverter.toArabic((stakeholder.types?.length || 0).toString());
 
                     const typesHtml = stakeholder.types && stakeholder.types.length > 0
                         ? stakeholder.types.map(type =>
@@ -2438,110 +2139,57 @@
                                 </span>
                             </div>`
                           ).join('')
-                        : '<div class="col-12"><span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا توجد أنواع مرتبطة</span></div>';
+                        : '<div class="col-12"><span class="text-muted fst-italic">لا توجد أنواع</span></div>';
 
                     const primaryType = stakeholder.types?.find(t => t.isPrimary);
                     const financialTypeHtml = primaryType && primaryType.financialTransactionType
                         ? `<div class="alert alert-light border-start border-4 border-warning">
-                            <h6 class="alert-heading mb-2">
-                                <i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية
-                            </h6>
-                            <p class="mb-0">${primaryType.financialTransactionType}</p>
+                             <h6 class="alert-heading mb-2"><i class="fas fa-coins text-warning me-2"></i>نوع المعاملة المالية</h6>
+                             <p class="mb-0">${primaryType.financialTransactionType}</p>
                            </div>`
-                        : '<div class="alert alert-light text-muted text-center"><i class="fas fa-info-circle me-2"></i>لا يوجد نوع معاملة مالية محدد</div>';
+                        : '<div class="alert alert-light text-muted text-center">لا يوجد نوع معاملة مالية</div>';
 
-                    let contactHtml = '<span class="text-muted fst-italic"><i class="fas fa-info-circle me-2"></i>لا يوجد أرقام تواصل</span>';
+                    let contactHtml = '<span class="text-muted fst-italic">لا يوجد أرقام تواصل</span>';
                     if (stakeholder.contactNumbers && stakeholder.contactNumbers.trim()) {
-                        const numbers = stakeholder.contactNumbers
-                            .split(/[,;\n]/)
-                            .map(num => num.trim())
-                            .filter(num => num);
-
+                        const numbers = stakeholder.contactNumbers.split(/[,;\n]/).map(num => num.trim()).filter(num => num);
                         if (numbers.length > 0) {
-                            contactHtml = `
-                                <div>
-                                    <h6 class="fw-bold text-dark mb-3">
-                                        <i class="fas fa-phone text-success me-2"></i>أرقام التواصل
-                                    </h6>
-                                    ${numbers.map(num => `
-                                        <div class="d-flex align-items-center mb-2">
-                                            <i class="fas fa-phone-alt text-success me-2"></i>
-                                            <span dir="ltr">${num}</span>
-                                        </div>
-                                    `).join('')}
-                                </div>
-                            `;
+                            contactHtml = `<div>
+                                <h6 class="fw-bold text-dark mb-3"><i class="fas fa-phone text-success me-2"></i>أرقام التواصل</h6>
+                                ${numbers.map(num => `
+                                    <div class="d-flex align-items-center mb-2">
+                                        <i class="fas fa-phone-alt text-success me-2"></i>
+                                        <span dir="ltr">${NumberConverter.toArabic(num)}</span>
+                                    </div>
+                                `).join('')}
+                            </div>`;
                         }
                     }
 
-                    let commentHtml = '<span class="text-muted fst-italic"><i class="fas fa-comment-slash me-2"></i>لا توجد ملاحظات</span>';
-                    if (stakeholder.comment && stakeholder.comment.trim()) {
-                        commentHtml = `
-                            <div>
-                                <h6 class="fw-bold text-dark mb-3">
-                                    <i class="fas fa-comment text-primary me-2"></i>ملاحظات
-                                </h6>
-                                <p class="mb-0">${stakeholder.comment}</p>
-                            </div>
-                        `;
-                    }
-
+                    // Render other sections similar to before...
                     const content = `
                         <div class="p-4">
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <div class="d-flex align-items-center p-3 bg-light rounded">
-                                        <div class="flex-shrink-0 me-3">
-                                            <div class="icon-circle bg-info text-white">
-                                                <i class="fas fa-building fa-2x"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1">
-                                            <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
-                                            <div class="row">
-                                                <div class="col-md-6">
-                                                    <small class="text-muted">
-                                                        <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
-                                                        الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
-                                                    </small>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
+                            <div class="d-flex align-items-center p-3 bg-light rounded mb-4">
+                                <div class="icon-circle bg-info text-white me-3"><i class="fas fa-building"></i></div>
+                                <div>
+                                    <h4 class="mb-1 fw-bold text-dark">${stakeholder.name}</h4>
+                                    <small class="text-muted">
+                                        <i class="fas fa-toggle-${stakeholder.status ? 'on text-success' : 'off text-danger'} me-1"></i>
+                                        الحالة: <strong>${stakeholder.status ? 'نشط' : 'غير نشط'}</strong>
+                                    </small>
                                 </div>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <h6 class="fw-bold text-dark mb-3">
-                                        <i class="fas fa-tags text-info me-2"></i>أنواع الجهة
-                                    </h6>
-                                    <div class="row g-2">${typesHtml}</div>
-                                </div>
+                            <div class="mb-4"><h6 class="fw-bold"><i class="fas fa-tags text-info me-2"></i>أنواع الجهة</h6><div class="row g-2">${typesHtml}</div></div>
+                            <div class="mb-4">${financialTypeHtml}</div>
+                            <div class="mb-4">${contactHtml}</div>
+                            <div class="mb-4">
+                                <h6 class="fw-bold"><i class="fas fa-comment text-primary me-2"></i>ملاحظات</h6>
+                                <p>${stakeholder.comment || 'لا توجد ملاحظات'}</p>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-12">${financialTypeHtml}</div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-12">${contactHtml}</div>
-                            </div>
-                            <div class="row mb-4">
-                                <div class="col-12">${commentHtml}</div>
-                            </div>
-                            <div class="row mt-4 pt-3 border-top">
-                                <div class="col-12">
-                                    <div class="row text-center">
-                                        <div class="col-md-4">
-                                            <div class="p-2">
-                                                <div class="text-primary fs-5 fw-bold">${arabicTypesCount}</div>
-                                                <small class="text-muted">أنواع مرتبطة</small>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                            <div class="row pt-3 border-top text-center">
+                                <div class="col-12"><div class="text-primary fs-5 fw-bold">${arabicTypesCount}</div><small class="text-muted">أنواع مرتبطة</small></div>
                             </div>
                         </div>
                     `;
-
                     $('#detailsContent').html(content);
                 }
             };
@@ -2551,25 +2199,18 @@
             // ========================================
             const EventHandlers = {
                 initialize() {
-                    // Clean up any existing main handlers
                     $(document).off('.mainHandlers');
 
-                    // Add stakeholder button
-                    $('#btnAddStakeholder').off('click.main').on('click.main', () => {
-                        StakeholderModal.load('Create');
-                    });
+                    $('#btnAddStakeholder').off('click.main').on('click.main', () => StakeholderModal.load('Create'));
 
-                    // Edit button
                     $(document).on('click.mainHandlers', '.btnEdit', function() {
                         StakeholderModal.load('Edit', $(this).data('id'));
                     });
 
-                    // View details button
                     $(document).on('click.mainHandlers', '.view-details', function() {
                         DetailsModal.load($(this).data('id'));
                     });
 
-                    // Edit from details modal
                     $('#editFromDetails').off('click.main').on('click.main', () => {
                         if (State.currentDetailsId) {
                             Modals.details.hide();
@@ -2577,97 +2218,116 @@
                         }
                     });
 
-                    // Delete button
                     $(document).on('click.mainHandlers', '.delete-stakeholder', function() {
-                        const id = $(this).data('id');
-                        const name = $(this).data('name');
-                        $('#deleteStakeholderId').val(id);
-                        $('#deleteStakeholderName').text(name);
+                        $('#deleteStakeholderId').val($(this).data('id'));
+                        $('#deleteStakeholderName').text($(this).data('name'));
                         Modals.delete.show();
                     });
 
-                    // Confirm delete
-                    $('#confirmDelete').off('click.main').on('click.main', () => {
-                        const id = $('#deleteStakeholderId').val();
-                        DataManager.delete(id);
-                    });
+                    $('#confirmDelete').off('click.main').on('click.main', () => DataManager.delete($('#deleteStakeholderId').val()));
 
-                    // Status toggle
                     $(document).on('change.mainHandlers', '.status-toggle', function() {
-                        const id = $(this).data('id');
-                        const newStatus = $(this).prop('checked');
-                        DataManager.toggleStatus(id, newStatus);
+                        DataManager.toggleStatus($(this).data('id'), $(this).prop('checked'));
                     });
 
-                    // Refresh data
                     $('#refreshData').off('click.main').on('click.main', function() {
                         const $btn = $(this);
                         const originalText = $btn.html();
-                        $btn.prop('disabled', true)
-                            .html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
-
+                        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>جاري التحديث...');
                         DataManager.load();
-
-                        setTimeout(() => {
-                            $btn.prop('disabled', false).html(originalText);
-                        }, 1000);
+                        setTimeout(() => $btn.prop('disabled', false).html(originalText), 1000);
                     });
 
-                    // Modal events
-                    $('#stakeholderModal').off('shown.bs.modal.main hidden.bs.modal.main');
-
-                    $('#stakeholderModal').on('shown.bs.modal.main', function() {
-                        // Use setTimeout to ensure DOM is ready
-                        setTimeout(() => {
-                            StakeholderModal.initialize();
-                            $('#Name').focus();
-                        }, 150);
-                    });
-
-                    $('#stakeholderModal').on('hidden.bs.modal.main', function() {
-                        $('#modalBody').empty();
-                        // Clean up type handlers when modal closes
-                        $(document).off('.typeHandlers');
-                    });
-
-                    // Auto-dismiss alerts
-                    setTimeout(() => {
-                        $('.alert-success, .alert-danger').fadeOut(350);
-                    }, CONFIG.ALERT_DISMISS_DELAY);
-
-                    // Keyboard shortcuts
-                    $(document).off('keydown.main').on('keydown.main', function(e) {
-                        if (e.ctrlKey && e.keyCode === 70) { // Ctrl+F
-                            e.preventDefault();
-                            $('#searchByName').focus();
-                        }
-                        if (e.keyCode === 27) { // Escape
-                            Search.clear('all');
-                        }
+                    // Search shortcut
+                    $(document).on('keydown.main', function(e) {
+                        if (e.ctrlKey && e.keyCode === 70) { e.preventDefault(); $('#searchByName').focus(); }
+                        if (e.keyCode === 27) Search.clear('all');
                     });
                 }
             };
 
-            // ========================================
-            // INITIALIZATION
-            // ========================================
-            function initialize() {
-                console.log('Initializing stakeholders with fixed number handling:', {
-                    time: CONFIG.CURRENT_TIME,
-                    user: CONFIG.CURRENT_USER
-                });
-
-                // Initialize modules
-                Search.initialize();
-                EventHandlers.initialize();
-                DataManager.load();
-
-                console.log('Stakeholders info initialized successfully with smart number conversion');
-            }
-
-            // Start the application
-            initialize();
+            // Initialize
+            Search.initialize();
+            EventHandlers.initialize();
+            DataManager.load();
         });
+
+        // FIXED PRINT TABLE FUNCTION
+        function printTable() {
+            try {
+                const table = document.getElementById('stakeholdersTable');
+                const existingPrint = document.getElementById('printSection');
+                if (existingPrint) existingPrint.remove();
+
+                const printSection = document.createElement('div');
+                printSection.id = 'printSection';
+
+                // Header
+                printSection.innerHTML = `
+                    <div class="print-header">
+                        <h2>قائمة الجهات</h2>
+                        <p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')} - ${new Date().toLocaleTimeString('ar-EG')}</p>
+                    </div>
+                `;
+
+                const printTable = document.createElement('table');
+                printTable.className = 'print-table';
+
+                // Clone Header (Simple)
+                const thead = document.createElement('thead');
+                const trHead = document.createElement('tr');
+                table.querySelectorAll('thead tr:first-child th').forEach((th, idx) => {
+                    // Skip action column
+                    if (idx < 6 && th.style.display !== 'none') {
+                        const newTh = document.createElement('th');
+                        newTh.textContent = th.innerText.trim();
+                        trHead.appendChild(newTh);
+                    }
+                });
+                thead.appendChild(trHead);
+                printTable.appendChild(thead);
+
+                // Clone Body
+                const tbody = document.createElement('tbody');
+                table.querySelectorAll('tbody tr.stakeholder-row').forEach(row => {
+                    if (row.style.display === 'none') return;
+
+                    const tr = document.createElement('tr');
+                    row.querySelectorAll('td').forEach((td, idx) => {
+                        if (idx < 6) { // Skip action column
+                            const newTd = document.createElement('td');
+
+                            // Check for phone number (index 4 usually, or based on class)
+                            if (td.classList.contains('stakeholder-phone')) {
+                                // Extract text, ensuring it is Arabic
+                                let phoneText = td.textContent.trim();
+                                if (phoneText !== '-') {
+                                     // Re-run conversion just in case
+                                     phoneText = phoneText.replace(/[0-9]/g, d => '٠١٢٣٤٥٦٧٨٩'[d]);
+                                }
+                                newTd.textContent = phoneText;
+                                newTd.style.direction = 'ltr'; // Ensure order stays correct
+                            } else {
+                                newTd.textContent = td.innerText.trim();
+                            }
+                            tr.appendChild(newTd);
+                        }
+                    });
+                    tbody.appendChild(tr);
+                });
+                printTable.appendChild(tbody);
+                printSection.appendChild(printTable);
+
+                document.body.appendChild(printSection);
+                window.print();
+
+                setTimeout(() => { if(printSection) printSection.remove(); }, 100);
+
+            } catch (error) {
+                console.error('Print Error', error);
+                alert('حدث خطأ أثناء الطباعة');
+            }
+        }
     </script>
 
     <style>

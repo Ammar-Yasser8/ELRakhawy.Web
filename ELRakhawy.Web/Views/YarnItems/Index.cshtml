@@ -479,6 +479,26 @@ document.addEventListener("DOMContentLoaded", function () {
         columnToggleMenu.appendChild(li);
     });
 
+    // Add "Display All" and "Hide All" options at the beginning
+    const displayAllLi = document.createElement("li");
+    displayAllLi.innerHTML = `
+        <button class="dropdown-item" id="displayAllColumns">
+            <i class="fas fa-eye text-success me-2"></i>إظهار جميع الأعمدة
+        </button>`;
+    columnToggleMenu.insertBefore(displayAllLi, columnToggleMenu.firstChild);
+
+    const hideAllLi = document.createElement("li");
+    hideAllLi.innerHTML = `
+        <button class="dropdown-item" id="hideAllColumns">
+            <i class="fas fa-eye-slash text-danger me-2"></i>إخفاء جميع الأعمدة
+        </button>`;
+    columnToggleMenu.insertBefore(hideAllLi, columnToggleMenu.firstChild);
+
+    // Add separator
+    const separatorLi = document.createElement("li");
+    separatorLi.innerHTML = `<hr class="dropdown-divider">`;
+    columnToggleMenu.appendChild(separatorLi);
+
     // Handle column visibility toggle
     columnToggleMenu.addEventListener("change", function (e) {
         if (!e.target.classList.contains("column-toggle")) return;
@@ -492,6 +512,37 @@ document.addEventListener("DOMContentLoaded", function () {
                 cell.style.display = isVisible ? "" : "none";
             }
         });
+    });
+
+    // Handle "Display All" button click
+    columnToggleMenu.addEventListener("click", function (e) {
+        if (e.target.id === "displayAllColumns") {
+            e.preventDefault();
+            const columnToggles = columnToggleMenu.querySelectorAll(".column-toggle");
+            columnToggles.forEach((checkbox) => {
+                const index = parseInt(checkbox.getAttribute("data-index"));
+                checkbox.checked = true;
+                // Show the column
+                table.querySelectorAll("tr").forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[index];
+                    if (cell) cell.style.display = "";
+                });
+            });
+        }
+        
+        if (e.target.id === "hideAllColumns") {
+            e.preventDefault();
+            const columnToggles = columnToggleMenu.querySelectorAll(".column-toggle");
+            columnToggles.forEach((checkbox) => {
+                const index = parseInt(checkbox.getAttribute("data-index"));
+                checkbox.checked = false;
+                // Hide the column
+                table.querySelectorAll("tr").forEach(row => {
+                    const cell = row.querySelectorAll("th, td")[index];
+                    if (cell) cell.style.display = "none";
+                });
+            });
+        }
     });
 
     // Sorting functionality
@@ -1257,86 +1308,103 @@ $(document).ready(function() {
     // ================================
     // LOAD ITEM DATA FROM DOM - FIXED
     // ================================
-    function loadItemDataFromDOM(itemId) {
-        return new Promise((resolve, reject) => {
-            console.log('📥 Loading item data from DOM for ID:', itemId);
-            
-            // Try API first
-            $.ajax({
-                url: `/api/YarnItems/${itemId}`,
-                method: 'GET',
-                success: function(response) {
-                    console.log('✅ API Response:', response);
-                    
-                    if (response.success && response.data) {
-                        const item = response.data;
-                        
-                        // Populate form fields
-                        $('#yarnItemId').val(item.id);
-                        $('#yarnItemName').val(item.item);
-                        $('#yarnItemStatus').prop('checked', item.status);
-                        $('#yarnItemComment').val(item.comment || '');
-                        
-                        // ✅ Store selected IDs for later
-                        selectedManufacturerIds = item.manufacturerIds || [];
-                        selectedOriginYarnId = item.originYarnId || null;
-                        
-                        console.log('📌 Stored selections:', {
-                            manufacturers: selectedManufacturerIds,
-                            originYarn: selectedOriginYarnId
+                // ================================
+                // LOAD ITEM DATA FROM DOM - FIXED
+                // ================================
+                function loadItemDataFromDOM(itemId) {
+                    return new Promise((resolve, reject) => {
+                        console.log('📥 Loading item data from DOM for ID:', itemId);
+
+                        // Try API first
+                        $.ajax({
+                            url: `/api/YarnItems/${itemId}`,
+                            method: 'GET',
+                            success: function(response) {
+                                console.log('✅ API Response:', response);
+
+                                if (response.success && response.data) {
+                                    const item = response.data;
+
+                                    // Populate form fields
+                                    $('#yarnItemId').val(item.id);
+
+                                    // Set Name and convert immediately
+                                    $('#yarnItemName').val(item.item);
+                                    applySmartNumberConversion($('#yarnItemName')); // ✅ FORCE CONVERSION
+
+                                    $('#yarnItemStatus').prop('checked', item.status);
+
+                                    // Set Comment and convert immediately
+                                    $('#yarnItemComment').val(item.comment || '');
+                                    applySmartNumberConversion($('#yarnItemComment')); // ✅ FORCE CONVERSION
+
+                                    // ✅ Store selected IDs for later
+                                    selectedManufacturerIds = item.manufacturerIds || [];
+                                    selectedOriginYarnId = item.originYarnId || null;
+
+                                    console.log('📌 Stored selections:', {
+                                        manufacturers: selectedManufacturerIds,
+                                        originYarn: selectedOriginYarnId
+                                    });
+
+                                    updateStatusText();
+                                    resolve();
+                                } else {
+                                    // Fallback to DOM extraction
+                                    loadItemDataFromDOMFallback(itemId, resolve, reject);
+                                }
+                            },
+                            error: function(xhr) {
+                                console.log('⚠️ API failed, trying DOM fallback');
+                                loadItemDataFromDOMFallback(itemId, resolve, reject);
+                            }
                         });
-                        
+                    });
+                }
+
+                // ================================
+                // FALLBACK: EXTRACT FROM DOM
+                // ================================
+                function loadItemDataFromDOMFallback(itemId, resolve, reject) {
+                    const row = $(`tr:has([data-id="${itemId}"])`).first();
+
+                    if (row.length) {
+                        console.log('✅ Found item in DOM');
+
+                        const itemName = row.find('td:eq(0) .fw-semibold').text().trim();
+                        const status = row.data('status') === 'active';
+                        const comment = row.find('td:eq(0) small').text().trim() || '';
+                        const manufacturerText = row.find('td:eq(1)').text().trim();
+                        const originYarnText = row.find('td:eq(2)').text().trim();
+
+                        // Populate form
+                        $('#yarnItemId').val(itemId);
+
+                        // Set Name and convert immediately
+                        $('#yarnItemName').val(itemName);
+                        applySmartNumberConversion($('#yarnItemName')); // ✅ FORCE CONVERSION
+
+                        $('#yarnItemStatus').prop('checked', status);
+
+                        // Set Comment and convert immediately
+                        $('#yarnItemComment').val(comment);
+                        applySmartNumberConversion($('#yarnItemComment')); // ✅ FORCE CONVERSION
+
+                        // ⚠️ We can't get IDs from DOM, will select by name later
+                        selectedManufacturerIds = [];
+                        selectedOriginYarnId = null;
+
+                        // Store text for matching
+                        window.tempManufacturerText = manufacturerText !== 'غير محدد' ? manufacturerText : '';
+                        window.tempOriginYarnText = originYarnText !== 'غير محدد' ? originYarnText : '';
+
                         updateStatusText();
                         resolve();
                     } else {
-                        // Fallback to DOM extraction
-                        loadItemDataFromDOMFallback(itemId, resolve, reject);
+                        console.error('❌ Item not found in DOM');
+                        reject('Item not found');
                     }
-                },
-                error: function(xhr) {
-                    console.log('⚠️ API failed, trying DOM fallback');
-                    loadItemDataFromDOMFallback(itemId, resolve, reject);
                 }
-            });
-        });
-    }
-
-    // ================================
-    // FALLBACK: EXTRACT FROM DOM
-    // ================================
-    function loadItemDataFromDOMFallback(itemId, resolve, reject) {
-        const row = $(`tr:has([data-id="${itemId}"])`).first();
-        
-        if (row.length) {
-            console.log('✅ Found item in DOM');
-            
-            const itemName = row.find('td:eq(0) .fw-semibold').text().trim();
-            const status = row.data('status') === 'active';
-            const comment = row.find('td:eq(0) small').text().trim() || '';
-            const manufacturerText = row.find('td:eq(1)').text().trim();
-            const originYarnText = row.find('td:eq(2)').text().trim();
-            
-            // Populate form
-            $('#yarnItemId').val(itemId);
-            $('#yarnItemName').val(itemName);
-            $('#yarnItemStatus').prop('checked', status);
-            $('#yarnItemComment').val(comment);
-            
-            // ⚠️ We can't get IDs from DOM, will select by name later
-            selectedManufacturerIds = [];
-            selectedOriginYarnId = null;
-            
-            // Store text for matching
-            window.tempManufacturerText = manufacturerText !== 'غير محدد' ? manufacturerText : '';
-            window.tempOriginYarnText = originYarnText !== 'غير محدد' ? originYarnText : '';
-            
-            updateStatusText();
-            resolve();
-        } else {
-            console.error('❌ Item not found in DOM');
-            reject('Item not found');
-        }
-    }
 
     // ================================
     // APPLY SELECTIONS - FIXED

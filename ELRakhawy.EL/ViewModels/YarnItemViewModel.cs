@@ -47,4 +47,9 @@ namespace ELRakhawy.EL.ViewModels
         public IEnumerable<SelectListItem>? Manufacturers { get; set; }
         public IEnumerable<SelectListItem>? OriginYarns { get; set; }
     }
+    // Model for status update
+    public class StatusUpdateModel
+    {
+        public bool Status { get; set; }
+    }
 }

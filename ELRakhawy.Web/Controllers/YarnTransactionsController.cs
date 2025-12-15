@@ -104,12 +104,17 @@ namespace ELRakhawy.Web.Controllers
                 var currentQuantityBalance = latestTransaction?.QuantityBalance ?? 0;
                 var currentCountBalance = latestTransaction?.CountBalance ?? 0;
 
-                // Check if outbound quantity exceeds available balance
-                if (!model.IsInbound && model.Quantity > currentQuantityBalance)
+                // Calculate balance SPECIFIC to the requested Packaging Style
+                var styleTransactions = _unitOfWork.Repository<YarnTransaction>()
+                    .GetAll(t => t.YarnItemId == model.YarnItemId && t.PackagingStyleId == model.PackagingStyleId)
+                    .ToList();
+
+                var currentStyleQty = styleTransactions.Sum(t => t.Inbound - t.Outbound);
+
+                if (!model.IsInbound && model.Quantity > currentStyleQty)
                 {
                     ModelState.AddModelError("Quantity",
-                        $"الكمية المطلوبة ({model.Quantity:N3}) أكبر من الرصيد المتاح ({currentQuantityBalance:N3})");
-                    model.AvailableItems = GetActiveYarnItems();
+                        $"Checking Specific Packaging: Quantity ({model.Quantity}) exceeds available balance for this Packaging Style ({currentStyleQty})");
                     return View("TransactionForm", model);
                 }
 
@@ -172,7 +177,6 @@ namespace ELRakhawy.Web.Controllers
         }
 
         // GET: YarnTransactions/Edit/{id}
-        // GET: YarnTransactions/Edit/{id}
         public IActionResult Edit(int id)
         {
             try
@@ -186,7 +190,7 @@ namespace ELRakhawy.Web.Controllers
                     _logger.LogWarning("Transaction with ID {TransactionId} not found for edit by {User} at {Time}",
                         id, "Ammar-Yasser8", "2025-11-17 17:12:13");
                     TempData["Error"] = "لم يتم العثور على المعاملة المطلوبة";
-                    return RedirectToAction("Index", "YarnItems");
+                    return RedirectToAction("OverView", "YarnItems");
                 }
 
                 // Business rule validation
@@ -201,7 +205,7 @@ namespace ELRakhawy.Web.Controllers
                     _logger.LogWarning("Attempt to edit non-latest transaction {TransactionId} by {User} at {Time}",
                         transaction.TransactionId, "Ammar-Yasser8", "2025-11-17 17:12:13");
                     TempData["Error"] = "يمكن تعديل آخر معاملة فقط لكل صنف غزل";
-                    return RedirectToAction("Index", "YarnItems");
+                    return RedirectToAction("OverView", "YarnItems");
                 }
 
                 var viewModel = new YarnTransactionViewModel
@@ -247,11 +251,11 @@ namespace ELRakhawy.Web.Controllers
                 _logger.LogError(ex, "Error loading edit form for transaction {TransactionId} by {User} at {Time}",
                     id, "Ammar-Yasser8", "2025-11-17 17:12:13");
                 TempData["Error"] = "حدث خطأ أثناء تحميل نموذج التعديل";
-                return RedirectToAction("Index", "YarnItems");
+                return RedirectToAction("OverView", "YarnItems");
             }
         }
 
-        // POST: YarnTransactions/Edit
+        // POST: YarnTransactions/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Edit(YarnTransactionViewModel model)
@@ -291,7 +295,7 @@ namespace ELRakhawy.Web.Controllers
                 if (latestTransaction?.Id != existingTransaction.Id)
                 {
                     TempData["Error"] = "لا يمكن تعديل هذه المعاملة لأنها لم تعد آخر معاملة";
-                    return RedirectToAction("Index", "YarnItems");
+                    return RedirectToAction("OverView", "YarnItems");
                 }
 
                 // ✅ STEP 1: Calculate the balance before the original transaction
@@ -367,7 +371,7 @@ namespace ELRakhawy.Web.Controllers
 
                 TempData["Success"] = $"تم تعديل معاملة {(model.IsInbound ? "وارد" : "صادر")} الغزل بنجاح - رقم الإذن: {existingTransaction.TransactionId}";
 
-                return RedirectToAction("Index", "YarnItems");
+                return RedirectToAction("OverView", "YarnItems");
             }
             catch (Exception ex)
             {
@@ -379,8 +383,7 @@ namespace ELRakhawy.Web.Controllers
                 return View("TransactionForm", model);
             }
         }
-        // Get: YarnTransactions/Edit/5
-        // Add these methods to your YarnTransactionsController
+        
 
         private List<SelectListItem> GetPackagingStyleSelectList()
         {
@@ -1596,24 +1599,23 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
+
         [HttpGet]
         public JsonResult GetYarnItemBalance(int yarnItemId)
         {
             try
             {
+                // 1. Validation
                 if (yarnItemId <= 0)
-                {
                     return Json(new { success = false, error = "معرف الصنف غير صحيح" });
-                }
 
                 var yarnItem = _unitOfWork.Repository<YarnItem>()
                     .GetOne(y => y.Id == yarnItemId, includeEntities: "OriginYarn,Manufacturers");
 
                 if (yarnItem == null)
-                {
                     return Json(new { success = false, error = "الصنف غير موجود" });
-                }
 
+                // 2. Fetch All History (Ordered by ID is crucial for Balance calculation)
                 var allTransactions = _unitOfWork.Repository<YarnTransaction>()
                     .GetAll(t => t.YarnItemId == yarnItemId, includeEntities: "PackagingStyle")
                     .OrderBy(t => t.Id)
@@ -1625,75 +1627,34 @@ namespace ELRakhawy.Web.Controllers
                     {
                         success = true,
                         yarnItemId = yarnItem.Id,
-                        yarnItem = yarnItem.Item ?? "غير محدد",
-                        originYarn = yarnItem.OriginYarn?.Item ?? "غير محدد",
-                        manufacturer = (yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any())
-                            ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
-                            : "غير محدد",
+                        packagingBreakdown = new List<object>(),
+                        packagingDisplay = "لا توجد وحدات",
+                        detailedBalanceDisplay = "لا يوجد رصيد",
                         totalQuantityBalance = 0,
                         totalCountBalance = 0,
-                        calculatedTotalWeight = 0,
-                        calculatedTotalCount = 0,
-                        packagingBreakdown = new List<object>(),
-                        packagingDisplay = "لا توجد وحدات",
-                        shortPackagingDisplay = "لا توجد وحدات",
-                        detailedBalanceDisplay = "لا يوجد رصيد",
-                        hasMultiplePackaging = false,
-                        packagingTypesCount = 0,
-                        transactionCount = 0,
-                        lastTransactionDate = "لا توجد معاملات",
-                        hasTransactions = false,
-                        balanceMatches = true,
-                        balanceDiscrepancy = 0
+                        hasTransactions = false
                     });
                 }
 
-                // آخر معاملة
-                var latestTransaction = allTransactions.Last();
+                // 3. PRE-CALCULATE "REAL" COUNT DIRECTION
+                // Since Inbound/Outbound columns might be 0.00 due to rounding, we rely on the change in 'CountBalance'
+                var transactionCountDeltas = new Dictionary<int, int>();
+                int previousGlobalCount = 0;
 
-                // إذا كانت آخر معاملة Reset (رصيد صفر)
-                if (latestTransaction.Inbound == 0 && latestTransaction.Outbound == 0)
+                foreach (var t in allTransactions)
                 {
-                    var actualQuantityBalance = latestTransaction.QuantityBalance;
-                    var actualCountBalance = latestTransaction.CountBalance;
-
-                    return Json(new
-                    {
-                        success = true,
-                        yarnItemId = yarnItem.Id,
-                        yarnItem = yarnItem.Item ?? "غير محدد",
-                        originYarn = yarnItem.OriginYarn?.Item ?? "غير محدد",
-                        manufacturer = (yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any())
-                            ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
-                            : "غير محدد",
-
-                        totalQuantityBalance = actualQuantityBalance,
-                        totalCountBalance = actualCountBalance,
-
-                        calculatedTotalWeight = actualQuantityBalance,
-                        calculatedTotalCount = actualCountBalance,
-
-                        recordedQuantityBalance = actualQuantityBalance,
-                        recordedCountBalance = actualCountBalance,
-
-                        packagingBreakdown = new List<object>(),
-
-                        packagingDisplay = "لا توجد وحدات",
-                        shortPackagingDisplay = "لا توجد وحدات",
-                        detailedBalanceDisplay = "لا يوجد رصيد",
-
-                        hasMultiplePackaging = false,
-                        packagingTypesCount = 0,
-                        transactionCount = allTransactions.Count,
-                        lastTransactionDate = latestTransaction.Date.ToString("yyyy-MM-dd"),
-                        hasTransactions = true,
-
-                        balanceMatches = true,
-                        balanceDiscrepancy = 0
-                    });
+                    // If Balance dropped (e.g. 6000 -> 1400), delta is -4600. This proves it's Outbound.
+                    int delta = t.CountBalance - previousGlobalCount;
+                    transactionCountDeltas[t.Id] = delta;
+                    previousGlobalCount = t.CountBalance;
                 }
 
-                // الحساب الطبيعي إذا لم تكن آخر معاملة Reset
+                // 4. Get Recorded Global Balance
+                var latestTransaction = allTransactions.Last();
+                var recordedQuantityBalance = latestTransaction.QuantityBalance;
+                var recordedCountBalance = latestTransaction.CountBalance;
+
+                // 5. Calculate Breakdown per Packaging Style
                 var packagingBreakdown = allTransactions
                     .GroupBy(t => new
                     {
@@ -1702,111 +1663,86 @@ namespace ELRakhawy.Web.Controllers
                     })
                     .Select(g =>
                     {
-                        var totalInbound = g.Where(t => t.Inbound > 0).Sum(t => t.Inbound);
-                        var totalOutbound = g.Where(t => t.Outbound > 0).Sum(t => t.Outbound);
-                        var inboundCount = g.Where(t => t.Inbound > 0).Sum(t => t.Count);
-                        var outboundCount = g.Where(t => t.Outbound > 0).Sum(t => t.Count);
+                        decimal totalInboundQty = 0m;
+                        decimal totalOutboundQty = 0m;
+                        int totalInboundCount = 0;
+                        int totalOutboundCount = 0;
 
-                        decimal averageInboundPerUnit = inboundCount > 0 ? totalInbound / inboundCount : 0m;
-                        decimal averageOutboundPerUnit = outboundCount > 0 ? totalOutbound / outboundCount : 0m;
-
-                        decimal specificWeight = totalInbound - totalOutbound;
-                        int totalCount = inboundCount - outboundCount;
-
-                        var transactionDetails = g.Select(t => new
+                        foreach (var t in g)
                         {
-                            date = t.Date,
-                            inbound = Math.Round(t.Inbound, 3),
-                            outbound = Math.Round(t.Outbound, 3),
-                            count = t.Count,
-                            unitWeight = t.Count > 0 ? Math.Round((t.Inbound > 0 ? t.Inbound : t.Outbound) / (decimal)t.Count, 3) : 0m
-                        }).OrderBy(td => td.date).ToList();
+                            // --- WEIGHT LOGIC ---
+                            // Weight flags are usually reliable as they handle the main decimal value
+                            totalInboundQty += t.Inbound;
+                            totalOutboundQty += t.Outbound;
+
+                            // --- COUNT LOGIC (ROBUST) ---
+                            // Use the pre-calculated delta based on the Global Balance change
+                            if (transactionCountDeltas.TryGetValue(t.Id, out int delta))
+                            {
+                                if (delta > 0)
+                                {
+                                    // Balance went UP -> Inbound Count
+                                    totalInboundCount += Math.Abs(delta);
+                                }
+                                else if (delta < 0)
+                                {
+                                    // Balance went DOWN -> Outbound Count
+                                    totalOutboundCount += Math.Abs(delta);
+                                }
+                                // If delta is 0, Count didn't change (Weight-only transaction), so we do nothing.
+                            }
+                        }
+
+                        decimal specificWeight = totalInboundQty - totalOutboundQty;
+                        int totalCount = totalInboundCount - totalOutboundCount;
+
+                        // Averages
+                        decimal avgIn = totalInboundCount > 0 ? totalInboundQty / totalInboundCount : 0m;
+                        decimal avgOut = totalOutboundCount > 0 ? totalOutboundQty / totalOutboundCount : 0m;
 
                         return new
                         {
                             packagingId = g.Key.PackagingId,
                             packagingType = g.Key.PackagingName,
-                            totalInbound,
-                            totalOutbound,
-                            inboundCount,
-                            outboundCount,
-                            specificWeight,
-                            totalCount,
-                            averageInboundPerUnit = Math.Round(averageInboundPerUnit, 3),
-                            averageOutboundPerUnit = Math.Round(averageOutboundPerUnit, 3),
-                            transactionDetails
+                            totalInbound = Math.Round(totalInboundQty, 3),
+                            totalOutbound = Math.Round(totalOutboundQty, 3),
+                            inboundCount = totalInboundCount,
+                            outboundCount = totalOutboundCount,
+                            specificWeight = Math.Round(specificWeight, 3),
+                            totalCount = totalCount,
+                            averageInboundPerUnit = Math.Round(avgIn, 3),
+                            averageOutboundPerUnit = Math.Round(avgOut, 3),
+                            isNegative = specificWeight < 0 || totalCount < 0
                         };
                     })
                     .OrderByDescending(p => p.specificWeight)
                     .ToList();
 
+                // 6. Calculate Calculated Totals
                 var calculatedTotalWeight = Math.Round(packagingBreakdown.Sum(p => p.specificWeight), 3);
                 var calculatedTotalCount = packagingBreakdown.Sum(p => p.totalCount);
 
-                var recordedQuantityBalance = latestTransaction.QuantityBalance;
-                var recordedCountBalance = latestTransaction.CountBalance;
+                // 7. Validation
+                bool balanceMatches = Math.Abs(calculatedTotalWeight - recordedQuantityBalance) < 0.001m &&
+                                      calculatedTotalCount == recordedCountBalance;
 
-                var balanceMatches = Math.Abs(calculatedTotalWeight - recordedQuantityBalance) < 0.001m &&
-                                     calculatedTotalCount == recordedCountBalance;
-
-                var actualQuantityBalanceNormal = recordedQuantityBalance;
-                var actualCountBalanceNormal = recordedCountBalance;
-
-                // Build display strings
-                string packagingDisplay;
-                string shortPackagingDisplay;
-                string detailedBalanceDisplay;
+                // 8. UI Strings
+                string packagingDisplay = "لا توجد وحدات";
+                string detailedBalanceDisplay = "لا يوجد رصيد";
 
                 if (packagingBreakdown.Any())
                 {
-                    var positivePackaging = packagingBreakdown.Where(p => p.specificWeight > 0 || p.totalCount > 0).ToList();
-                    var negativePackaging = packagingBreakdown.Where(p => p.specificWeight < 0 || p.totalCount < 0).ToList();
-
-                    var packagingParts = positivePackaging.Select(p =>
-                        $"{ToArabicDigits(Math.Round(p.specificWeight, 2).ToString())} كجم {p.packagingType} ({ToArabicDigits(p.totalCount.ToString())} وحدة)")
-                        .ToList();
-
-                    if (negativePackaging.Any())
+                    var activeItems = packagingBreakdown.Where(p => p.specificWeight != 0 || p.totalCount != 0).ToList();
+                    if (activeItems.Any())
                     {
-                        var negativeParts = negativePackaging.Select(p =>
-                            $"⚠️ {ToArabicDigits(Math.Round(p.specificWeight, 2).ToString())} كجم {p.packagingType} ({ToArabicDigits(p.totalCount.ToString())} وحدة)");
-                        packagingParts.AddRange(negativeParts);
+                        var parts = activeItems.Select(p =>
+                            $"{(p.isNegative ? "⚠️ " : "")}{ToArabicDigits(p.specificWeight.ToString())} كجم {p.packagingType} ({ToArabicDigits(p.totalCount.ToString())} وحدة)"
+                        ).ToList();
+
+                        packagingDisplay = string.Join(" + ", parts);
+                        detailedBalanceDisplay = $"الرصيد الإجمالي: {ToArabicDigits(recordedQuantityBalance.ToString())} كجم\n" +
+                                                 string.Join("\n", parts);
                     }
-
-                    packagingDisplay = string.Join(" + ", packagingParts);
-
-                    var weightParts = positivePackaging.Select(p =>
-                        $"{ToArabicDigits(Math.Round(p.specificWeight, 2).ToString())} كجم {p.packagingType}").ToList();
-
-                    if (negativePackaging.Any())
-                    {
-                        var negativeWeightParts = negativePackaging.Select(p =>
-                            $"⚠️ {ToArabicDigits(Math.Round(p.specificWeight, 2).ToString())} كجم {p.packagingType}");
-                        weightParts.AddRange(negativeWeightParts);
-                    }
-
-                    detailedBalanceDisplay =
-                        $"الرصيد الإجمالي: {ToArabicDigits(Math.Round(actualQuantityBalanceNormal, 3).ToString())} كجم\n" +
-                        string.Join(" + ", weightParts);
-
-                    var topPackaging = positivePackaging.Take(2).Select(p =>
-                        $"{ToArabicDigits(Math.Round(p.specificWeight, 2).ToString())} كجم {p.packagingType}").ToList();
-
-                    shortPackagingDisplay = string.Join(" + ", topPackaging);
-                    if (packagingBreakdown.Count > 2)
-                    {
-                        var remaining = packagingBreakdown.Skip(2);
-                        var remainingWeight = remaining.Sum(p => p.specificWeight);
-                        var remainingCount = remaining.Sum(p => p.totalCount);
-                        shortPackagingDisplay +=
-                            $" + {ToArabicDigits(Math.Round(remainingWeight, 2).ToString())} كجم أخرى ({ToArabicDigits(remainingCount.ToString())} وحدة)";
-                    }
-                }
-                else
-                {
-                    packagingDisplay = "لا توجد وحدات";
-                    shortPackagingDisplay = "لا توجد وحدات";
-                    detailedBalanceDisplay = "لا يوجد رصيد";
                 }
 
                 var result = new
@@ -1816,82 +1752,60 @@ namespace ELRakhawy.Web.Controllers
                     yarnItem = yarnItem.Item ?? "غير محدد",
                     originYarn = yarnItem.OriginYarn?.Item ?? "غير محدد",
                     manufacturer = (yarnItem.Manufacturers != null && yarnItem.Manufacturers.Any())
-                        ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name))
-                        : "غير محدد",
+                        ? string.Join("، ", yarnItem.Manufacturers.Select(m => m.Name)) : "غير محدد",
 
-                    totalQuantityBalance = actualQuantityBalanceNormal,
-                    totalCountBalance = actualCountBalanceNormal,
+                    // Ledger Balances
+                    totalQuantityBalance = recordedQuantityBalance,
+                    totalCountBalance = recordedCountBalance,
 
+                    // Calculated Balances
                     calculatedTotalWeight = calculatedTotalWeight,
                     calculatedTotalCount = calculatedTotalCount,
 
-                    recordedQuantityBalance = recordedQuantityBalance,
-                    recordedCountBalance = recordedCountBalance,
-
+                    // Breakdown
                     packagingBreakdown = packagingBreakdown.Select(p => new
                     {
-                        packagingId = p.packagingId,
-                        packagingType = p.packagingType,
-                        totalCount = p.totalCount,
-                        specificWeight = Math.Round(p.specificWeight, 3),
-                        averageInboundPerUnit = Math.Round(p.averageInboundPerUnit, 3),
-                        averageOutboundPerUnit = Math.Round(p.averageOutboundPerUnit, 3),
-                        totalInbound = Math.Round(p.totalInbound, 3),
-                        totalOutbound = Math.Round(p.totalOutbound, 3),
-                        inboundCount = p.inboundCount,
-                        outboundCount = p.outboundCount,
-                        isNegative = p.specificWeight < 0 || p.totalCount < 0,
-                        displayText = $"{ToArabicDigits(p.totalCount.ToString())} {p.packagingType} ({ToArabicDigits(Math.Round(p.specificWeight, 2).ToString())} كجم)",
-                        transactionDetails = p.transactionDetails
+                        p.packagingId,
+                        p.packagingType,
+                        p.totalCount,
+                        p.specificWeight,
+                        p.averageInboundPerUnit,
+                        p.totalInbound,
+                        p.totalOutbound,
+                        p.isNegative,
+                        displayText = $"{ToArabicDigits(p.totalCount.ToString())} {p.packagingType} ({ToArabicDigits(p.specificWeight.ToString())} كجم)"
                     }),
 
                     packagingDisplay = packagingDisplay,
-                    shortPackagingDisplay = shortPackagingDisplay,
                     detailedBalanceDisplay = detailedBalanceDisplay,
-
                     hasMultiplePackaging = packagingBreakdown.Count > 1,
-                    packagingTypesCount = packagingBreakdown.Count,
                     transactionCount = allTransactions.Count,
-                    lastTransactionDate = latestTransaction?.Date.ToString("yyyy-MM-dd") ?? "لا توجد معاملات",
-                    hasTransactions = allTransactions.Any(),
-
-                    balanceMatches = balanceMatches,
-                    balanceDiscrepancy = balanceMatches ? null : new
-                    {
-                        weightDifference = Math.Round(calculatedTotalWeight - recordedQuantityBalance, 3),
-                        countDifference = calculatedTotalCount - recordedCountBalance,
-                        message = "الرصيد المحسوب يختلف عن الرصيد المسجل في آخر معاملة"
-                    }
+                    lastTransactionDate = latestTransaction.Date.ToString("yyyy-MM-dd"),
+                    hasTransactions = true,
+                    balanceMatches = balanceMatches
                 };
 
-                _logger.LogInformation("Yarn item balance loaded for {YarnItemId}: Total={Total}, Calculated={Calculated}, Types={Types}, Match={Match}",
-                    yarnItemId, actualQuantityBalanceNormal, calculatedTotalWeight, packagingBreakdown.Count, balanceMatches);
+                _logger.LogInformation("Balance Loaded ID {ID}: Rec={Rec}, Calc={Calc}, Match={Match}",
+                    yarnItemId, recordedQuantityBalance, calculatedTotalWeight, balanceMatches);
 
                 return Json(result);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting yarn item balance for ID {YarnItemId}", yarnItemId);
-                return Json(new
-                {
-                    success = false,
-                    error = "حدث خطأ أثناء تحميل رصيد الصنف"
-                });
+                _logger.LogError(ex, "Error getting balance for YarnItem {Id}", yarnItemId);
+                return Json(new { success = false, error = "حدث خطأ أثناء تحميل الرصيد" });
             }
         }
 
-
-        // ✅ Add helper method for Arabic digit conversion
+        // Helper
         private string ToArabicDigits(string input)
         {
             if (string.IsNullOrEmpty(input)) return input;
-
             return input.Replace('0', '٠').Replace('1', '١').Replace('2', '٢')
                         .Replace('3', '٣').Replace('4', '٤').Replace('5', '٥')
                         .Replace('6', '٦').Replace('7', '٧').Replace('8', '٨')
                         .Replace('9', '٩');
         }
-
         // Helper method to determine balance status
         private string GetBalanceStatus(decimal quantityBalance, int countBalance)
         {
@@ -2053,147 +1967,192 @@ namespace ELRakhawy.Web.Controllers
         {
             try
             {
-                var currentTime = DateTime.Now;
-                var currentUser = "Ammar-Yasser8";
-
-                // تسجيل القيم المستلمة للتأكد من صحتها
-                _logger.LogInformation("ResetPackagingBalance called: yarnItemId={YarnItemId}, packagingStyleId={PackagingStyleId}, newQuantity={NewQuantity}, newCount={NewCount}",
-                    yarnItemId, packagingStyleId, newQuantity, newCount);
-
+                // 1. Validate Inputs
                 if (newQuantity < 0 || newCount < 0)
-                    return Json(new { success = false, error = "القيم يجب أن تكون >= 0" });
+                    return Json(new { success = false, error = "القيم يجب أن تكون أكبر من أو تساوي صفر" });
 
-                var yarnItem = _unitOfWork.Repository<YarnItem>().GetOne(y => y.Id == yarnItemId);
-                if (yarnItem == null)
-                    return Json(new { success = false, error = "الصنف غير موجود" });
-
-                var packaging = _unitOfWork.Repository<PackagingStyles>().GetOne(p => p.Id == packagingStyleId);
-                if (packaging == null)
-                    return Json(new { success = false, error = "نوع التعبئة غير موجود" });
-
-                // ===== الطريقة الصحيحة: حساب الرصيد الفعلي الحالي للتعبئة المحددة =====
-
-                // جلب كل المعاملات الخاصة بهذه التعبئة المحددة
+                // 2. Get History & Calculate Current Specific Balance
                 var packagingTransactions = _unitOfWork.Repository<YarnTransaction>()
                     .GetAll(t => t.YarnItemId == yarnItemId && t.PackagingStyleId == packagingStyleId)
                     .OrderBy(t => t.Date)
                     .ThenBy(t => t.Id)
                     .ToList();
 
-                // حساب الرصيد الفعلي الحالي للتعبئة المحددة من خلال جمع كل المعاملات
                 decimal currentPkgQty = 0m;
                 int currentPkgCount = 0;
 
                 foreach (var tx in packagingTransactions)
                 {
-                    // فقط نحسب المعاملات التي ليست معاملات تعديل سابقة
-                    // أو نحسب كل المعاملات بما فيها التعديلات
                     currentPkgQty += tx.Inbound - tx.Outbound;
 
-                    // حساب العدد بناءً على نوع المعاملة
+                    // History Loop Logic:
+                    // The 0.00001 Epsilon trick ensures this loop works for Count-Only transactions
                     if (tx.Inbound > 0)
                         currentPkgCount += tx.Count;
                     else if (tx.Outbound > 0)
                         currentPkgCount -= tx.Count;
                 }
 
+                // Rounding removes any Epsilon artifacts from calculation
                 currentPkgQty = Math.Round(currentPkgQty, 3);
 
-                _logger.LogInformation("Packaging {PackagingId} current balance calculated: Qty={Qty}, Count={Count}, Total transactions={TxCount}",
-                    packagingStyleId, currentPkgQty, currentPkgCount, packagingTransactions.Count);
-
-                // ===== حساب الرصيد الإجمالي الحالي للصنف =====
-
-                var lastOverallTx = _unitOfWork.Repository<YarnTransaction>()
+                // 3. Get Current Global Balance
+                var lastGlobalTx = _unitOfWork.Repository<YarnTransaction>()
                     .GetAll(t => t.YarnItemId == yarnItemId)
                     .OrderByDescending(t => t.Date)
                     .ThenByDescending(t => t.Id)
                     .FirstOrDefault();
 
-                decimal currentTotalQty = lastOverallTx?.QuantityBalance ?? 0m;
-                int currentTotalCount = lastOverallTx?.CountBalance ?? 0;
+                decimal currentGlobalQty = lastGlobalTx?.QuantityBalance ?? 0;
+                int currentGlobalCount = lastGlobalTx?.CountBalance ?? 0;
 
-                // احتساب الفرق المطلوب تطبيقه
-                var qtyDiff = Math.Round(newQuantity - currentPkgQty, 3);
-                var countDiff = newCount - currentPkgCount;
+                // 4. Calculate Differences
+                decimal qtyDiff = Math.Round(newQuantity - currentPkgQty, 3);
+                int countDiff = newCount - currentPkgCount;
 
-                _logger.LogInformation("Calculated differences: qtyDiff={QtyDiff}, countDiff={CountDiff}", qtyDiff, countDiff);
-
-                // إذا لا يوجد تغيير — لا تنشئ معاملة
-                if (qtyDiff == 0m && countDiff == 0)
+                if (qtyDiff == 0 && countDiff == 0)
                 {
-                    return Json(new
-                    {
-                        success = false,
-                        error = $"الرصيد الحالي للتعبئة '{packaging.StyleName}' هو بالفعل {newQuantity} كجم / {newCount} وحدة (لا يوجد تغيير)"
-                    });
+                    return Json(new { success = false, error = "لا يوجد تغيير في الرصيد" });
                 }
 
-                // جهز معاملة التعديل
-                var adjustmentTx = new YarnTransaction
+                // 5. Execution Logic (Split vs Standard)
+                // We split if:
+                // A. Directions are mixed (Qty Up/Count Down OR Qty Down/Count Up)
+                // B. Quantity Change is Zero (Pure Count Adjustment) - To use Epsilon safely
+                bool isMixedDirection = (qtyDiff > 0 && countDiff < 0) || (qtyDiff < 0 && countDiff > 0);
+                bool isPureCountAdj = (qtyDiff == 0 && countDiff != 0);
+
+                var commonInternalId = $"PKG-ADJ-{DateTime.Now:yyyyMMddHHmmss}";
+                var baseTransaction = new YarnTransaction
                 {
-                    TransactionId = GenerateResetTransactionId(),
-                    InternalId = $"PKG-ADJ-{DateTime.Now:yyyyMMddHHmmss}",
-                    ExternalId = null,
+                    InternalId = commonInternalId,
                     YarnItemId = yarnItemId,
                     PackagingStyleId = packagingStyleId,
-                    StakeholderId = 1021, // stakeholder for adjustments
-                    Date = DateTime.Now,
-                    Comment = $"تعديل رصيد التعبئة ({packaging.StyleName}) من {currentPkgQty}/{currentPkgCount} إلى {newQuantity}/{newCount}" +
-                              (string.IsNullOrWhiteSpace(reason) ? "" : $" - السبب: {reason}")
+                    StakeholderId = 1021, // System Adjustment
+                    Date = DateTime.Now
                 };
 
-                // تحديد نوع المعاملة (Inbound أو Outbound)
-                if (qtyDiff > 0m)
+                YarnTransaction finalTx = null; // To hold the tx we display in the success message
+
+                // SCENARIO A: SPLIT TRANSACTION (Mixed Direction)
+                if (isMixedDirection)
                 {
-                    adjustmentTx.Inbound = qtyDiff;
-                    adjustmentTx.Outbound = 0m;
-                }
-                else // qtyDiff < 0
-                {
-                    adjustmentTx.Inbound = 0m;
-                    adjustmentTx.Outbound = Math.Abs(qtyDiff);
-                }
-
-                // العدد (Count) — استخدم الفرق المطلق
-                adjustmentTx.Count = Math.Abs(countDiff);
-
-                // حساب الرصيد الإجمالي الجديد بعد تطبيق الفرق
-                var newTotalQty = currentTotalQty + qtyDiff;
-                var newTotalCount = currentTotalCount + countDiff;
-
-                adjustmentTx.QuantityBalance = Math.Round(newTotalQty, 3);
-                adjustmentTx.CountBalance = newTotalCount;
-
-                // التحقق من عدم وجود رصيد سالب
-                if (adjustmentTx.QuantityBalance < 0 || adjustmentTx.CountBalance < 0)
-                {
-                    return Json(new
+                    // Step 1: Adjust Quantity Only (Count = 0)
+                    var txQty = new YarnTransaction
                     {
-                        success = false,
-                        error = $"لا يمكن تطبيق التعديل: سيؤدي إلى رصيد سالب (الرصيد الإجمالي الحالي: {currentTotalQty}/{currentTotalCount})"
-                    });
+                        TransactionId = GenerateResetTransactionId(),
+                        InternalId = commonInternalId,
+                        YarnItemId = yarnItemId,
+                        PackagingStyleId = packagingStyleId,
+                        StakeholderId = 1021,
+                        Date = DateTime.Now,
+                        Comment = $"تعديل رصيد (1/2): ضبط الوزن {qtyDiff:N3} كجم",
+
+                        // Qty Logic
+                        Inbound = qtyDiff > 0 ? qtyDiff : 0,
+                        Outbound = qtyDiff < 0 ? Math.Abs(qtyDiff) : 0,
+                        Count = 0, // No count change yet
+
+                        // Update Balance (Qty changes, Count stays)
+                        QuantityBalance = currentGlobalQty + qtyDiff,
+                        CountBalance = currentGlobalCount
+                    };
+                    _unitOfWork.Repository<YarnTransaction>().Add(txQty);
+
+                    // Step 2: Adjust Count Only (Qty = Epsilon)
+                    var txCount = new YarnTransaction
+                    {
+                        TransactionId = GenerateResetTransactionId(),
+                        InternalId = commonInternalId,
+                        YarnItemId = yarnItemId,
+                        PackagingStyleId = packagingStyleId,
+                        StakeholderId = 1021,
+                        Date = DateTime.Now.AddSeconds(1), // Ensure sequential order
+                        Comment = $"تعديل رصيد (2/2): ضبط العدد {countDiff} وحدة" + (string.IsNullOrWhiteSpace(reason) ? "" : $" - {reason}"),
+
+                        // Epsilon Logic: Use 0.00001 to force Inbound/Outbound flag for history loop
+                        Inbound = countDiff > 0 ? 0.00001m : 0,
+                        Outbound = countDiff < 0 ? 0.00001m : 0,
+                        Count = Math.Abs(countDiff),
+
+                        // Final Balance (Inherit Qty from Step 1, Apply Count Change)
+                        QuantityBalance = txQty.QuantityBalance,
+                        CountBalance = currentGlobalCount + countDiff
+                    };
+                    _unitOfWork.Repository<YarnTransaction>().Add(txCount);
+                    finalTx = txCount;
+                }
+                // SCENARIO B: PURE COUNT ADJUSTMENT (Qty = 0)
+                else if (isPureCountAdj)
+                {
+                    var txCount = new YarnTransaction
+                    {
+                        TransactionId = GenerateResetTransactionId(),
+                        InternalId = commonInternalId,
+                        YarnItemId = yarnItemId,
+                        PackagingStyleId = packagingStyleId,
+                        StakeholderId = 1021,
+                        Date = DateTime.Now,
+                        Comment = $"تعديل رصيد (عدد فقط): {countDiff} وحدة" + (string.IsNullOrWhiteSpace(reason) ? "" : $" - {reason}"),
+
+                        // Epsilon Logic
+                        Inbound = countDiff > 0 ? 0.00001m : 0,
+                        Outbound = countDiff < 0 ? 0.00001m : 0,
+                        Count = Math.Abs(countDiff),
+
+                        // Final Balance
+                        QuantityBalance = currentGlobalQty,
+                        CountBalance = currentGlobalCount + countDiff
+                    };
+                    _unitOfWork.Repository<YarnTransaction>().Add(txCount);
+                    finalTx = txCount;
+                }
+                // SCENARIO C: STANDARD ADJUSTMENT (Same Direction)
+                else
+                {
+                    var txStandard = new YarnTransaction
+                    {
+                        TransactionId = GenerateResetTransactionId(),
+                        InternalId = commonInternalId,
+                        YarnItemId = yarnItemId,
+                        PackagingStyleId = packagingStyleId,
+                        StakeholderId = 8,
+                        Date = DateTime.Now,
+                        Comment = $"تعديل رصيد: {qtyDiff:N3} كجم / {countDiff} وحدة" + (string.IsNullOrWhiteSpace(reason) ? "" : $" - {reason}"),
+
+                        // Standard Logic
+                        Inbound = qtyDiff > 0 ? qtyDiff : 0,
+                        Outbound = qtyDiff < 0 ? Math.Abs(qtyDiff) : 0,
+                        Count = Math.Abs(countDiff),
+
+                        // Final Balance
+                        QuantityBalance = currentGlobalQty + qtyDiff,
+                        CountBalance = currentGlobalCount + countDiff
+                    };
+                    _unitOfWork.Repository<YarnTransaction>().Add(txStandard);
+                    finalTx = txStandard;
                 }
 
-                // أضف المعاملة واحفظ
-                _unitOfWork.Repository<YarnTransaction>().Add(adjustmentTx);
+                // 6. Final Safety Check
+                if (finalTx.QuantityBalance < 0 || finalTx.CountBalance < 0)
+                {
+                    return Json(new { success = false, error = "فشلت العملية: التعديل سيؤدي إلى رصيد إجمالي سالب" });
+                }
+
                 _unitOfWork.Complete();
 
                 return Json(new
                 {
                     success = true,
-                    transactionId = adjustmentTx.TransactionId,
-                    oldPackagingBalance = $"{currentPkgQty} كجم / {currentPkgCount} وحدة",
-                    newPackagingBalance = $"{newQuantity} كجم / {newCount} وحدة",
-                    oldTotalBalance = $"{currentTotalQty} كجم / {currentTotalCount} وحدة",
-                    newTotalBalance = $"{adjustmentTx.QuantityBalance} كجم / {adjustmentTx.CountBalance} وحدة",
-                    message = $"تم ضبط رصيد التعبئة '{packaging.StyleName}' من {currentPkgQty}/{currentPkgCount} إلى {newQuantity}/{newCount}"
+                    transactionId = finalTx.TransactionId,
+                    newTotalBalance = $"{finalTx.QuantityBalance} كجم / {finalTx.CountBalance} وحدة",
+                    message = "تم تعديل رصيد التعبئة بنجاح"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error resetting packaging balance for yarnItem {YarnItemId}, packaging {PackagingId}", yarnItemId, packagingStyleId);
-                return Json(new { success = false, error = "حدث خطأ أثناء تعديل رصيد التعبئة: " + ex.Message });
+                _logger.LogError(ex, "Error resetting balance for Item {ItemId}, Pkg {PkgId}", yarnItemId, packagingStyleId);
+                return Json(new { success = false, error = "حدث خطأ: " + ex.Message });
             }
         }
         // Helper method to get active packaging styles

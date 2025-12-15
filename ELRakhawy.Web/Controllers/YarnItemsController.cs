@@ -449,40 +449,6 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
-        // ENHANCED: Helper method for circular reference checking
-        private bool WouldCreateCircularReference(int itemId, int newOriginYarnId)
-        {
-            try
-            {
-                var visited = new HashSet<int> { itemId };
-                return CheckCircularReferenceRecursive(newOriginYarnId, visited);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking circular reference for item {ItemId} and origin {OriginId} by {User} at {Time}",
-                    itemId, newOriginYarnId, "Ammar-Yasser8", "2025-08-12 14:22:41");
-                return true; // Err on the side of caution
-            }
-        }
-
-        private bool CheckCircularReferenceRecursive(int yarnId, HashSet<int> visited)
-        {
-            if (visited.Contains(yarnId))
-                return true;
-
-            visited.Add(yarnId);
-
-            var yarnItem = _unitOfWork.Repository<YarnItem>()
-                .GetOne(y => y.Id == yarnId);
-
-            if (yarnItem?.OriginYarnId.HasValue == true)
-            {
-                return CheckCircularReferenceRecursive(yarnItem.OriginYarnId.Value, visited);
-            }
-
-            return false;
-        }
-
         // ENHANCED: Updated helper method for origin yarns dropdown
         private IEnumerable<SelectListItem> GetOriginYarnsSelectList(int? excludeId = null)
         {
@@ -655,42 +621,7 @@ namespace ELRakhawy.Web.Controllers
             }
         }
 
-        // Helper method to check for circular dependency
-        private bool HasCircularDependency(int itemId, int originYarnId)
-        {
-            try
-            {
-                var visited = new HashSet<int>();
-                return CheckCircularDependencyRecursive(itemId, originYarnId, visited);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking circular dependency for item {ItemId} and origin {OriginId}",
-                    itemId, originYarnId);
-                return false;
-            }
-        }
-
        
-        private bool CheckCircularDependencyRecursive(int targetId, int currentId, HashSet<int> visited)
-        {
-            if (currentId == targetId)
-                return true;
-
-            if (visited.Contains(currentId))
-                return false;
-
-            visited.Add(currentId);
-
-            var currentItem = _unitOfWork.Repository<YarnItem>().GetOne(y => y.Id == currentId);
-            if (currentItem?.OriginYarnId.HasValue == true)
-            {
-                return CheckCircularDependencyRecursive(targetId, currentItem.OriginYarnId.Value, visited);
-            }
-
-            return false;
-        }
-
 
         [HttpGet]
         [Route("api/YarnItems/{id}")]
@@ -718,10 +649,6 @@ namespace ELRakhawy.Web.Controllers
             });
         }
 
-        // Model for status update
-        public class StatusUpdateModel
-        {
-            public bool Status { get; set; }
-        }
+        
     }
 }

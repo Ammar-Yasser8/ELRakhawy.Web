@@ -1635,6 +1635,11 @@
                     const trigger = document.querySelector(`[href="#${this.id}"]`);
                     if (trigger) {
                         trigger.setAttribute('aria-expanded', 'true');
+                        // Force arrow rotation by adding class
+                        const arrow = trigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
                     }
                 });
 
@@ -1642,8 +1647,25 @@
                     const trigger = document.querySelector(`[href="#${this.id}"]`);
                     if (trigger) {
                         trigger.setAttribute('aria-expanded', 'false');
+                        // Reset arrow rotation
+                        const arrow = trigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(0deg)';
+                        }
                     }
                 });
+
+                // Handle initial state on page load
+                if (collapse.classList.contains('show')) {
+                    const trigger = document.querySelector(`[href="#${collapse.id}"]`);
+                    if (trigger) {
+                        trigger.setAttribute('aria-expanded', 'true');
+                        const arrow = trigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                    }
+                }
             });
 
             // Keep submenu open when navigating back from dashboard
@@ -1661,6 +1683,75 @@
                     setTimeout(() => {
                         bsCollapse.show();
                         yarnTrigger.setAttribute('aria-expanded', 'true');
+                        // Ensure arrow is rotated
+                        const arrow = yarnTrigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                    }, 100);
+                }
+            }
+
+            // Also handle the other sections for consistency
+            if (currentPath.includes('/rawitems/') || currentPath.includes('/rawtransactions/')) {
+                const rawMenu = document.getElementById('RawFabricMenu');
+                const rawTrigger = document.querySelector('[href="#RawFabricMenu"]');
+                if (rawMenu && rawTrigger) {
+                    let bsCollapse = bootstrap.Collapse.getInstance(rawMenu);
+                    if (!bsCollapse) {
+                        bsCollapse = new bootstrap.Collapse(rawMenu, {
+                            toggle: false
+                        });
+                    }
+                    setTimeout(() => {
+                        bsCollapse.show();
+                        rawTrigger.setAttribute('aria-expanded', 'true');
+                        const arrow = rawTrigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                    }, 100);
+                }
+            }
+
+            if (currentPath.includes('/fullwarpbeam/') || currentPath.includes('/fullwarpbeamtransations/')) {
+                const warpMenu = document.getElementById('WarpFabricMenu');
+                const warpTrigger = document.querySelector('[href="#WarpFabricMenu"]');
+                if (warpMenu && warpTrigger) {
+                    let bsCollapse = bootstrap.Collapse.getInstance(warpMenu);
+                    if (!bsCollapse) {
+                        bsCollapse = new bootstrap.Collapse(warpMenu, {
+                            toggle: false
+                        });
+                    }
+                    setTimeout(() => {
+                        bsCollapse.show();
+                        warpTrigger.setAttribute('aria-expanded', 'true');
+                        const arrow = warpTrigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
+                    }, 100);
+                }
+            }
+
+            if (currentPath.includes('/fabricitems/') || currentPath.includes('/fabrictransactions/')) {
+                const fabricMenu = document.getElementById('FabricMenu');
+                const fabricTrigger = document.querySelector('[href="#FabricMenu"]');
+                if (fabricMenu && fabricTrigger) {
+                    let bsCollapse = bootstrap.Collapse.getInstance(fabricMenu);
+                    if (!bsCollapse) {
+                        bsCollapse = new bootstrap.Collapse(fabricMenu, {
+                            toggle: false
+                        });
+                    }
+                    setTimeout(() => {
+                        bsCollapse.show();
+                        fabricTrigger.setAttribute('aria-expanded', 'true');
+                        const arrow = fabricTrigger.querySelector('.arrow');
+                        if (arrow) {
+                            arrow.style.transform = 'rotate(180deg)';
+                        }
                     }, 100);
                 }
             }

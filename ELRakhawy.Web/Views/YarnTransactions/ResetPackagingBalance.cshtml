@@ -140,22 +140,10 @@
                                     </small>
                                 </div>
                             </div>
-
-                            <!-- Reset Date -->
-                            <div class="mb-4">
-                                <label for="ResetDate" class="form-label required fw-semibold">
-                                    <i class="fas fa-calendar-alt text-danger me-1"></i>تاريخ التعديل
-                                </label>
-                                <input type="date" id="ResetDate" name="ResetDate"
-                                       value="@Model.ResetDate.ToString("yyyy-MM-dd")" 
-                                       class="form-control form-control-lg" required />
-                                <span class="text-danger" asp-validation-for="ResetDate"></span>
-                            </div>
                         </form>
                     </div>
                 </div>
             </div>
-
             <!-- Adjustment Panel -->
             <div class="col-lg-7 mb-4">
                 <div class="card shadow-sm border-0 h-100">
@@ -622,6 +610,7 @@
         }
 
         // ✅ Load overall yarn item balance
+        // ✅ Load overall yarn item balance AND packaging details
         function loadOverallBalance(yarnItemId) {
             $.ajax({
                 url: '/YarnTransactions/GetYarnItemBalance',
@@ -629,64 +618,88 @@
                 data: { yarnItemId: yarnItemId },
                 beforeSend: function() {
                     $('#overallBalanceCard').fadeOut();
+                    // Show loading state
                 },
                 success: function(response) {
                     if (response && response.success) {
+                        // Store the full response globally so we can filter by packaging later
                         currentOverallBalance = response;
                         displayOverallBalance(response);
+
+                        // If a packaging style is already selected, update its specific balance
+                        var selectedPackagingId = $('#PackagingStyleId').val();
+                        if (selectedPackagingId) {
+                            updatePackagingBalanceDisplay(parseInt(selectedPackagingId));
+                        }
                     } else {
-                        console.error('Failed to load overall balance:', response.error);
+                        console.error('Failed to load balance:', response.error);
+                        showArabicError(response.error || 'فشل في تحميل الرصيد');
                     }
                 },
                 error: function(xhr, status, error) {
-                    console.error('Ajax error loading overall balance:', error);
+                    console.error('Ajax error:', error);
                     showArabicError('فشل في تحميل الرصيد الإجمالي');
                 }
             });
         }
 
-        // ✅ Load packaging-specific balance
+        // ✅ Load/Extract packaging-specific balance from the global data
         function loadPackagingBalance(yarnItemId, packagingId) {
-            $.ajax({
-                url: '/YarnTransactions/GetPackagingBalance',
-                type: 'GET',
-                data: {
-                    yarnItemId: yarnItemId,
-                    packagingStyleId: packagingId
-                },
-                beforeSend: function() {
-                    $('#currentBalanceDisplay').html('<i class="fas fa-spinner fa-spin"></i> جاري التحميل...');
-                },
-                success: function(response) {
-                    if (response && response.success) {
-                        currentPackagingBalance = response;
-                        displayPackagingBalance(response);
-                        showAdjustmentSection();
-                    } else {
-                        showArabicError('خطأ في تحميل رصيد التعبئة: ' + (response.error || 'خطأ غير معروف'));
-                    }
-                },
-                error: function(xhr, status, error) {
-                    console.error('Ajax error loading packaging balance:', error);
-                    showArabicError('خطأ في الاتصال أثناء تحميل رصيد التعبئة');
-                }
-            });
+            // If global data isn't loaded yet, load it first
+            if (!currentOverallBalance || currentOverallBalance.yarnItemId !== yarnItemId) {
+                loadOverallBalance(yarnItemId); // This will trigger the update once loaded
+                return;
+            }
+
+            updatePackagingBalanceDisplay(packagingId);
         }
 
+        function updatePackagingBalanceDisplay(packagingId) {
+            if (!currentOverallBalance || !currentOverallBalance.packagingBreakdown) {
+                return;
+            }
+
+            // Find the specific packaging in the breakdown list
+            var packagingData = currentOverallBalance.packagingBreakdown.find(p => p.packagingId === packagingId);
+
+            if (packagingData) {
+                // Found specific data
+                currentPackagingBalance = {
+                    currentQuantity: packagingData.specificWeight,
+                    currentCount: packagingData.totalCount,
+                    transactionCount: currentOverallBalance.transactionCount // Approximate or add specific count to API if needed
+                };
+            } else {
+                // No history for this packaging yet -> Balance is 0
+                currentPackagingBalance = {
+                    currentQuantity: 0,
+                    currentCount: 0,
+                    transactionCount: 0
+                };
+            }
+
+            displayPackagingBalance(currentPackagingBalance);
+            showAdjustmentSection();
+        }
         // ✅ Display overall balance information (with Arabic numbers)
         function displayOverallBalance(data) {
+            // Use 'calculatedTotalWeight' as the source of truth based on your controller logic
+            var totalQty = data.calculatedTotalWeight || data.totalQuantityBalance || 0;
+            var totalCount = data.calculatedTotalCount || data.totalCountBalance || 0;
+            var pkgCount = data.packagingBreakdown ? data.packagingBreakdown.length : 0;
+
             var html = `
                 <div class="row">
                     <div class="col-md-3 text-center border-end">
-                        <h5 class="text-primary mb-1">${formatArabicNumber(data.totalQuantityBalance.toFixed(2))}</h5>
+                        <h5 class="text-primary mb-1">${formatArabicNumber(totalQty.toFixed(3))}</h5>
                         <small class="text-muted">إجمالي الكمية (كجم)</small>
                     </div>
                     <div class="col-md-3 text-center border-end">
-                        <h5 class="text-success mb-1">${formatArabicNumber(data.totalCountBalance.toString())}</h5>
+                        <h5 class="text-success mb-1">${formatArabicNumber(totalCount.toString())}</h5>
                         <small class="text-muted">إجمالي العدد (وحدة)</small>
                     </div>
                     <div class="col-md-3 text-center border-end">
-                        <h5 class="text-info mb-1">${formatArabicNumber(data.packagingTypesCount.toString())}</h5>
+                        <h5 class="text-info mb-1">${formatArabicNumber(pkgCount.toString())}</h5>
                         <small class="text-muted">أنواع التعبئة</small>
                     </div>
                     <div class="col-md-3 text-center">
@@ -887,7 +900,7 @@
                             <p class="mb-1"><strong>الصنف:</strong> ${yarnItemName}</p>
                             <p class="mb-1"><strong>نوع التعبئة:</strong> ${packagingName}</p>
                             <p class="mb-1"><strong>السبب:</strong> ${reason}</p>
-                            <p class="mb-0"><strong>التاريخ:</strong> ${$('#ResetDate').val()}</p>
+                            
                         </div>
                         <div class="col-md-6">
                             <h6 class="text-success">التغييرات:</h6>
